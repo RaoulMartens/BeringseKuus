@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beheer - Excel importeren - Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            /* scrollbar altijd tonen: anders verspringt de schaal per scherm */
+            overflow-y: scroll;
+            scrollbar-gutter: stable;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #e0e0e0;
+            padding: 20px;
+        }
+        .wf-screen {
+            width: 100%;
+            /* vloeiend tussen 1000 en 1200; daaronder een desktopontwerp
+               samenpersen levert onleesbare kolommen op */
+            min-width: 1000px;
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: 800px;
+            background: #f5f5f5;
+            border: 2px dashed #ccc;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .wf-topnav {
+            background: #e8e8e8;
+            border-bottom: 1px dashed #ccc;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 56px;
+        }
+        .wf-topnav .wf-brand {
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            margin-right: 32px;
+        }
+        .wf-topnav-item {
+            padding: 8px 14px;
+            font-size: 14px;
+            color: #888;
+            border-bottom: 2px solid transparent;
+        }
+        .wf-topnav-item.active {
+            color: #444;
+            font-weight: 600;
+            border-bottom: 2px dashed #999;
+        }
+        .wf-topnav .wf-spacer-flex {
+            margin-left: auto;
+        }
+        .wf-header {
+            background: #eee;
+            border-bottom: 1px dashed #ccc;
+            padding: 20px 24px;
+            font-size: 22px;
+            font-weight: 600;
+            color: #444;
+            /* titel links, eventueel één link rechts (Deze activiteit beheren) */
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 4px 16px;
+        }
+        .wf-header .wf-subtitle {
+            font-weight: 400;
+        }
+        .wf-nav {
+            background: #ededed;
+            border-bottom: 1px dashed #ccc;
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #666;
+        }
+        .wf-content {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .wf-columns {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+        .wf-col {
+            /* groeit tot 680px, krimpt evenredig met de zijkolom mee */
+            flex: 1 1 420px;
+            max-width: 680px;
+            /* mag onder zijn inhoudsbreedte krimpen: anders bepaalt de inhoud
+               de breedte en wordt elk scherm een andere maat */
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .wf-sidebar {
+            flex: 0 1 380px;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .wf-card, .wf-list-item, .wf-role-row {
+            min-width: 0;
+        }
+        .wf-list-item > span, .wf-role-row > span {
+            min-width: 0;
+        }
+        .wf-veldrij {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .wf-veldrij > .wf-veld {
+            flex: 1 1 0;
+        }
+        .wf-veldrij > .wf-veld + .wf-veld {
+            margin-top: 0;
+        }
+        .wf-veld + .wf-veldrij,
+        .wf-veldrij + .wf-veld,
+        .wf-veldrij + .wf-veldrij {
+            margin-top: 20px;
+        }
+        .wf-veldrij > .wf-veld.wf-kort {
+            flex: 0 1 160px;
+        }
+        .wf-veldrij > .wf-veld.wf-middel {
+            flex: 0 1 210px;
+        }
+        .wf-rolgroep + .wf-rolgroep {
+            margin-top: 18px;
+        }
+        .wf-rolgroep-kop {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .wf-role-row.wf-leeg {
+            background: #f7f7f7;
+            color: #999;
+        }
+        .wf-slot-actie {
+            margin-top: 6px;
+            font-size: 13px;
+            color: #777;
+        }
+        .wf-kiesveld {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            color: #333;
+        }
+        .wf-kiesveld .wf-pijl {
+            margin-left: auto;
+            color: #999;
+        }
+        .wf-kiesveld.wf-leeg-veld {
+            color: #999;
+            font-style: italic;
+        }
+        .wf-kiesveld.wf-open {
+            border: 2px solid #888;
+        }
+        .wf-wis {
+            color: #999;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0 2px;
+        }
+        .wf-plek-weg {
+            font-size: 13px;
+            color: #888;
+            white-space: nowrap;
+        }
+        .wf-role-row:has(.wf-kiesveld) {
+            border: none;
+            background: transparent;
+            padding: 3px 0;
+        }
+        .wf-input.wf-kiesveld {
+            color: #333;
+        }
+        .wf-input.wf-kiesveld.wf-leeg-veld {
+            color: #999;
+        }
+        .wf-teller {
+            display: inline-flex;
+            align-items: center;
+            border: 1px dashed #bbb;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #444;
+        }
+        .wf-teller > span {
+            padding: 2px 9px;
+        }
+        .wf-teller .wf-aantal {
+            border-left: 1px dashed #ddd;
+            border-right: 1px dashed #ddd;
+            color: #666;
+        }
+        .wf-teller .wf-uit {
+            color: #ccc;
+        }
+        .wf-plek-kruis {
+            color: #999;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0 4px 0 10px;
+        }
+        .wf-plek-erbij {
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #777;
+            margin-top: 3px;
+        }
+        .wf-uitkomsten {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .wf-uitkomst {
+            display: block;
+            border: 1px dashed #aaa;
+            border-radius: 6px;
+            padding: 10px;
+            background: #fafafa;
+        }
+        .wf-uitkomst-titel {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .wf-mini {
+            font-size: 12px;
+            color: #555;
+            border: 1px dashed #ccc;
+            border-radius: 3px;
+            background: #fff;
+            padding: 3px 8px;
+            margin-bottom: 3px;
+        }
+        .wf-mini.wf-leeg {
+            color: #aaa;
+            font-style: italic;
+        }
+        .wf-mini.wf-weg {
+            color: #bbb;
+            background: transparent;
+            text-decoration: line-through;
+        }
+        .wf-sidebar.wf-sticky {
+            position: sticky;
+            top: 16px;
+        }
+        .wf-paneel-knoppen {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .wf-paneel-knoppen .wf-button,
+        .wf-paneel-knoppen .wf-button-secondary {
+            align-self: stretch;
+            text-align: center;
+        }
+        .wf-annuleer {
+            display: block;
+            text-align: center;
+            font-size: 13px;
+            color: #777;
+            padding: 4px 0;
+        }
+        .wf-ontbreekt {
+            font-size: 14px;
+            color: #7a4444;
+            margin: 4px 0;
+        }
+        .wf-naar-veld {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .wf-bericht {
+            font-size: 13px;
+            color: #666;
+            padding: 10px 0;
+            border-top: 1px dashed #e2e2e2;
+        }
+        .wf-bericht:last-of-type {
+            border-bottom: 1px dashed #e2e2e2;
+            margin-bottom: 12px;
+        }
+        .wf-bericht strong {
+            color: #444;
+            font-weight: 600;
+        }
+        .wf-status-kop {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+        .wf-status-kop .wf-stip {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid #999;
+            margin-right: 8px;
+            vertical-align: 2px;
+        }
+        .wf-status-kop .wf-stip.wf-vol {
+            background: #777;
+            border-color: #777;
+        }
+        .wf-paneel-scheiding {
+            border: none;
+            border-top: 1px dashed #ddd;
+            margin: 18px 0;
+        }
+        .wf-input.wf-gewijzigd {
+            position: relative;
+        }
+        .wf-input.wf-gewijzigd::after {
+            content: "";
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #777;
+        }
+        .wf-plekjes {
+            display: flex;
+            gap: 5px;
+            width: 190px;
+            flex-shrink: 0;
+        }
+        .wf-plekjes span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #777;
+        }
+        .wf-plekjes span {
+            flex-shrink: 0;
+        }
+        .wf-plekjes span.wf-open {
+            background: transparent;
+            border: 2px solid #aaa;
+        }
+        .wf-keuzelijst {
+            border: 2px dashed #888;
+            background: #fff;
+            padding: 12px;
+            margin: 4px 0 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .wf-keuzelijst .wf-list-item {
+            padding: 8px 12px;
+        }
+        .wf-acties {
+            margin-left: auto;
+            display: flex;
+            gap: 14px;
+            font-size: 13px;
+            color: #666;
+            white-space: nowrap;
+        }
+        .wf-acties .wf-hoofdactie {
+            color: #333;
+            font-weight: 600;
+        }
+        .wf-role-row.wf-leeg-plek {
+            border-style: dashed;
+            color: #999;
+        }
+        .wf-role-row.wf-open-plek {
+            border: 2px solid #888;
+        }
+        .wf-role-row.wf-weggehaald .wf-naam {
+            text-decoration: line-through;
+            color: #aaa;
+        }
+        .wf-narrow {
+            max-width: 680px;
+        }
+        .wf-input {
+            border: 1px dashed #ccc;
+            background: #fff;
+            padding: 12px;
+            font-size: 14px;
+            color: #999;
+            border-radius: 4px;
+        }
+        .wf-veld {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .wf-veld + .wf-veld {
+            margin-top: 20px;
+        }
+        .wf-button {
+            background: #ccc;
+            border: 1px dashed #999;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .wf-button-secondary {
+            background: transparent;
+            border: 1px dashed #999;
+            padding: 12px 20px;
+            font-size: 15px;
+            color: #666;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .wf-button-danger {
+            background: #f0dede;
+            border: 1px dashed #b98989;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #7a4444;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .wf-button-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        /* knoppen hugsen hun tekst, ook als ze via .wf-link (display: contents)
+           rechtstreeks in een flexkolom terechtkomen */
+        .wf-button,
+        .wf-button-secondary,
+        .wf-button-danger {
+            align-self: flex-start;
+        }
+        .wf-input.wf-error {
+            border-color: #b98989;
+            background: #fbf6f6;
+        }
+        .wf-veldfout {
+            font-size: 13px;
+            color: #7a4444;
+            margin-top: 4px;
+        }
+        .wf-button.wf-disabled {
+            background: #ededed;
+            border-color: #ccc;
+            color: #aaa;
+            cursor: default;
+        }
+        .wf-card {
+            background: #fff;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        .wf-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(70, 70, 70, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .wf-modal {
+            background: #f5f5f5;
+            border: 2px dashed #999;
+            border-radius: 6px;
+            width: 540px;
+            max-width: 100%;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .wf-list-item {
+            background: #fff;
+            border: 1px dashed #ccc;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #666;
+        }
+        .wf-list-item + .wf-list-item {
+            border-top: none;
+        }
+        .wf-list-item.wf-disabled {
+            background: #ededed;
+            color: #aaa;
+        }
+        .wf-list-item.wf-flagged {
+            background: #f2eddd;
+            border-color: #c8bb92;
+            color: #6a5f3a;
+        }
+        .wf-role-row {
+            background: #fff;
+            border: 1px dashed #ccc;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+        .wf-role-row .wf-role-type {
+            width: 160px;
+            font-weight: 600;
+            color: #555;
+            flex-shrink: 0;
+        }
+        .wf-role-row .wf-role-name {
+            flex: 1;
+        }
+        .wf-role-row + .wf-role-row {
+            border-top: none;
+        }
+        .wf-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            font-size: 14px;
+            color: #666;
+        }
+        .wf-table th,
+        .wf-table td {
+            border: 1px dashed #ccc;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        .wf-table th {
+            background: #ededed;
+            font-weight: 600;
+            color: #555;
+            font-size: 13px;
+        }
+        .wf-kaartje {
+            position: relative;
+            background: #fff;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+        }
+        .wf-kaartje-boven {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            color: #666;
+        }
+        .wf-kaartje-stops {
+            display: flex;
+            margin-top: 14px;
+        }
+        .wf-kaartje-stop {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            padding-top: 22px;
+            font-size: 13px;
+            color: #888;
+        }
+        .wf-kaartje-stop strong {
+            font-size: 18px;
+            font-weight: 600;
+            color: #555;
+        }
+        .wf-kaartje-stop.eerst strong {
+            font-size: 28px;
+            color: #333;
+        }
+        .wf-kaartje-stop.eerst .wf-kaartje-naam {
+            color: #333;
+            font-weight: 600;
+        }
+        .wf-kaartje-dot {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            box-sizing: border-box;
+            border: 2px solid #999;
+            border-radius: 50%;
+            background: #fff;
+            z-index: 1;
+        }
+        .wf-kaartje-stop.eerst .wf-kaartje-dot {
+            background: #555;
+            border-color: #555;
+        }
+        .wf-kaartje-stop:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 5px;
+            left: 18px;
+            right: 6px;
+            border-top: 2px dashed #ccc;
+        }
+        .wf-kaartje-onder {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            background: #ededed;
+            border-top: 2px dashed #bbb;
+            font-size: 14px;
+            color: #666;
+        }
+        .wf-kaartje-onder svg {
+            flex-shrink: 0;
+        }
+        .wf-kaartje-onder::before,
+        .wf-kaartje-onder::after {
+            content: "";
+            position: absolute;
+            top: -11px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f5f5f5;
+        }
+        .wf-kaartje-onder::before { left: -11px; }
+        .wf-kaartje-onder::after { right: -11px; }
+        .wf-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            font-size: 12px;
+            border-radius: 10px;
+            border: 1px dashed #bbb;
+            background: #eee;
+            color: #666;
+        }
+        .wf-badge.concept { background: #ededed; color: #777; }
+        .wf-badge.gepubliceerd { background: #e4ece4; color: #4a6a4a; }
+        .wf-badge.geannuleerd { background: #f0dede; color: #7a4444; }
+        .wf-badge.wf-active {
+            background: #ccc;
+            color: #333;
+            border: 1px solid #777;
+            font-weight: 600;
+        }
+        .wf-badge.wf-done {
+            background: #f0f0f0;
+            color: #999;
+        }
+        .wf-badge.wf-todo {
+            background: #f5f5f5;
+            color: #aaa;
+        }
+        .wf-alert {
+            border: 1px dashed #bbb;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 14px;
+            background: #eee;
+            color: #666;
+        }
+        .wf-alert.info { background: #e6ecf2; color: #4a5a6a; border-color: #a8b8c8; }
+        .wf-alert.warning { background: #f2eddd; color: #6a5f3a; border-color: #c8bb92; }
+        .wf-alert.danger { background: #f0dede; color: #7a4444; border-color: #b98989; }
+        .wf-icon-placeholder {
+            width: 24px;
+            height: 24px;
+            background: #ddd;
+            border: 1px dashed #bbb;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .wf-icon-placeholder.large {
+            width: 48px;
+            height: 48px;
+        }
+        .wf-foto {
+            /* plek voor een foto die het bestuur aanlevert; de tekst zegt welke */
+            aspect-ratio: 16 / 9;
+            background: #e6e6e6;
+            border: 1px dashed #bbb;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 16px;
+        }
+        .wf-text-placeholder {
+            background: #e0e0e0;
+            height: 12px;
+            border-radius: 2px;
+        }
+        .wf-text-placeholder.short { width: 25%; }
+        .wf-text-placeholder.medium { width: 50%; }
+        .wf-text-placeholder.full { width: 100%; }
+        .wf-divider {
+            border: none;
+            border-top: 1px dashed #ccc;
+            margin: 4px 0;
+        }
+        .wf-spacer {
+            height: 16px;
+        }
+        .wf-label {
+            font-size: 12px;
+            color: #888;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .wf-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #444;
+        }
+        .wf-subtitle {
+            font-size: 14px;
+            color: #888;
+        }
+        .wf-footer {
+            font-size: 11px;
+            color: #aaa;
+            text-align: center;
+            padding: 10px;
+            border-top: 1px dashed #ddd;
+        }
+        a.wf-link {
+            color: inherit;
+            text-decoration: none;
+            display: contents;
+        }
+        a.wf-link:hover {
+            opacity: 0.7;
+        }
+        a.wf-link:active {
+            opacity: 0.5;
+        }
+        .wf-back {
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+        }
+        .wf-datum {
+            width: 130px;
+            flex-shrink: 0;
+        }
+        .wf-datum.wf-kort {
+            width: 110px;
+        }
+        /* tellers die tegelijk filter zijn (beheeroverzicht) */
+        .wf-tegels {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .wf-tegel {
+            background: #fff;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: #666;
+        }
+        .wf-tegel b {
+            display: block;
+            font-size: 26px;
+            font-weight: 600;
+            line-height: 1.2;
+            color: #444;
+        }
+        .wf-tegel.wf-actief {
+            border: 2px solid #888;
+            background: #f5f5f5;
+        }
+        .wf-tegel.wf-nul,
+        .wf-tegel.wf-nul b {
+            color: #aaa;
+        }
+        /* twee knoppen naast elkaar, alleen op mobiel (op desktop staan ze in de zijkaart) */
+        .wf-knoppenrij {
+            display: none;
+        }
+        /* alleen op mobiel zichtbaar (op desktop staat dezelfde actie elders) */
+        .wf-alleen-mobiel {
+            display: none;
+        }
+        /* ---- mobiel ----
+           Onder 700px vallen hoofd- en zijkolom onder elkaar. Volgorde: het eerste blok
+           van de hoofdkolom (wat is er), dan het eerste blok van de zijkolom (jouw status,
+           de dienst die je overdraagt), dan de rest van de hoofdkolom, dan de rest van de
+           zijkolom. .wf-mobiel-onderaan zet een blok helemaal onderaan.
+           Het statuspaneel van het activiteitscherm wordt een balk onderaan. */
+        @media (max-width: 700px) {
+            body {
+                padding: 0;
+            }
+            .wf-screen {
+                min-width: 0;
+                min-height: 100vh;
+                border: none;
+            }
+            .wf-screen .wf-topnav {
+                padding: 0 8px;
+                gap: 0;
+                height: 48px;
+            }
+            .wf-screen .wf-topnav .wf-brand,
+            .wf-screen .wf-topnav .wf-subtitle {
+                display: none;
+            }
+            .wf-screen .wf-topnav-item {
+                padding: 8px 10px;
+            }
+            .wf-screen .wf-nav {
+                padding: 10px 16px;
+            }
+            .wf-screen .wf-header {
+                padding: 14px 16px;
+                font-size: 18px;
+            }
+            .wf-screen .wf-content {
+                padding: 16px;
+                gap: 12px;
+            }
+            .wf-screen .wf-columns {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .wf-screen .wf-col,
+            .wf-screen .wf-sidebar {
+                display: contents;
+            }
+            .wf-screen .wf-col > *,
+            .wf-screen .wf-col > a.wf-link > * {
+                order: 3;
+            }
+            .wf-screen .wf-col > :first-child {
+                order: 1;
+            }
+            .wf-screen .wf-sidebar > *,
+            .wf-screen .wf-sidebar > a.wf-link > * {
+                order: 4;
+            }
+            .wf-screen .wf-sidebar > :first-child {
+                order: 2;
+            }
+            /* even specifiek als :first-child hierboven, en staat erna: wint */
+            .wf-screen .wf-columns > * > .wf-mobiel-onderaan {
+                order: 5;
+            }
+            /* kaart direct na het eerste blok van de zijkolom (statuskaart); bijvoorbeeld Mijn diensten op het welkomscherm */
+            .wf-screen .wf-columns > * > .wf-mobiel-boven {
+                order: 2;
+            }
+            /* sfeer, geen taak: op een telefoon weg */
+            .wf-screen .wf-niet-op-mobiel {
+                display: none;
+            }
+            .wf-screen .wf-alleen-mobiel {
+                display: block;
+            }
+            /* filters worden op mobiel kleine afgeronde labels, zodat ze niet op de knoppen erboven lijken */
+            .wf-screen .wf-tegels {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .wf-screen .wf-tegel {
+                display: flex;
+                align-items: baseline;
+                gap: 6px;
+                border-radius: 16px;
+                padding: 6px 14px;
+                font-size: 13px;
+            }
+            .wf-screen .wf-tegel b {
+                display: inline;
+                font-size: 15px;
+            }
+            .wf-screen .wf-knoppenrij {
+                display: flex;
+                gap: 8px;
+            }
+            .wf-screen .wf-knoppenrij > a.wf-link {
+                display: block;
+                flex: 1 1 0;
+                min-width: 0;
+            }
+            .wf-screen .wf-knoppenrij .wf-button,
+            .wf-screen .wf-knoppenrij .wf-button-secondary {
+                padding: 12px 8px;
+            }
+            .wf-screen .wf-card {
+                padding: 16px;
+            }
+            .wf-screen .wf-list-item {
+                flex-wrap: wrap;
+                gap: 4px 12px;
+                padding: 12px 14px;
+            }
+            .wf-screen .wf-datum {
+                width: 100%;
+                font-size: 13px;
+            }
+            .wf-screen .wf-role-row {
+                flex-wrap: wrap;
+                gap: 2px 12px;
+                padding: 10px 12px;
+            }
+            .wf-screen .wf-role-row .wf-role-type {
+                width: 100%;
+                font-size: 13px;
+            }
+            .wf-screen .wf-table th,
+            .wf-screen .wf-table td {
+                padding: 8px 10px;
+            }
+            .wf-screen .wf-kaartje-boven {
+                padding: 16px;
+            }
+            .wf-screen .wf-kaartje-stops {
+                flex-direction: column;
+            }
+            .wf-screen .wf-kaartje-stop {
+                padding: 0 0 14px 28px;
+            }
+            .wf-screen .wf-kaartje-stop:last-child {
+                padding-bottom: 0;
+            }
+            .wf-screen .wf-kaartje-dot {
+                top: 6px;
+            }
+            .wf-screen .wf-kaartje-stop:not(:last-child)::after {
+                top: 22px;
+                bottom: -6px;
+                left: 5px;
+                right: auto;
+                border-top: none;
+                border-left: 2px dashed #ccc;
+            }
+            .wf-screen .wf-kaartje-onder {
+                padding: 14px 16px;
+            }
+            .wf-screen .wf-role-row:has(.wf-kiesveld) {
+                padding: 3px 0;
+            }
+            .wf-screen .wf-veldrij {
+                flex-wrap: wrap;
+                gap: 16px 12px;
+            }
+            .wf-screen .wf-veldrij > .wf-veld,
+            .wf-screen .wf-veldrij > .wf-veld.wf-kort,
+            .wf-screen .wf-veldrij > .wf-veld.wf-middel {
+                flex: 1 1 130px;
+            }
+            /* lange velden (keuzelijsten): op mobiel onder elkaar in plaats van naast elkaar */
+            .wf-screen .wf-veldrij.wf-stapelen {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .wf-screen .wf-veldrij.wf-stapelen > .wf-veld,
+            .wf-screen .wf-veldrij.wf-stapelen > .wf-veld.wf-middel {
+                flex: 0 0 auto;
+            }
+            /* statuspaneel van het activiteitscherm: een balk onderaan die blijft staan */
+            .wf-screen .wf-columns > .wf-sidebar.wf-sticky > .wf-card {
+                order: 6;
+                position: sticky;
+                bottom: 0;
+                margin: 0 -16px;
+                padding: 12px 16px;
+                border: none;
+                border-top: 2px dashed #999;
+                border-radius: 0;
+            }
+            .wf-screen .wf-paneel-scheiding {
+                margin: 8px 0;
+            }
+            .wf-screen .wf-sidebar.wf-sticky .wf-status-kop {
+                font-size: 16px;
+            }
+            /* knoppen over de volle breedte: groot doel voor de duim */
+            .wf-screen .wf-button-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .wf-screen .wf-button,
+            .wf-screen .wf-button-secondary,
+            .wf-screen .wf-button-danger {
+                display: block;
+                align-self: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wf-screen">
+
+        <div class="wf-topnav">
+            <span class="wf-brand">De Beringse Kuus</span>
+            <a href="welkom.html" class="wf-link">
+                <div class="wf-topnav-item">Start</div>
+            </a>
+            <a href="programma.html" class="wf-link">
+                <div class="wf-topnav-item">Programma</div>
+            </a>
+            <a href="admin-activiteiten.html" class="wf-link">
+                <div class="wf-topnav-item active">Beheer</div>
+            </a>
+            <span class="wf-spacer-flex"></span>
+            <span class="wf-subtitle">Mark Hendriks</span>
+            <div class="wf-icon-placeholder"></div>
+        </div>
+
+        <div class="wf-nav">
+            <a href="admin-bulk-start.html" class="wf-link wf-back">&larr; Terug naar meerdere aanmaken</a>
+            <span></span>
+        </div>
+
+        <div class="wf-header">Excel-bestand importeren</div>
+
+        <div class="wf-content">
+
+            <div class="wf-col wf-narrow">
+                <div class="wf-card">
+                    <span class="wf-label">Sjabloon</span>
+                    <div class="wf-spacer"></div>
+                    <a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,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" download="activiteiten-sjabloon.xlsx" class="wf-link">
+                        <div class="wf-list-item">
+                            <span style="flex:1"><strong>activiteiten-sjabloon.xlsx</strong></span>
+                            <span class="wf-pijl">Downloaden &darr;</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="wf-card">
+                    <span class="wf-label">Ingevuld bestand</span>
+                    <div class="wf-spacer"></div>
+                    <div class="wf-list-item">
+                        <span style="flex:1"><strong>activiteiten-2028.xlsx</strong></span>
+                        <span class="wf-plek-weg">Ander bestand kiezen</span>
+                    </div>
+                </div>
+                <a href="admin-bulk-controleren-fouten.html" class="wf-link">
+                    <div class="wf-button">Controleren</div>
+                </a>
+            </div>
+
+        </div>
+
+        <div class="wf-footer">
+            admin-bulk-importeren.html &mdash; UC-006 stap 2 (sjabloon en bestand)
+        </div>
+    </div>
+</body>
+</html>

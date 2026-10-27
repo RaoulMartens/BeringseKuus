@@ -1,0 +1,1332 @@
+/* ==========================================================================
+   Visuele laag voor het prototype - Ledenplatform De Beringse Kuus
+   Bron: code.txt (design system, snapshot 8 oktober 2026) en Figma-bestand.
+   Hoort bij de bevroren wireframes van docs/versies/prototype-2026-10-08.
+   Dezelfde HTML als de wireframes; alleen deze stijl is anders.
+   Aannames staan in docs/visueel/INDEX.md.
+   ========================================================================== */
+
+/* ---- 1. Tokens ---------------------------------------------------------- */
+:root {
+    /* typografie */
+    /* Libron voor alle titels (besluit van de ontwerper, 08-10-2026). Er zijn geen fontbestanden en de
+       licentie is niet gecontroleerd: het werkt alleen waar Libron is geïnstalleerd en valt
+       anders terug op Nunito. Voor de echte site: licentie en webfontbestanden regelen. */
+    --font-titel: "Libron", "Nunito", system-ui, sans-serif;
+    --font-titel-groot: var(--font-titel);
+    --font-tekst: "Nunito", system-ui, sans-serif;
+
+    /* neutraal */
+    --neutraal-vlak: #F7F5F2;
+    --neutraal-kaart: #FFFFFF;
+    --neutraal-lijn: #E3DDD6;
+    --neutraal-hover: #F0ECE7;
+    --neutraal-lijn-sterk: #9A918B;
+    --neutraal-tekst: #26211F;
+    --neutraal-tekst-zacht: #5E5753;
+
+    /* status */
+    --status-succes: #1F7A33;  --status-succes-tint: #E3F3E6;  --status-succes-tekst: #175C27;
+    --status-fout: #C62828;    --status-fout-tint: #FBE9E7;    --status-fout-tekst: #A31F1F;
+    --status-let-op: #B45309;  --status-let-op-tint: #FFECE0;  --status-let-op-tekst: #7A3A06;
+    --status-info: #1D5FA8;    --status-info-tint: #E4EEF9;    --status-info-tekst: #154A85;
+
+    /* thema: Beringse (standaard) */
+    --thema-primair: #D80018;
+    --thema-primair-hover: #B30014;
+    --thema-op-primair: #FFFFFF;
+    --thema-primair-tint: #FDE8E5;
+    --thema-primair-tekst: #9E0012;
+    --thema-kop: #E50000;
+    --thema-op-kop: #FFFFFF;
+    --thema-titel-op-kop: #FFFFFF;
+    --thema-merk: var(--thema-primair-tekst);   /* verenigingsnaam in de balk: zelfde donkerrood als de titels (7:1 op wit) */
+    --thema-balk: #FFFFFF;
+    --thema-op-balk: var(--neutraal-tekst);
+    --thema-op-balk-zacht: var(--neutraal-tekst-zacht);
+    --thema-balk-hover: var(--neutraal-vlak);
+    /* optioneel verloop in het kopvlak: begint bij thema/kop en loopt naar rechts naar de eindkleur.
+       Is de eindkleur gelijk aan thema/kop, dan is het kopvlak effen. */
+    --thema-kop-eind: #B80000;
+    --thema-confetti-1: #FFF000;
+    --thema-confetti-2: #78A860;
+    /* stippen in de navigatie: Vandaag, Programma, Beheer (afgeleid van bestaande themakleuren, geen nieuwe variabelen) */
+    --thema-stip-1: var(--thema-primair);
+    --thema-stip-2: #FFD83D;
+    --thema-stip-3: var(--thema-confetti-2);
+    --thema-confetti-3: #FFFFFF;
+
+    /* spacing */
+    --gap-inline: 8px;
+    --gap-field: 8px;
+    --gap-group: 16px;
+    --gap-section: 32px;
+    --padding-control-x: 16px;
+    --padding-card: 24px;
+    --padding-page: 24px;
+
+    /* radius, borders, focus */
+    --radius-small: 4px;
+    --radius-control: 8px;
+    --radius-card: 12px;
+    --radius-dialog: 16px;
+    --radius-full: 9999px;
+    --focus-offset: 4px;
+
+    /* afmetingen */
+    --control-compact: 32px;
+    --control-default: 40px;
+    --control-comfortable: 48px;
+
+    /* elevation */
+    --elevation-subtle: 0 4px 8px 0 rgba(38, 33, 31, 0.08);
+    --elevation-floating: 0 8px 24px 0 rgba(38, 33, 31, 0.14);
+
+    /* ruimte boven en onder de titel in het kopvlak (spacing-schaal: 32, 40, 48) */
+    --kop-ruimte: 40px;
+
+    /* paginamarge: de inhoud is maximaal 1200px breed en staat in het midden */
+    --marge: max(var(--padding-page), calc(50% - 576px));
+}
+
+[data-thema="blauw"] {
+    --thema-primair: #364FC7; --thema-primair-hover: #2B3E9F; --thema-primair-tint: #EDF2FF; --thema-primair-tekst: #364FC7;
+    --thema-kop: #BAC8FF; --thema-op-kop: #1B2147; --thema-kop-eind: #BAC8FF;
+    --thema-confetti-1: #364FC7; --thema-confetti-2: #FF8A1F; --thema-confetti-3: #FFFFFF;
+}
+[data-thema="roze"] {
+    --thema-primair: #A61E4D; --thema-primair-hover: #85183D; --thema-primair-tint: #FFF0F2; --thema-primair-tekst: #A61E4D;
+    --thema-kop: #FCC2D7; --thema-op-kop: #3B0A1E; --thema-kop-eind: #FCC2D7;
+    --thema-confetti-1: #A61E4D; --thema-confetti-2: #FFD43B; --thema-confetti-3: #FFFFFF;
+}
+[data-thema="geel"] {
+    --thema-kop: #FFD83D; --thema-op-kop: #26211F; --thema-titel-op-kop: #9E0012; --thema-kop-eind: #2E9B3A;
+    --thema-balk: var(--neutraal-vlak); --thema-op-balk: var(--neutraal-tekst); --thema-op-balk-zacht: var(--neutraal-tekst-zacht); --thema-balk-hover: var(--neutraal-hover);
+    --thema-confetti-1: #D80018; --thema-confetti-2: #2E9B3A;
+    --thema-stip-1: var(--thema-primair); --thema-stip-2: var(--thema-kop); --thema-stip-3: var(--thema-confetti-2);
+}
+[data-thema="paars"] {
+    --thema-primair: #5B2A86; --thema-primair-hover: #47206B; --thema-primair-tint: #EFE7F7; --thema-primair-tekst: #47206B;
+    --thema-kop: #F2B705; --thema-op-kop: #26211F; --thema-kop-eind: #F2B705;
+    --thema-confetti-1: #5B2A86; --thema-confetti-2: #FFFFFF; --thema-confetti-3: #C2255C;
+    --thema-stip-3: var(--thema-confetti-3);   /* confetti-2 is hier wit: onzichtbaar op de pagina */
+}
+
+@media (max-width: 700px) {
+    :root {
+        --padding-card: 16px;
+        --padding-page: 16px;
+        --control-compact: 40px;
+        --control-default: 48px;
+        --kop-ruimte: 24px;
+        --marge: var(--padding-page);
+    }
+}
+
+/* ---- 2. Basis ----------------------------------------------------------- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { overflow-y: scroll; scrollbar-gutter: stable; }
+body {
+    font-family: var(--font-tekst);
+    font-size: 0.875rem;
+    line-height: 1.4286;
+    font-weight: 400;
+    color: var(--neutraal-tekst);
+    background: var(--neutraal-vlak);
+    -webkit-font-smoothing: antialiased;
+}
+a.wf-link { color: inherit; text-decoration: none; display: contents; }
+a.wf-link.wf-back { display: inline-flex; align-items: center; }
+:focus-visible { outline: 2px solid var(--thema-primair); outline-offset: var(--focus-offset); }
+a.wf-link:focus-visible { outline: none; }
+a.wf-link:focus-visible > * { outline: 2px solid var(--thema-primair); outline-offset: var(--focus-offset); }
+
+.wf-screen {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;   /* op mobiel niet onder de werkbalk van de browser */
+    background: var(--neutraal-vlak);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+/* 60-30-10 (de ontwerper 09-10): 60% rustig vlak (pagina en kaarten), 30% Beringse-rood (kopvlak, avatar, naam, titels), 10% accent (knoppen, stippen, geel/groen). */
+/* alle kaarttitels in dezelfde themakleur; status met vinkje (groen) of kruis (rood) houdt zijn eigen kleur */
+.wf-screen .wf-title, .wf-screen .wf-status-kop, .wf-screen .wf-status-zin:not(.wf-status-ok):not(.wf-status-af) { color: var(--thema-primair-tekst); }
+.wf-footer { display: none; }   /* metadata van de wireframe: hoort niet in het ontwerp */
+
+/* ---- 3. Typografie ------------------------------------------------------ */
+.wf-title {
+    font: 700 1.25rem/1.4 var(--font-titel);
+    letter-spacing: 0;
+    color: var(--neutraal-tekst);
+}
+.wf-subtitle { font-size: 0.875rem; line-height: 1.4286; color: var(--neutraal-tekst-zacht); }
+.wf-label {
+    font: 600 0.875rem/1.4286 var(--font-tekst);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--neutraal-tekst-zacht);
+}
+strong, b { font-weight: 700; }
+
+/* ---- 4. Navigatie en kopvlak -------------------------------------------- */
+.wf-topnav {
+    background: var(--thema-balk, var(--neutraal-vlak));
+    height: 64px;
+    padding: 0 var(--marge);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.wf-topnav .wf-brand {
+    flex: 1 0 auto;
+    white-space: nowrap;   /* de naam van de vereniging breekt nooit over meer regels (op ~800 px werd het er drie) */
+    font: 700 1rem/1.5 var(--font-titel);
+    letter-spacing: 0;
+    color: var(--thema-op-balk, var(--neutraal-tekst));
+    margin: 0;
+}
+.wf-topnav .wf-brand { display: flex; align-items: center; gap: 10px; }
+.wf-brand-naam { color: var(--thema-merk, var(--thema-primair)); font-size: 1.125rem; line-height: 1; letter-spacing: -0.01em; }   /* naam van de vereniging in de themakleur (Beringse-rood, 5,4:1 op wit) */
+.wf-logo { display: block; height: 44px; width: auto; }
+.wf-topnav-item {
+    padding: 10px 12px 10px 28px;   /* stip (8px) staat 12px van de rand, de tekst 12px van de rechterrand: de pil is links en rechts even ruim */   /* links ruimte voor de stip, ook als hij er niet staat: de tekst verspringt niet */
+    font: 600 0.875rem/1.4286 var(--font-tekst);
+    color: var(--thema-op-balk-zacht, var(--neutraal-tekst-zacht));
+    border-radius: var(--radius-control);
+}
+a.wf-link:hover > .wf-topnav-item { color: var(--thema-op-balk, var(--neutraal-tekst)); }
+/* het gekozen onderdeel: een stip links van het woord, elk onderdeel in een eigen kleur (bouw.py zet nav-vandaag/-programma/-beheer) */
+.wf-topnav-item.active { position: relative; color: var(--thema-op-balk, var(--neutraal-tekst)); }
+.wf-topnav-item { position: relative; }
+/* elk item heeft een stip (grijs); actief of hover geeft hem de kleur van het onderdeel. Zo is de ruimte links van elke tekst gevuld en kloppen de afstanden ook optisch. */
+.wf-topnav-item::after {
+    content: ""; position: absolute; left: 12px; top: 50%; width: 8px; height: 8px;
+    border-radius: var(--radius-full); transform: translateY(-50%);
+    background: color-mix(in srgb, var(--neutraal-tekst-zacht) 35%, white);   /* grijs; haalt als decoratie geen contrast-eis, de tekst draagt de betekenis */
+}
+a.wf-link:hover > .wf-topnav-item::after, .wf-topnav-item.active::after { background: var(--nav-stip, var(--thema-primair)); }
+.nav-vandaag { --nav-stip: var(--thema-stip-1); }
+.nav-programma { --nav-stip: var(--thema-stip-2); }
+.nav-beheer { --nav-stip: var(--thema-stip-3); }
+.wf-topnav .wf-spacer-flex { flex: 1 1 0; margin: 0; }
+.wf-topnav .wf-subtitle { white-space: nowrap; font: 600 0.875rem/1.4286 var(--font-tekst); color: var(--thema-op-balk, var(--neutraal-tekst)); }
+.wf-topnav .wf-icon-placeholder {
+    width: 32px; height: 32px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--thema-primair);
+    display: flex; align-items: center; justify-content: center;
+    font: 700 0.9375rem/1 var(--font-tekst); color: var(--thema-op-primair);
+}
+
+.wf-nav {
+    background: var(--neutraal-vlak);
+    padding: 12px var(--marge);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--neutraal-tekst-zacht);
+}
+.wf-back, .wf-nav .wf-subtitle { font: 600 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst); text-decoration: underline; text-underline-offset: 3px; }
+
+.wf-header {
+    /* effen tot 45%, dan naar de eindkleur; 108% zodat de rand nooit het volle groen wordt
+       (donkere tekst op het volle groen haalt maar 4,4:1, de link rechts moet 4,5:1 halen) */
+    background: linear-gradient(90deg, var(--thema-kop) 45%, var(--thema-kop-eind) 108%);
+    background: linear-gradient(in oklch 90deg, var(--thema-kop) 45%, var(--thema-kop-eind) 108%);
+    /* titel in de verenigingskleur; groot en vet, dus 3:1 is genoeg (gemeten 4,1 tot 6,8) */
+    color: var(--thema-titel-op-kop, var(--thema-primair-tekst));
+    /* hoogte van het kopvlak = 2 x --kop-ruimte + de regelhoogte van de titel (36); een titel met een datumregel erboven
+       blijft even hoog, want de inhoud staat verticaal in het midden van deze minimumhoogte */
+    padding: 12px var(--marge);
+    min-height: calc(var(--kop-ruimte) * 2 + 36px);
+    font: 700 1.75rem/1.2857 var(--font-titel);
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+.wf-kop-tekst { display: flex; flex-direction: column; gap: 0; }
+.wf-kop-datum { font: 600 0.875rem/1.4286 var(--font-tekst); letter-spacing: 0; color: var(--thema-op-kop); }
+.wf-header .wf-subtitle {
+    font: 600 0.875rem/1.4286 var(--font-tekst);
+    letter-spacing: 0;
+    color: var(--thema-op-kop);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+/* de begroeting heeft een grotere titel, maar het kopvlak is even hoog als op elk ander scherm */
+.wf-header-groot {
+    font: 700 2.5rem/0.9 var(--font-titel-groot);
+    letter-spacing: -0.01em;
+}
+
+/* ---- 5. Indeling -------------------------------------------------------- */
+.wf-content {
+    flex: 1;
+    padding: var(--gap-section) var(--marge) 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.wf-columns { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; }
+.wf-col { flex: 1 1 420px; max-width: 680px; min-width: 0; display: flex; flex-direction: column; gap: var(--gap-group); }
+.wf-sidebar { flex: 0 1 380px; min-width: 280px; display: flex; flex-direction: column; gap: var(--gap-group); }
+.wf-narrow { max-width: 680px; }
+.wf-card, .wf-list-item, .wf-role-row { min-width: 0; }
+.wf-list-item > span, .wf-role-row > span { min-width: 0; }
+.wf-spacer { height: 16px; }
+.wf-divider { border: none; border-top: 1px solid var(--neutraal-lijn); margin: 4px 0; }
+.wf-sidebar.wf-sticky { position: sticky; top: 16px; }
+
+.wf-card {
+    background: var(--neutraal-kaart);
+    border-radius: var(--radius-card);
+    padding: var(--padding-card);
+}
+
+/* ---- 6. Knoppen --------------------------------------------------------- */
+.wf-button, .wf-button-secondary, .wf-button-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    min-height: var(--control-default);
+    padding: 0 var(--padding-control-x);
+    gap: var(--gap-inline);
+    border-radius: var(--radius-control);
+    border: 1px solid transparent;
+    font: 700 0.875rem/1.4286 var(--font-tekst);
+    letter-spacing: 0;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color .12s, border-color .12s, color .12s;
+}
+/* hoofdknop in de themakleur (besluit van de ontwerper, 08-10-2026; code.txt had donker neutraal, dat werkte niet) */
+.wf-button { background: var(--thema-primair); border-color: var(--thema-primair); color: var(--thema-op-primair); }
+a.wf-link:hover > .wf-button { background: var(--thema-primair-hover); border-color: var(--thema-primair-hover); }
+a.wf-link:active > .wf-button { background: var(--thema-primair-hover); border-color: var(--thema-primair-hover); background: color-mix(in oklch, var(--thema-primair-hover), black 14%); border-color: color-mix(in oklch, var(--thema-primair-hover), black 14%); }
+
+/* de kleur van de hoofdknop volgt wat hij doet (bouw.py, KNOP_*): groen = maken of doorgaan, rood = opgeven.
+   Statuskleuren, dus in elk thema gelijk. Wit op groen 5,4:1, wit op rood 5,6:1. */
+.wf-button.wf-knop-positief:not(.wf-disabled) { background: var(--status-succes); border-color: var(--status-succes); color: #FFFFFF; }
+a.wf-link:hover > .wf-button.wf-knop-positief:not(.wf-disabled) { background: var(--status-succes-tekst); border-color: var(--status-succes-tekst); }
+a.wf-link:active > .wf-button.wf-knop-positief:not(.wf-disabled) { background: color-mix(in oklch, var(--status-succes-tekst), black 14%); border-color: color-mix(in oklch, var(--status-succes-tekst), black 14%); }
+.wf-button.wf-knop-negatief:not(.wf-disabled) { background: var(--status-fout); border-color: var(--status-fout); color: #FFFFFF; }
+a.wf-link:hover > .wf-button.wf-knop-negatief:not(.wf-disabled) { background: var(--status-fout-tekst); border-color: var(--status-fout-tekst); }
+a.wf-link:active > .wf-button.wf-knop-negatief:not(.wf-disabled) { background: color-mix(in oklch, var(--status-fout-tekst), black 14%); border-color: color-mix(in oklch, var(--status-fout-tekst), black 14%); }
+
+/* secundair: alleen een rand, geen vulling (de ontwerper, 08-10-2026). Hover en klik leggen een doorschijnende donkere tint over de knop, zodat het op wit en op de paginakleur werkt */
+.wf-button-secondary { background: transparent; border-color: #26211F; color: #26211F; }
+a.wf-link:hover > .wf-button-secondary { background: rgba(38, 33, 31, 0.06); }
+a.wf-link:active > .wf-button-secondary { background: rgba(38, 33, 31, 0.12); }
+
+.wf-button-danger { background: #FFFFFF; border-color: #C62828; color: #A31F1F; }
+a.wf-link:hover > .wf-button-danger { background: var(--status-fout-tint); }
+a.wf-link:active > .wf-button-danger { background: #A31F1F; color: #FFFFFF; }
+
+.wf-button.wf-disabled, .wf-button-secondary.wf-disabled {
+    background: #E3DDD6; border-color: #E3DDD6; color: #5E5753; cursor: default;
+}
+a.wf-link:hover > .wf-button.wf-disabled { background: #E3DDD6; border-color: #E3DDD6; }
+
+/* tekstknop (zichtbare rand, zoals in het Figma-specimen) */
+.wf-annuleer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--control-default);
+    padding: 0 var(--padding-control-x);
+    border: 1px solid #26211F;
+    border-radius: var(--radius-control);
+    font: 700 0.875rem/1.4286 var(--font-tekst);
+    color: #26211F;
+    background: transparent;
+    text-align: center;
+}
+a.wf-link:hover > .wf-annuleer { background: #F7F5F2; }
+a.wf-link:active > .wf-annuleer { background: #E3DDD6; }
+/* verwijderen als tekstknop: de gevaarkleur, net als de gevaarknop (rand, tekst en icoon rood; rode tint bij hover) */
+/* "Concept verwijderen" is een tekstlink (ontwerpbesluit), geen derde knop: rode tekst, geen rand, geen icoon */
+.wf-annuleer.wf-gevaar { border-color: transparent; background: none; color: var(--status-fout-tekst); }
+.wf-annuleer.wf-gevaar .ic { display: none; }
+a.wf-link:hover > .wf-annuleer.wf-gevaar { text-decoration: underline; text-underline-offset: 3px; }
+a.wf-link:active > .wf-annuleer.wf-gevaar { color: var(--status-fout); }
+
+.wf-button-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.wf-paneel-knoppen { display: flex; flex-direction: column; gap: 8px; }
+.wf-paneel-knoppen .wf-button, .wf-paneel-knoppen .wf-button-secondary { align-self: stretch; }
+
+/* ---- 7. Velden ---------------------------------------------------------- */
+.wf-veld { display: flex; flex-direction: column; gap: var(--gap-field); }
+.wf-veld + .wf-veld { margin-top: 20px; }
+.wf-veldrij { display: flex; gap: 16px; align-items: flex-start; }
+.wf-veldrij > .wf-veld { flex: 1 1 0; }
+.wf-veldrij > .wf-veld + .wf-veld { margin-top: 0; }
+.wf-veld + .wf-veldrij, .wf-veldrij + .wf-veld, .wf-veldrij + .wf-veldrij { margin-top: 20px; }
+.wf-veldrij > .wf-veld.wf-kort { flex: 0 1 160px; }
+.wf-veldrij > .wf-veld.wf-middel { flex: 0 1 210px; }
+
+.wf-input {
+    background: var(--neutraal-kaart);
+    border: 1px solid var(--neutraal-lijn-sterk);
+    border-radius: var(--radius-control);
+    min-height: var(--control-default);
+    padding: 10px var(--padding-control-x);
+    font: 400 0.875rem/1.4286 var(--font-tekst);
+    color: var(--neutraal-tekst);
+}
+/* foutstaat: rode rand van 1 px zoals elk veld (code.txt zegt 2 px; te zwaar naast de roze vulling en de foutmelding eronder, die de fout al duidelijk maken) */
+.wf-input.wf-error { border-color: var(--status-fout); background: var(--status-fout-tint); }
+.wf-veldfout { font-size: 0.875rem; line-height: 1.4286; color: var(--status-fout-tekst); margin-top: 4px; font-weight: 600; }
+.wf-input.wf-gewijzigd { position: relative; }
+.wf-input.wf-gewijzigd::after {
+    /* niet opgeslagen: een kleine stip in let-op-kleur met een zachte ring (zwart zag er goedkoop uit) */
+    content: ""; position: absolute; top: 11px; right: 11px;
+    width: 8px; height: 8px; border-radius: var(--radius-full);
+    background: var(--status-let-op);
+    box-shadow: 0 0 0 3px var(--status-let-op-tint);
+}
+.wf-kiesveld { flex: 1; display: flex; align-items: center; gap: var(--gap-inline); color: var(--neutraal-tekst); }
+.wf-kiesveld .wf-pijl { margin-left: auto; color: var(--neutraal-tekst-zacht); }
+.wf-kiesveld.wf-leeg-veld, .wf-input.wf-kiesveld.wf-leeg-veld { color: var(--neutraal-tekst-zacht); font-style: normal; }
+/* geopend veld: donkere rand van 1 px (zoals elk veld) met een zachte ring erbuiten als focus; 2 px zwart was te zwaar */
+.wf-kiesveld.wf-open { border-color: var(--neutraal-tekst); box-shadow: 0 0 0 3px color-mix(in oklch, var(--neutraal-tekst) 10%, transparent); }
+.wf-wis { color: var(--neutraal-tekst-zacht); font-size: 1rem; line-height: 1; padding: 0 2px; }
+.wf-keuzelijst {
+    background: var(--neutraal-kaart);
+    border-radius: var(--radius-control);
+    box-shadow: var(--elevation-floating);
+    padding: 8px;
+    margin: 4px 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.wf-keuzelijst .wf-list-item { padding: 8px 12px; margin: 0; border-top: 0; border-radius: var(--radius-control); }
+/* zoekveld in de lijst: een zacht vlak, geen tweede rand; "eraf halen" staat onder een lijn als aparte keuze */
+.wf-keuzelijst > .wf-input { border-color: transparent; background: var(--neutraal-vlak); }
+.wf-keuzelijst > .wf-label { margin-top: 8px; padding: 12px 12px 4px; border-top: 1px solid var(--neutraal-lijn); }
+.wf-keuzelijst > .wf-uitkomsten { padding: 0 12px 8px; }
+
+/* ---- 8. Rolbezetting ---------------------------------------------------- */
+.wf-rolgroep + .wf-rolgroep { margin-top: 20px; }
+.wf-rolgroep-kop { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.wf-role-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-top: 1px solid var(--neutraal-lijn);
+    font-size: 0.875rem;
+    color: var(--neutraal-tekst);
+}
+.wf-spacer + .wf-role-row, .wf-rolgroep-kop + .wf-role-row { border-top: 0; }
+.wf-role-row .wf-role-type { width: 160px; flex-shrink: 0; font-weight: 600; color: var(--neutraal-tekst-zacht); }
+.wf-role-row .wf-role-name { flex: 1; }
+.wf-role-row.wf-leeg, .wf-role-row.wf-leeg-plek { color: var(--neutraal-tekst-zacht); }
+.wf-role-row.wf-open-plek { box-shadow: inset 0 0 0 2px var(--neutraal-tekst); border-radius: var(--radius-control); padding-inline: 12px; }
+.wf-role-row.wf-weggehaald .wf-naam { text-decoration: line-through; color: var(--neutraal-tekst-zacht); }
+.wf-role-row:has(.wf-kiesveld) { border-top: 0; padding: 4px 0; }
+/* rolbezetting voor leden: de rol één keer, de namen eronder (desktop: rol links, namen rechts; mobiel: rol boven de namen) */
+.wf-rolblok { display: flex; align-items: flex-start; gap: 16px; padding: 12px 0; border-top: 1px solid var(--neutraal-lijn); font-size: 0.875rem; color: var(--neutraal-tekst); }
+.wf-spacer + .wf-rolblok { border-top: 0; }
+.wf-rolblok > .wf-role-type { width: 200px; flex-shrink: 0; display: inline-flex; align-items: center; gap: var(--gap-inline); font-weight: 600; color: var(--neutraal-tekst-zacht); }
+.wf-rolnamen { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.wf-rolnaam { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 20px; }
+.wf-rolnaam .wf-role-name { flex: 1; min-width: 0; }
+.wf-slot-actie { margin-top: 8px; font-size: 0.875rem; color: var(--neutraal-tekst-zacht); }
+.wf-plek-weg { font-size: 0.875rem; color: var(--neutraal-tekst-zacht); white-space: nowrap; }
+.wf-plek-kruis { color: var(--neutraal-tekst-zacht); font-size: 1.125rem; line-height: 1; padding: 0 4px 0 10px; }
+.wf-plek-erbij {
+    border: 1px solid var(--neutraal-lijn-sterk);
+    border-radius: var(--radius-control);
+    padding: 10px 16px;
+    text-align: center;
+    font: 600 0.875rem/1.4286 var(--font-tekst);
+    color: var(--neutraal-tekst);
+    margin-top: 4px;
+}
+.wf-acties { margin-left: auto; display: flex; gap: 16px; font-size: 0.875rem; color: var(--neutraal-tekst-zacht); white-space: nowrap; }
+.wf-acties .wf-hoofdactie { color: var(--neutraal-tekst); font-weight: 700; }
+.wf-uitkomsten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+/* de twee uitkomsten bij "eraf halen": geen grijs vlak en geen zware rand meer, een dunne lijn en een rustige titel; het voorbeeld is een zacht vlak zonder rand */
+.wf-uitkomst { display: block; border: 1px solid var(--neutraal-lijn); border-radius: var(--radius-control); padding: 12px; background: transparent; }
+a.wf-link:hover > .wf-uitkomst { background: var(--neutraal-hover); }
+.wf-uitkomst-titel { font: 700 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst); margin-bottom: 8px; }
+.wf-mini { font-size: 0.75rem; line-height: 1.3333; color: var(--neutraal-tekst); border: 0; border-radius: var(--radius-small); background: var(--neutraal-vlak); padding: 4px 8px; margin-bottom: 4px; }
+.wf-mini.wf-leeg { color: var(--neutraal-tekst-zacht); }
+.wf-mini.wf-weg { color: var(--neutraal-tekst-zacht); background: transparent; text-decoration: line-through; }
+.wf-plekjes { display: flex; gap: 6px; width: 190px; flex-shrink: 0; }
+.wf-plekjes span { width: 12px; height: 12px; border-radius: var(--radius-full); background: var(--neutraal-tekst); flex-shrink: 0; }
+.wf-plekjes span.wf-open { background: transparent; border: 2px solid var(--neutraal-lijn-sterk); }
+.wf-teller { display: inline-flex; align-items: center; border: 1px solid var(--neutraal-lijn-sterk); border-radius: var(--radius-small); font-size: 0.875rem; color: var(--neutraal-tekst); }
+.wf-teller > span { padding: 2px 10px; }
+.wf-teller .wf-aantal { border-left: 1px solid var(--neutraal-lijn); border-right: 1px solid var(--neutraal-lijn); }
+.wf-teller .wf-uit { color: var(--neutraal-tekst-zacht); }
+
+/* ---- 9. Lijsten en tabellen ---------------------------------------------
+   Rijen lopen over de volle breedte van de kaart, zoals in GitHub, Stripe en Linear: hover, markering en scheidingslijn
+   lopen van rand tot rand, rechthoekig. De tekst blijft op de plek van de kop (padding = kaartmarge). Zo raakt een vlak
+   nooit half een lijn en hoeft er geen ruimte tussen rijen. De lijn is een gewone rand: altijd 1 pixel dik. */
+.wf-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px var(--padding-card);
+    margin: 0 calc(var(--padding-card) * -1);
+    border-top: 1px solid var(--neutraal-lijn);
+    font-size: 0.875rem;
+    color: var(--neutraal-tekst);
+}
+/* geen lijn boven de eerste rij: onder een kop, of als eerste in een kaart */
+.wf-spacer + .wf-list-item, .wf-spacer + a.wf-link > .wf-list-item,
+.wf-card > .wf-list-item:first-child, .wf-card > a.wf-link:first-child > .wf-list-item { border-top-color: transparent; }
+/* hover: iets donkerder dan de pagina (neutraal/vlak was dezelfde kleur als de pagina, waardoor de rij leek weg te vallen) */
+a.wf-link:hover > .wf-list-item { background: var(--neutraal-hover); }
+/* een kaart die eindigt met een lijst: de lijst loopt door tot de onderrand van de kaart (zonder wit randje eronder);
+   de laatste rij volgt de afgeronde hoeken van de kaart, dus er is geen overflow:hidden nodig (dat zou de focusring afknippen) */
+.wf-card:has(> .wf-list-item:last-child), .wf-card:has(> a.wf-link:last-child > .wf-list-item) { padding-bottom: 0; }
+.wf-card > .wf-list-item:last-child, .wf-card > a.wf-link:last-child > .wf-list-item { border-radius: 0 0 var(--radius-card) var(--radius-card); }
+/* een kaart die met een rij begint (geen kop erboven): geen extra opvulling bovenaan, de rij heeft zelf ruimte. Zo is het boven en onder gelijk. */
+.wf-card:has(> .wf-list-item:first-child), .wf-card:has(> a.wf-link:first-child > .wf-list-item) { padding-top: 0; }
+.wf-card > .wf-list-item:first-child, .wf-card > a.wf-link:first-child > .wf-list-item { border-radius: var(--radius-card) var(--radius-card) 0 0; }
+/* afgelopen of niet te kiezen: zachtere tekst op het wit van de kaart. Geen grijs vlak: dat is dezelfde kleur als de pagina
+   (neutraal/vlak), waardoor de kaart er onderaan in oplost */
+.wf-list-item.wf-disabled { color: var(--neutraal-tekst-zacht); }
+.wf-list-item.wf-flagged { background: var(--thema-primair-tint); color: var(--neutraal-tekst); }
+/* de gemarkeerde rij (jouw afmelding) heeft een eigen hover en een eigen label, afgeleid van de themakleur:
+   hover = de tint met 8% themakleur erbij, label = de tint met 20% themakleur (genoeg verschil met de hover-rij), tekst in primair-tekst iets donkerder gemaakt (gemeten 4,5 tot 7,4:1 zonder, meer met) */
+a.wf-link:hover > .wf-list-item.wf-flagged { background: var(--thema-primair-tint); background: color-mix(in oklch, var(--thema-primair-tint), var(--thema-primair) 8%); }
+.wf-list-item.wf-flagged .wf-badge { background: var(--thema-primair-tint); background: color-mix(in oklch, var(--thema-primair-tint), var(--thema-primair) 20%);
+    color: var(--thema-primair-tekst); color: color-mix(in oklch, var(--thema-primair-tekst), black 20%); }
+.wf-datum { width: 130px; flex-shrink: 0; font-weight: 600; }
+/* programma-rij: datum, naam, tijd en plek staan elk op een vaste plek; geen streepjes ertussen */
+.wf-rij-naam { flex: 0 1 190px; min-width: 0; }
+.wf-rij-tijd { flex: 0 0 56px; font-variant-numeric: tabular-nums; }
+.wf-rij-plek { flex: 1 1 6em; min-width: 6em; color: var(--neutraal-tekst-zacht); }
+/* beheer-rij: de tijd rustig achter de naam */
+.wf-tijd-los { margin-left: 8px; color: var(--neutraal-tekst-zacht); font-variant-numeric: tabular-nums; }
+.wf-datum.wf-kort { width: 110px; }
+
+.wf-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; color: var(--neutraal-tekst); }
+.wf-table th, .wf-table td { border: none; border-top: 1px solid var(--neutraal-lijn); padding: 12px 8px 12px 0; text-align: left; vertical-align: top; }
+.wf-table tr:first-child th, .wf-table tr:first-child td { border-top: 0; }
+.wf-table th { width: 38%; font-weight: 600; color: var(--neutraal-tekst-zacht); background: transparent; font-size: 0.875rem; }
+
+/* ---- 10. Labels en meldingen -------------------------------------------- */
+.wf-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    font: 600 0.75rem/1.3333 var(--font-tekst);
+    border-radius: var(--radius-full);
+    /* geen rand die in de hoogte meetelt: een rand van 1 px wordt bij sommige schermvergrotingen 0,8 px en maakt
+       rijen 45,6 px hoog; de lijnen tussen de rijen vallen dan op een halve pixel. Randen staan in een box-shadow. */
+    background: var(--neutraal-lijn);
+    color: var(--neutraal-tekst);
+    white-space: nowrap;
+}
+.wf-badge.concept { background: var(--neutraal-kaart); box-shadow: inset 0 0 0 1px var(--neutraal-lijn-sterk); color: var(--neutraal-tekst); }
+.wf-badge.gepubliceerd { background: var(--status-succes-tint); color: var(--status-succes-tekst); }
+.wf-badge.geannuleerd { background: var(--status-fout-tint); color: var(--status-fout-tekst); }
+.wf-badge.wf-active { background: var(--neutraal-tekst); color: #fff; }
+.wf-badge.wf-done { background: var(--status-succes-tint); color: var(--status-succes-tekst); }
+.wf-badge.wf-todo { background: transparent; box-shadow: inset 0 0 0 1px var(--neutraal-lijn-sterk); color: var(--neutraal-tekst-zacht); }
+
+.wf-alert {
+    position: relative;
+    border-radius: var(--radius-control);
+    padding: 14px 16px 14px 48px;
+    font-size: 0.875rem;
+    line-height: 1.4286;
+    background: var(--status-info-tint);
+    color: var(--status-info-tekst);
+    box-shadow: inset 0 0 0 1px var(--status-info);
+}
+.wf-alert::before {
+    content: "";
+    position: absolute; left: 16px; top: 14px;
+    width: 20px; height: 20px;
+    background: currentColor;
+    -webkit-mask: var(--icoon) center / contain no-repeat;
+            mask: var(--icoon) center / contain no-repeat;
+}
+.wf-alert.warning { background: var(--status-let-op-tint); color: var(--status-let-op-tekst); box-shadow: inset 0 0 0 1px var(--status-let-op); }
+.wf-alert.danger { background: var(--status-fout-tint); color: var(--status-fout-tekst); box-shadow: inset 0 0 0 1px var(--status-fout); }
+.wf-alert.succes { background: var(--status-succes-tint); color: var(--status-succes-tekst); box-shadow: inset 0 0 0 1px var(--status-succes); }
+/* "Je bent afgemeld": dezelfde kleuren als de afgemeld-rij en het label in de lijst (themakleur), zodat de status overal gelijk oogt;
+   de rand is zachter dan bij een fout, zodat het in Beringse (rood) niet op een foutmelding lijkt */
+.wf-alert.afgemeld { background: var(--thema-primair-tint); color: var(--thema-primair-tekst); box-shadow: inset 0 0 0 1px var(--thema-primair);
+    color: color-mix(in oklch, var(--thema-primair-tekst), black 20%); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--thema-primair-tint), var(--thema-primair) 45%); }
+/* "Nog nodig om te publiceren": gewone tekst met een onderstreepte link; geen rode kruisjes (het grijze Publiceren zegt al dat het niet kan) */
+.wf-ontbreekt { font-size: 0.875rem; color: var(--neutraal-tekst); margin: 4px 0; font-weight: 600; }
+.wf-ontbreekt .ic { display: none; }
+.wf-naar-veld { text-decoration: none; }
+a.wf-link:hover .wf-naar-veld { text-decoration: underline; text-underline-offset: 3px; }   /* onderstreping alleen bij hover, en alleen als het echt een link is */
+.wf-bericht { font-size: 0.875rem; color: var(--neutraal-tekst-zacht); padding: 12px 0; border-top: 1px solid var(--neutraal-lijn); }
+.wf-bericht:last-of-type { border-bottom: 1px solid var(--neutraal-lijn); margin-bottom: 12px; }
+.wf-bericht strong { color: var(--neutraal-tekst); }
+.wf-status-kop { font: 700 1.25rem/1.4 var(--font-titel); letter-spacing: 0; color: var(--neutraal-tekst); }
+.wf-status-kop .wf-stip { display: inline-block; width: 10px; height: 10px; border-radius: var(--radius-full); border: 2px solid var(--neutraal-lijn-sterk); margin-right: 8px; vertical-align: 2px; }
+.wf-status-kop .wf-stip.wf-vol { background: var(--status-succes); border-color: var(--status-succes); }
+.wf-paneel-scheiding { border: none; border-top: 1px solid var(--neutraal-lijn); margin: 20px 0; }
+.wf-icon-placeholder { width: 24px; height: 24px; background: var(--neutraal-lijn); border: none; border-radius: var(--radius-small); flex-shrink: 0; }
+.wf-icon-placeholder.large { width: 48px; height: 48px; }
+.wf-foto { aspect-ratio: 16 / 9; background: var(--neutraal-lijn); border-radius: var(--radius-card); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; color: var(--neutraal-tekst-zacht); margin-bottom: 16px; }
+.wf-foto:has(img) { overflow: hidden; }
+.wf-foto.wf-foto-portret { aspect-ratio: 5 / 6; }
+.wf-foto > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wf-text-placeholder { background: var(--neutraal-lijn); height: 12px; border-radius: var(--radius-small); }
+.wf-text-placeholder.short { width: 25%; } .wf-text-placeholder.medium { width: 50%; } .wf-text-placeholder.full { width: 100%; }
+
+/* ---- 11. Tellers die ook filter zijn ------------------------------------ */
+.wf-tegels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.wf-tegel { background: var(--neutraal-kaart); border-radius: var(--radius-card); padding: 16px; font-size: 0.875rem; color: var(--neutraal-tekst-zacht); }
+.wf-tegel b { display: block; font: 700 2rem/1.25 var(--font-tekst); letter-spacing: -0.01em; color: var(--neutraal-tekst); }
+/* geselecteerd filter: een zachte grijze ring (zwart was te zwaar); de tekst blijft donker */
+.wf-tegel.wf-actief { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--thema-primair) 65%, white); color: var(--neutraal-tekst); }
+.wf-tegel.wf-nul, .wf-tegel.wf-nul b { color: var(--neutraal-tekst-zacht); }
+.wf-knoppenrij, .wf-alleen-mobiel { display: none; }
+
+/* ---- 12. Activiteitkaartje ---------------------------------------------- */
+.wf-kaartje { position: relative; background: transparent; }
+.wf-kaartje-boven {
+    background: var(--neutraal-kaart);
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    padding: var(--padding-card);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.wf-kaartje-boven .wf-label { font-weight: 400; color: var(--neutraal-tekst); }
+.wf-kaartje-boven .wf-title { color: var(--thema-primair-tekst); }
+.wf-kaartje-stops { display: flex; margin-top: 16px; }
+.wf-kaartje-stop { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; padding-top: 24px; font-size: 0.875rem; line-height: 1.4286; color: var(--neutraal-tekst-zacht); }
+.wf-kaartje-stop.eerst { flex: 1.5; }
+.wf-kaartje-stop strong { font: 700 1.25rem/1.4 var(--font-tekst); color: var(--neutraal-tekst); }
+.wf-kaartje-stop.eerst strong { font: 700 2rem/1.25 var(--font-tekst); letter-spacing: -0.01em; }
+.wf-kaartje-stop.eerst .wf-kaartje-naam { font-weight: 700; color: var(--neutraal-tekst); }
+.wf-kaartje-dot { position: absolute; top: 0; left: 0; width: 14px; height: 14px; border: 2px solid var(--neutraal-lijn-sterk); border-radius: var(--radius-full); background: var(--neutraal-kaart); z-index: 1; }
+.wf-kaartje-stop.eerst .wf-kaartje-dot { background: var(--thema-primair); border-color: var(--thema-primair); }
+.wf-kaartje-stop:not(:last-child)::after { content: ""; position: absolute; top: 6px; left: 20px; right: 6px; border-top: 2px dotted var(--neutraal-lijn-sterk); }
+.wf-kaartje-onder {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px var(--padding-card);
+    background: var(--neutraal-kaart);   /* wit: het afscheurstuk hoort bij het kaartje; alleen de perforatie scheidt ze (blauw is voor "Belangrijk om te weten") */
+    /* perforatie: stippellijn tussen kaartje en afscheurstuk */
+    border-top: 1px dashed var(--neutraal-lijn);
+    border-radius: 0 0 var(--radius-card) var(--radius-card);
+    font-size: 0.875rem;
+    color: var(--neutraal-tekst);
+}
+/* uitgesneden halve cirkels aan de zijkant, in de kleur van de pagina erachter */
+.wf-kaartje-onder::before,
+.wf-kaartje-onder::after {
+    content: "";
+    position: absolute;
+    top: -12px;                      /* midden op de perforatielijn (1px dik) */
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-full);
+    background: var(--neutraal-vlak);
+}
+.wf-kaartje-onder::before { left: -12px; }
+.wf-kaartje-onder::after { right: -12px; }
+.wf-kaartje-onder svg { flex-shrink: 0; width: 24px; height: 24px; stroke: var(--status-info); fill: var(--status-info); }
+.wf-kaartje-onder svg circle { fill: var(--status-info-tint); stroke: none; }
+
+.wf-belangrijk { background: var(--status-info-tint); }
+.wf-belangrijk .wf-label { display: inline-flex; align-items: center; gap: 8px; color: var(--status-info-tekst); }
+.wf-belangrijk .wf-label .ic { color: var(--status-info); }
+.wf-belangrijk .wf-subtitle { color: var(--status-info-tekst); }   /* titel en tekst dezelfde kleur */
+/* "Let op": een waarschuwing in de let-op-kleur, met waarschuwingsicoon (zoals "Belangrijk om te weten" blauw is); titel en tekst dezelfde kleur */
+.wf-let-op { background: var(--status-let-op-tint); }
+.wf-let-op .wf-label { display: inline-flex; align-items: center; gap: 8px; color: var(--status-let-op-tekst); }
+.wf-let-op .wf-label .ic { color: var(--status-let-op); }
+.wf-let-op .wf-subtitle { color: var(--status-let-op-tekst); }
+
+/* ---- 13. Overlay en dialoog --------------------------------------------- */
+.wf-overlay { position: absolute; inset: 0; background: rgba(38, 33, 31, 0.5); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.wf-modal { background: var(--neutraal-kaart); border-radius: var(--radius-dialog); box-shadow: var(--elevation-floating); width: 540px; max-width: 100%; padding: 32px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ---- 13b. Iconen --------------------------------------------------------
+   De SVG's staan in docs/visueel/iconen/ en worden door bouw.py in iconen.css gezet
+   als --ic-waarde. De vorm is een masker: de kleur volgt de tekstkleur eromheen.
+   Formaten uit code.txt: klein 16, standaard 20, groot 24. */
+.ic {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    vertical-align: -5px;
+    background: currentColor;
+    -webkit-mask: var(--ic) center / contain no-repeat;
+            mask: var(--ic) center / contain no-repeat;
+}
+/* terug-pijl naast een link van 14 px: dunne lijn en 16 px, in de kleur van de link */
+.ic-pijl-links { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
+/* pijl als teken in lopende tekst: dunne lijn, 16 px, zachte kleur, zodat hij bij de tekst past */
+.ic-pijl-rechts { width: 16px; height: 16px; margin: 0 2px 0 6px; vertical-align: -3px; color: var(--neutraal-tekst-zacht); }
+.ic-plus { margin-right: 8px; vertical-align: -5px; }
+.ic-download { margin-left: 8px; }
+.ic-kruis, .ic-chevron-omlaag { width: 16px; height: 16px; vertical-align: -3px; }
+.wf-plek-kruis .ic, .wf-wis .ic, .wf-ontbreekt .ic, .wf-mini .ic { width: 16px; height: 16px; vertical-align: -3px; margin: 0; }
+.wf-pijl > .ic:only-child { margin: 0; }
+.wf-button > .ic, .wf-button-secondary > .ic, .wf-button-danger > .ic { margin: 0; }
+.wf-ontbreekt .ic { margin-right: 4px; }
+.wf-kaartje-onder .ic { width: 24px; height: 24px; margin: 0; color: var(--neutraal-tekst-zacht); }
+/* icoon voor de rol (rolbezetting en groepskop in beheer): 20 px, 8 px afstand, kleur van de rolnaam */
+.wf-role-row .wf-role-type, .wf-rolgroep-kop .wf-label { display: inline-flex; align-items: center; gap: var(--gap-inline); }
+.wf-role-row .wf-role-type { width: 200px; }
+.wf-role-type .ic, .wf-rolgroep-kop .wf-label .ic { margin: 0; vertical-align: middle; }
+/* chevron aan het eind van een klikbare rij: laat zien dat je erop kunt klikken */
+.wf-list-item .ic-chevron-rechts { margin: 0 0 0 auto; width: 16px; height: 16px; vertical-align: middle; color: var(--neutraal-tekst-zacht); }
+a.wf-link:hover > .wf-list-item .ic-chevron-rechts { color: var(--neutraal-tekst); }
+/* icoon in een knop: 20 px, 8 px afstand (code.txt); de afstand komt van de knop zelf */
+.wf-button .ic, .wf-button-secondary .ic, .wf-button-danger .ic, .wf-annuleer .ic { margin: 0; vertical-align: middle; }
+.wf-annuleer { gap: var(--gap-inline); }
+/* icoon voor het label in de tijdlijn (Bus): klein formaat, naast de tekst */
+.wf-kaartje-naam .ic { width: 18px; height: 18px; margin: 0 6px 0 0; vertical-align: -4px; }
+
+/* ---- 13c. Kleurvergelijking (prototype-hulpmiddel) ---------------------
+   Zet de waarden van vóór de OKLCH-controle terug: de tinten uit code.txt/Figma en het sRGB-verloop.
+   Kan weg zodra de nieuwe waarden zijn overgenomen in Figma. */
+[data-kleuren="figma"] {
+    --status-fout-tint: #FBE9E9;
+    --status-let-op-tint: #FDEEDC;
+}
+[data-kleuren="figma"][data-thema="beringse"] { --thema-primair-tint: #FDE7E9; }
+[data-kleuren="figma"][data-thema="roze"] { --thema-primair-tint: #FFF0F6; }
+[data-kleuren="figma"] .wf-header { background: linear-gradient(90deg, var(--thema-kop) 45%, var(--thema-kop-eind) 108%); }
+@media (max-width: 700px) {
+    [data-kleuren="figma"] .wf-header { background: linear-gradient(90deg, var(--thema-kop) 75%, var(--thema-kop-eind) 135%); }
+}
+
+/* titel in een kaart met de datum als zachter regeltje erboven (zoals het activiteitkaartje); aantal achter een titel */
+.wf-kop-blok { display: flex; flex-direction: column; gap: 2px; }
+.wf-kaart-datum { font: 400 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst); }
+.wf-kop-datum::first-letter, .wf-kaart-datum::first-letter { text-transform: uppercase; }   /* zoals de datum op het kaartje */
+.wf-titel-aantal { margin-left: 8px; color: var(--neutraal-tekst-zacht); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+/* ---- 13e. Stappenbalk (afmelden in twee stappen) ------------------------
+   Genummerde rondjes met een korte lijn ertussen. Zonder kleur. Actief: donkere rand en donker cijfer, de naam vet. Nog te doen: lichte rand, zachte tekst. Klaar: lichte rand met een vinkje.
+   Mobiel: alleen de huidige stap houdt zijn tekst, de andere is alleen een rondje (anders past het niet op 375 px). */
+.wf-stappen { list-style: none; display: flex; align-items: center; gap: 12px; }
+.wf-stap { display: inline-flex; align-items: center; gap: 10px; font: 600 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst-zacht); }
+.wf-stap-nr { width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-full); border: 1px solid var(--neutraal-lijn-sterk); background: var(--neutraal-kaart); font: 700 0.875rem/1.4286 var(--font-tekst); }
+.wf-stap-nr .ic { width: 16px; height: 16px; margin: 0; vertical-align: middle; }
+.wf-stap-actief { color: var(--neutraal-tekst); font-weight: 700; }
+.wf-stap-actief .wf-stap-nr { border-color: var(--neutraal-tekst); color: var(--neutraal-tekst); }
+.wf-stap-klaar .wf-stap-nr { border-color: var(--neutraal-lijn); color: var(--neutraal-tekst-zacht); }
+.wf-stap-todo .wf-stap-nr { border-color: var(--neutraal-lijn); }
+.wf-stap-lijn { flex: 0 0 40px; height: 0; border-top: 1px solid var(--neutraal-lijn-sterk); }
+@media (max-width: 700px) {
+    .wf-stap:not(.wf-stap-actief) .wf-stap-naam { display: none; }
+    .wf-stap-lijn { flex: 0 0 24px; }
+}
+
+/* ---- 13f. Kopvlak met carnavalsdetail ------------------------------------
+   Abstracte confetti in het kopvlak: een fragment shader (kopvlak.js) tekent een halftoonraster, serpentines, drie lagen
+   confetti en een fijne korrel, allemaal in de themakleuren confetti-1/2/3. Rechts dicht, links leeg, zodat titel en datum
+   schoon blijven. Puur decoratie: canvas met aria-hidden. Zonder WebGL blijft de simpele CSS-confetti (::before) staan. */
+.wf-header { position: relative; overflow: hidden; }
+.wf-header > * { position: relative; z-index: 1; }
+.wf-kop-gl { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: block; }
+.wf-header::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(circle at 58% 74%, var(--thema-confetti-1) 0 3.5px, transparent 4px) no-repeat,
+        radial-gradient(circle at 74% 30%, var(--thema-confetti-3) 0 4px, transparent 4.5px) no-repeat,
+        radial-gradient(circle at 88% 66%, var(--thema-confetti-1) 0 3px, transparent 3.5px) no-repeat,
+        radial-gradient(circle at 96% 24%, var(--thema-confetti-3) 0 3.5px, transparent 4px) no-repeat,
+        linear-gradient(var(--thema-confetti-1), var(--thema-confetti-1)) 66% 40% / 10px 4px no-repeat,
+        linear-gradient(var(--thema-confetti-3), var(--thema-confetti-3)) 82% 80% / 9px 4px no-repeat;
+}
+.wf-header.wf-kop-gl-aan::before { display: none; }
+
+/* ---- 13g. Kaart "Jouw status": hiërarchie ---------------------------------
+   1 de status is de kop (groot, donker), 2 de uitleg is klein en zacht, 3 de hoofdactie (Afmelden), 4 het alternatief staat
+   apart onder een lijn, als tweede keuze met een kleinere vraag erboven. */
+.wf-status-zin { font: 700 1.125rem/1.4444 var(--font-titel); letter-spacing: 0; color: var(--neutraal-tekst); }
+.wf-status-ok { display: flex; align-items: center; gap: 10px; }
+.wf-status-ok .ic { width: 24px; height: 24px; vertical-align: 0; color: var(--status-succes); }
+.wf-status-ok { color: var(--status-succes-tekst); }
+/* twee activiteiten in één kaart (welkom-twee): elk blok is het gewone aanwezig-blok, met een badge met de naam van de activiteit erboven */
+.wf-activiteit-badge { margin-bottom: 12px; }
+.wf-status-ok > span:not(.ic) { text-wrap: balance; }   /* de zin breekt gelijk af ("…aanwezig, / zonder dienst.") in plaats van met één los woord */
+/* afgemeld: dezelfde opbouw, in de themakleur van de afmelding (zoals het label "afgemeld" in de lijsten) */
+.wf-status-af { display: flex; align-items: center; gap: 10px; color: var(--thema-primair-tekst); color: color-mix(in oklch, var(--thema-primair-tekst), black 20%); }
+.wf-status-af .ic { width: 24px; height: 24px; vertical-align: 0; color: var(--thema-primair); }   /* de hele zin, niet alleen het woord */
+.wf-uitleg { margin-top: 4px; font-size: 0.8125rem; line-height: 1.5385; color: var(--neutraal-tekst-zacht); }
+.wf-tweede-keus { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--neutraal-lijn); }
+.wf-tweede-keus .wf-subtitle { font-size: 0.8125rem; line-height: 1.5385; }
+
+/* ---- 13h. Lijsten, variant A ----------------------------------------------
+   De datum is een blokje (dag groot, weekdag klein); de maand staat al in de kop van de kaart. Naam en tijd/plek staan onder
+   elkaar, de rol is een label met icoon, de taak in beheer een label in let-op-kleur. Minder tekst, meer ankers voor het oog. */
+.wf-lijst-a { gap: 16px; padding-top: 14px; padding-bottom: 14px; align-items: center; }
+.wf-blok { flex: none; width: 66px; height: 60px; padding: 7px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+           background: var(--neutraal-vlak); border-radius: var(--radius-control); }
+.wf-blok b { font: 700 1.25rem/1.1 var(--font-titel); color: var(--neutraal-tekst); }
+.wf-blok span { font: 600 0.75rem/1 var(--font-tekst); text-transform: uppercase; letter-spacing: .02em; color: var(--neutraal-tekst-zacht); }
+.wf-blok.nu { background: var(--thema-primair); }
+.wf-blok.nu b, .wf-blok.nu span { color: var(--thema-op-primair); }
+.wf-rij-tekst { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.wf-rij-tekst > strong { font: 700 1rem/1.5 var(--font-tekst); }
+.wf-rij-kop { display: flex; align-items: baseline; gap: 8px; }
+.wf-rij-kop > strong { font: 700 1rem/1.5 var(--font-tekst); }
+.wf-rij-kop > .wf-tijd-los { margin-left: 0; font-size: 0.875rem; }
+.wf-rij-sub { font-size: 0.875rem; line-height: 1.4286; color: var(--neutraal-tekst-zacht); font-variant-numeric: tabular-nums; }
+.wf-taak { display: inline-block; font: 600 0.8125rem/1.3846 var(--font-tekst); padding: 2px 10px; border-radius: 12px;
+           background: var(--status-let-op-tint); color: var(--status-let-op-tekst); }
+/* op hover wordt de rij donkerder dan het blok: het blok wordt dan wit, anders valt de datum weg */
+a.wf-link:hover > .wf-lijst-a .wf-blok:not(.nu) { background: var(--neutraal-kaart); }
+a.wf-link:hover > .wf-lijst-a .ic-chevron-rechts { color: var(--neutraal-tekst); transform: translateX(2px); }
+.wf-lijst-a .ic-chevron-rechts { transition: transform .12s; }
+/* afgelopen: blok en tekst zachter */
+.wf-lijst-a.wf-disabled .wf-blok { background: var(--neutraal-vlak); opacity: .7; }
+.wf-lijst-a.wf-disabled .wf-rij-tekst > strong { font-weight: 600; }
+/* jouw afmelding: het blok blijft neutraal, de rij is al themakleur */
+.wf-lijst-a.wf-flagged .wf-blok { background: var(--neutraal-kaart); }
+
+/* ---- 13i. Labels: tint, rand in dezelfde kleur, icoon ------------------------
+   Naar voorbeeld van de ontwerper (08-10-2026): een zacht gekleurd vlak, een dunne rand van dezelfde kleur (35%), een icoon en tekst in
+   de donkere variant. De rand is een box-shadow (geen echte rand: 1 px wordt bij sommige schermvergrotingen 0,8 px en maakt rijen
+   onregelmatig hoog). Kleur komt uit de statuskleuren; neutraal is het rustige grijs. */
+.wf-badge, .wf-taak {
+    display: inline-flex; align-items: center; gap: 8px;
+    font: 600 0.875rem/1.4286 var(--font-tekst);
+    padding: 5px 14px 5px 11px;
+    border-radius: var(--radius-full);
+    background: var(--neutraal-vlak);
+    color: var(--neutraal-tekst);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--neutraal-tekst) 18%, transparent);
+    white-space: nowrap;
+}
+/* het icoon is een dunne omlijnde variant (stroke 1,5) op 18 px: dezelfde lijndikte als de tekst, dus geen zwaar icoon naast licht lettertype */
+.wf-badge .ic, .wf-taak .ic { width: 18px; height: 18px; vertical-align: 0; }
+.wf-badge:not(:has(.ic)) { padding-left: 14px; }
+/* concept: neutraal grijs met gestippelde cirkel, zacht van kleur (nog niet af, dus rustiger dan de statuskleuren) */
+.wf-badge.concept { background: var(--neutraal-vlak); color: var(--neutraal-tekst-zacht); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--neutraal-tekst) 14%, transparent); }
+.wf-badge.gepubliceerd { background: var(--status-succes-tint); color: var(--status-succes-tekst); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--status-succes) 35%, transparent); }
+.wf-badge.geannuleerd { background: var(--status-fout-tint); color: var(--status-fout-tekst); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--status-fout) 35%, transparent); }
+/* de taak in beheer is gewone tekst: elke rij onder "Vraagt aandacht" heeft er al een, dus een label per rij is te druk */
+.wf-taak { background: none; box-shadow: none; padding: 0; border-radius: 0; font: 400 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst-zacht); white-space: normal; display: block; }
+/* jouw afmelding: themakleur, zelfde opbouw */
+.wf-list-item.wf-flagged .wf-badge, .wf-flagged .wf-badge {
+    background: transparent;   /* geen vulling: de rij zelf is al in themakleur, het label is alleen rand, icoon en tekst */
+    color: var(--thema-primair-tekst); color: color-mix(in oklch, var(--thema-primair-tekst), black 20%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--thema-primair) 55%, transparent);
+}
+
+/* ---- 13i2. Checklist "Om te publiceren" ---------------------------------------
+   Alle verplichte velden onder elkaar: klaar = groen vinkje in zachte tekst, nog te doen = open cirkel en donkere, vette tekst
+   (met onderstreping: een link naar het veld). Zo zie je in één blik hoe ver je bent. */
+.wf-checklist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.wf-checklist li { display: flex; align-items: center; gap: 10px; font-size: 0.875rem; line-height: 1.4286; }
+.wf-checklist .ic { width: 18px; height: 18px; vertical-align: 0; }
+.wf-checklist .klaar { color: var(--neutraal-tekst-zacht); }
+.wf-checklist .klaar .ic { color: var(--status-succes); }
+.wf-checklist .open { color: var(--neutraal-tekst); font-weight: 600; }
+.wf-checklist .open .ic { color: var(--neutraal-lijn-sterk); }
+
+.wf-icoonrij { gap: 16px; padding-top: 14px; padding-bottom: 14px; }
+.wf-icoontegel { flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+                 background: var(--neutraal-vlak); border-radius: var(--radius-control); color: var(--neutraal-tekst); }
+.wf-icoontegel .ic { width: 24px; height: 24px; margin: 0; vertical-align: 0; }
+a.wf-link:hover > .wf-icoonrij .wf-icoontegel { background: var(--neutraal-kaart); }   /* op hover is de rij donkerder dan het vlak: het vlak wordt wit */
+
+/* ---- 13i3. Vorig seizoen kopieren -----------------------------------------
+   Een pijl tussen de oude en de nieuwe datum laat zien wat er gebeurt; de twee uitlegzinnen staan in een blauwe notitie (zoals
+   "Belangrijk om te weten": blauw is voor informatie die je moet weten). */
+.wf-schuif { flex: none; align-self: flex-end; height: var(--control-default); display: flex; align-items: center; color: var(--neutraal-tekst-zacht); }
+.wf-schuif .ic { width: 20px; height: 20px; margin: 0; vertical-align: 0; }
+.wf-notitie { margin-top: 24px; padding: 16px; background: var(--status-info-tint); border-radius: var(--radius-control); display: flex; align-items: flex-start; gap: 12px; color: var(--status-info-tekst); font-size: 0.875rem; line-height: 1.4286; }
+.wf-notitie > .ic { width: 20px; height: 20px; margin: 0; color: var(--status-info); vertical-align: 0; }
+.wf-notitie > span:not(.ic) { min-width: 0; }
+.wf-na-kop { margin-top: 4px; }
+.wf-notitie strong { white-space: nowrap; }   /* een telefoonnummer breekt niet af */
+.wf-notitie ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }   /* het info-icoon is al het teken: geen bolletjes erbij */
+
+.wf-voorvertoning { margin-top: 24px; }
+.wf-vv { list-style: none; margin: 8px 0 0; padding: 0; font-size: 0.875rem; line-height: 1.4286; }
+.wf-vv li { display: grid; grid-template-columns: 116px minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-top: 1px solid var(--neutraal-lijn); }
+.wf-vv li:first-child { border-top: 0; }
+.wf-vv-datum, .wf-vv-tijd { color: var(--neutraal-tekst-zacht); font-variant-numeric: tabular-nums; }
+.wf-card-actie { margin-top: 24px; }
+
+/* ---- 13i4. Excel-bestand importeren ---------------------------------------
+   Een bestand is een rij met icoon, naam en actie; de acties zijn een knop (Downloaden) of een zachte tekstactie (Ander bestand kiezen). */
+.wf-bestand { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+.wf-bestand-tekst { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wf-bestand-tekst > strong { font: 700 1rem/1.5 var(--font-tekst); overflow-wrap: anywhere; }
+.wf-bestand > a.wf-link > * { flex: none; }   /* de link zelf heeft display: contents; de knop erin is het flexitem */
+.wf-bestand-info { margin-top: 12px; }
+.wf-tekstactie { flex: none; font: 600 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst-zacht); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 700px) {
+    .wf-bestand { flex-wrap: wrap; }
+    .wf-bestand > a.wf-link > *, .wf-bestand > .wf-tekstactie { flex: 1 1 100%; }
+    .wf-bestand > .wf-tekstactie { text-align: start; }
+}
+
+/* ---- 13i5. Activiteiten controleren (bulk) ------------------------------------
+   Op elke rij staat een datumveld. Een omrand veld per rij is te druk: de velden zijn zachte vlakken zonder rand (zoals het datumblok in
+   de lijsten) en een fout is een zachte rode tint met rode tekst, geen rode rand. De datumkolom is breed genoeg voor 'do 11 nov 2027'. */
+.wf-datum:has(> .wf-input) { width: 148px; }
+.wf-datum > .wf-input { border-color: transparent; background: var(--neutraal-vlak); min-height: 40px; white-space: nowrap; }
+.wf-datum > .wf-input.wf-error { background: var(--status-fout-tint); color: var(--status-fout-tekst); }
+.wf-list-item .wf-input.wf-error { border-color: transparent; background: var(--status-fout-tint); color: var(--status-fout-tekst); min-height: 0; border-radius: var(--radius-small); }
+/* een regel die niet wordt meegenomen: geen doorhaling (te onrustig), maar zachte tekst; "Toch meenemen" zegt wat er aan de hand is */
+.wf-list-item.wf-disabled { opacity: 1; color: var(--neutraal-tekst-zacht); }
+.wf-list-item.wf-disabled [style*="line-through"] { text-decoration: none !important; color: var(--neutraal-tekst-zacht); }
+.wf-list-item.wf-disabled strong { font-weight: 600; }
+.wf-list-item.wf-disabled .wf-plek-weg { color: var(--neutraal-tekst); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- 13i6. Iconen in de velden van het activiteitformulier --------------------
+   Een zacht icoon links in het veld (kalender, klok, speld, bus) laat in een oogopslag zien wat voor veld het is. */
+.wf-input.wf-met-icoon { display: flex; align-items: center; gap: 10px; }
+/* de rij met datum en drie tijden: past hij niet op één regel, dan breekt hij af in plaats van de kolom uit te lopen (en over het zijpaneel heen te komen).
+   De velden krimpen eerst mee (min-width: 0); de datum is de breedste. */
+.wf-veldrij:has(.wf-met-icoon) { flex-wrap: wrap; }
+.wf-veldrij:has(.wf-met-icoon) > .wf-veld { min-width: 0; }
+.wf-veldrij > .wf-veld.wf-middel:has(.wf-met-icoon) { flex: 1 1 230px; }
+.wf-veldrij > .wf-veld.wf-kort:has(.wf-met-icoon) { flex: 1 1 108px; }
+.wf-veld.wf-middel > .wf-input.wf-met-icoon { white-space: nowrap; }
+@media (max-width: 700px) {
+    .wf-veldrij > .wf-veld.wf-middel:has(.wf-met-icoon) { flex: 1 1 100%; }   /* datum op een eigen rij */
+    /* de drie tijden naast elkaar, zoals op desktop: het klokje valt weg (het label staat er direct boven), anders passen ze niet naast elkaar */
+    .wf-veldrij > .wf-veld.wf-kort:has(.wf-met-icoon) { flex: 1 1 0; }
+    .wf-veld.wf-kort > .wf-input.wf-met-icoon > .ic-klok { display: none; }
+    .wf-veld.wf-kort > .wf-input.wf-met-icoon { padding-inline: 12px; }
+}
+
+/* gewone uitleg in een kaart (bijvoorbeeld "Geen dienst"): neutraal, de titel met een zacht icoon, de tekst zacht; blauw is voor belangrijke informatie en oranje voor een waarschuwing */
+.wf-uitlegkaart .wf-label { display: inline-flex; align-items: center; gap: 8px; color: var(--neutraal-tekst); }
+.wf-uitlegkaart .wf-label .ic { width: 18px; height: 18px; color: var(--neutraal-tekst-zacht); }
+
+/* telefoonnummer achter een naam: een zacht telefoonicoon, het nummer breekt niet af */
+.wf-tel { display: inline-flex; align-items: center; gap: 6px; margin-inline-start: 12px; white-space: nowrap; vertical-align: -3px; }
+.wf-tel .ic { width: 16px; height: 16px; margin: 0; vertical-align: 0; color: var(--neutraal-tekst-zacht); }
+
+/* ---- 15. Mobiel (assumptie: breekpunt 700px, nog niet vastgesteld) ------- */
+@media (max-width: 700px) {
+    .wf-topnav { height: 56px; padding: 0 8px; gap: 0; }
+    .wf-topnav .wf-brand-naam, .wf-topnav .wf-subtitle { display: none; }
+    .wf-topnav .wf-brand { flex: 0 0 auto; margin-right: 8px; }
+    .wf-logo { height: 40px; }
+    .wf-topnav-item { padding: 10px 8px 10px 24px; }
+    .wf-topnav-item::after { left: 8px; }
+    .wf-topnav .wf-spacer-flex { flex: 1; }
+    /* mobiel: een titel kan tot aan de rechterrand lopen, dus het verloop begint later en blijft lichter */
+    .wf-header { font-size: 1.5rem; line-height: 1.3333; min-height: calc(var(--kop-ruimte) * 2 + 32px); background: linear-gradient(90deg, var(--thema-kop) 75%, var(--thema-kop-eind) 135%); background: linear-gradient(in oklch 90deg, var(--thema-kop) 75%, var(--thema-kop-eind) 135%); }
+    .wf-header-groot { font-size: 2rem; line-height: 1; }
+    .wf-content { gap: 12px; padding-top: 16px; padding-bottom: 32px; }
+    .wf-columns { flex-direction: column; align-items: stretch; gap: 12px; }
+    .wf-col, .wf-sidebar { display: contents; }
+    .wf-col > *, .wf-col > a.wf-link > * { order: 3; }
+    .wf-col > :first-child { order: 1; }
+    .wf-sidebar > *, .wf-sidebar > a.wf-link > * { order: 4; }
+    .wf-sidebar > :first-child { order: 2; }
+    /* de opdrachtgever 09-10: "Je staat op aanwezig" (of afgemeld) staat bovenaan, voor het activiteitkaartje */
+    .wf-sidebar > :first-child:has(.wf-status-zin) { order: 0; }
+    .wf-columns > * > .wf-mobiel-onderaan { order: 5; }
+    .wf-columns > * > .wf-mobiel-boven { order: 2; }   /* direct na het eerste blok van de zijkolom (de statuskaart), bijvoorbeeld Mijn diensten op het welkomscherm */
+    .wf-niet-op-mobiel { display: none; }
+    .wf-alleen-mobiel { display: block; }
+    .wf-tegels { display: flex; flex-wrap: wrap; gap: 8px; }
+    .wf-tegel { display: flex; align-items: baseline; gap: 6px; border-radius: var(--radius-full); padding: 6px 14px; font-size: 0.875rem; }
+    .wf-tegel b { display: inline; font: 700 1rem/1.5 var(--font-tekst); letter-spacing: 0; }
+    .wf-knoppenrij { display: flex; gap: 8px; }
+    .wf-knoppenrij > a.wf-link { display: block; flex: 1 1 0; min-width: 0; }
+    .wf-knoppenrij .wf-button, .wf-knoppenrij .wf-button-secondary { width: 100%; padding: 0 8px; }
+    /* twee knoppen naast elkaar op 375 px: met icoon past de tekst niet op één regel */
+    .wf-knoppenrij .ic { display: none; }
+    /* de tekst van een rij krijgt een minimale breedte: is er niet genoeg ruimte, dan zakken label
+       en pijltje naar een eigen regel in plaats van dat een lang woord eronder doorloopt */
+    .wf-list-item > span[style*="flex"] { flex: 1 1 9em; min-width: 9em; }
+    .wf-list-item > .wf-badge { flex-shrink: 0; }
+    /* mobiel: de naam op een eigen regel, daaronder tijd en plek */
+    .wf-rij-naam { flex: 1 1 100%; }
+    .wf-rij-tijd { flex: 0 0 auto; }
+    .wf-rij-plek { flex: 1 1 auto; }
+    .wf-list-item { flex-wrap: wrap; gap: 4px 12px; }
+    /* blok | tekst | pijltje; een label (concept, rol) komt onder de tekst in plaats van de tekst smal te maken */
+    .wf-list-item.wf-lijst-a { display: grid; grid-template-columns: 64px minmax(0, 1fr) 20px; gap: 4px 12px; align-items: center; }
+    .wf-lijst-a > .wf-blok { grid-column: 1; grid-row: 1 / span 2; width: 64px; }
+    .wf-lijst-a > .wf-rij-tekst { grid-column: 2; grid-row: 1; }
+    .wf-lijst-a > .wf-badge { grid-column: 2; grid-row: 2; justify-self: start; }
+    .wf-lijst-a > .ic-chevron-rechts { grid-column: 3; grid-row: 1 / span 2; }
+    .wf-blok span { letter-spacing: 0; }
+    .wf-datum { width: 100%; font-size: 0.875rem; }
+    .wf-role-row { flex-wrap: wrap; gap: 2px 12px; }
+    .wf-rolblok { flex-direction: column; gap: 6px; }
+    .wf-rolblok > .wf-role-type { width: 100%; }
+    .wf-role-row .wf-role-type { width: 100%; font-size: 0.875rem; }
+    .wf-kaartje-boven { padding: var(--padding-card); }
+    .wf-kaartje-stops { flex-direction: column; }
+    .wf-kaartje-stop { padding: 0 0 16px 32px; }
+    .wf-kaartje-stop:last-child { padding-bottom: 0; }
+    .wf-kaartje-dot { top: 6px; }
+    .wf-kaartje-stop:not(:last-child)::after { top: 24px; bottom: -6px; left: 6px; right: auto; border-top: none; border-left: 2px dotted var(--neutraal-lijn-sterk); }
+    .wf-uitkomsten { grid-template-columns: 1fr; }
+    .wf-veldrij { flex-wrap: wrap; gap: 16px 12px; }
+    .wf-veldrij > .wf-veld, .wf-veldrij > .wf-veld.wf-kort, .wf-veldrij > .wf-veld.wf-middel { flex: 1 1 130px; }
+    .wf-veldrij.wf-stapelen { flex-direction: column; align-items: stretch; }
+    .wf-veldrij.wf-stapelen > .wf-veld, .wf-veldrij.wf-stapelen > .wf-veld.wf-middel { flex: 0 0 auto; }
+    .wf-schuif { align-self: flex-start; height: auto; transform: rotate(90deg); margin: 0 0 0 8px; }
+    /* statuspaneel: een balk onderaan die blijft staan */
+    .wf-columns > .wf-sidebar.wf-sticky > .wf-card {
+        order: 6;
+        position: sticky;
+        bottom: 0;
+        margin: 0 calc(var(--padding-page) * -1);
+        padding: 12px var(--padding-page);
+        border-radius: 0;
+        box-shadow: 0 -4px 8px 0 rgba(38, 33, 31, 0.08);
+    }
+    .wf-paneel-scheiding { margin: 8px 0; }
+    .wf-sidebar.wf-sticky .wf-status-kop { font-size: 1rem; line-height: 1.5; }
+    .wf-button-row { flex-direction: column; align-items: stretch; }
+    .wf-button, .wf-button-secondary, .wf-button-danger { display: flex; align-self: stretch; }
+}
+
+/* ---- 15b. Heel smalle schermen (320 px) -----------------------------------
+   De bovenbalk met drie onderdelen en het avatar-bolletje paste 7 px te breed en de pagina scrolde zijwaarts; iets minder opvulling per
+   onderdeel (better-layout: clipping of overlap bij 320 px is altijd een fout). */
+@media (max-width: 360px) {
+    .wf-topnav-item { padding: 10px 6px 10px 18px; }
+    .wf-topnav-item::after { left: 6px; }
+}
+
+/* ---- 15c. Bulk controleren op mobiel ---------------------------------------
+   Eerst stond het datumveld als breed vlak boven de tekst en "Niet meenemen" als zwakke grijze tekst ernaast onder: elke rij was ~115 px hoog.
+   Toen kregen datum en actie allebei een vlak of rand, en dat werd te druk: negen keer twee omrande vormen onder elkaar (de ontwerper, 26-10-2026).
+   Nu is alleen wat aandacht vraagt gekleurd. De datum is gewone tekst, de actie zachte tekst zonder onderstreping (alleen "Toch meenemen" is groen,
+   omdat het het tegenovergestelde doet); alleen een fout in de datum of een ander veld krijgt een rood vlak. Elke onderstreping of rand erbij werd te druk. Rij: datum links en actie rechts, daaronder de tekst.
+   De volgorde in de HTML blijft zoals ze is (datum, tekst, actie). */
+@media (max-width: 700px) {
+    .wf-list-item:has(> .wf-datum > .wf-input), .wf-list-item.wf-disabled:has(> .wf-plek-weg) {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; }
+    .wf-list-item:has(> .wf-datum > .wf-input) > .wf-datum, .wf-list-item.wf-disabled:has(> .wf-plek-weg) > .wf-datum { grid-column: 1; grid-row: 1; width: auto; justify-self: start; }
+    .wf-list-item:has(> .wf-datum > .wf-input) > span[style*="flex"], .wf-list-item.wf-disabled:has(> .wf-plek-weg) > span[style*="flex"] { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+    .wf-list-item:has(> .wf-datum > .wf-input) > .wf-plek-weg, .wf-list-item.wf-disabled:has(> .wf-plek-weg) > .wf-plek-weg {
+        grid-column: 2; grid-row: 1; justify-self: end; display: inline-flex; align-items: center; min-height: 44px;
+        color: var(--neutraal-tekst-zacht); font-weight: 400; text-decoration: none; }
+    .wf-datum:has(> .wf-input) { width: auto; min-width: 0; }
+    .wf-datum > .wf-input:not(.wf-error) {
+        background: none; border: 0; border-radius: 0; padding: 6px 0; min-height: 44px;
+        font-size: 1rem; font-weight: 600; }
+    .wf-datum > .wf-input.wf-error { min-height: 44px; padding: 6px 12px; }
+    /* "Toch meenemen" doet het tegenovergestelde van "Niet meenemen": de kleur volgt de actie (groen), en de rij is een grijs vlak, zodat een
+       uitgeschakelde regel niet op een gewone lijkt */
+    .wf-list-item.wf-disabled:has(> .wf-plek-weg) { background: var(--neutraal-vlak); }
+    .wf-list-item.wf-disabled:has(> .wf-plek-weg) > .wf-plek-weg { color: var(--status-succes-tekst); font-weight: 600; }
+    .wf-list-item.wf-disabled:has(> .wf-plek-weg) > .wf-datum { font-size: 1rem; font-weight: 600; }
+}
+
+/* ---- 15d. Statuspaneel als balk onderaan (mobiel) ---------------------------
+   Met de checklist en drie knoppen nam de balk bijna de helft van het scherm in en bedekte het formulier. In de balk staat nu alleen wat nog
+   open staat (de afgeronde items zijn te zien op een groter scherm), zonder uitlegzin en scheidingslijn. */
+@media (max-width: 700px) {
+    .wf-sidebar.wf-sticky .wf-checklist .klaar { display: none; }
+    .wf-sidebar.wf-sticky .wf-card > .wf-subtitle, .wf-sidebar.wf-sticky .wf-paneel-scheiding { display: none; }
+    .wf-sidebar.wf-sticky .wf-checklist { margin-top: 4px; }
+    /* de twee hoofdknoppen naast elkaar (zonder icoon, anders breekt de tekst af); de tekstlink "Concept verwijderen" eronder */
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen > .wf-button, .wf-sidebar.wf-sticky .wf-paneel-knoppen > a.wf-link > .wf-button, .wf-sidebar.wf-sticky .wf-paneel-knoppen > a.wf-link > .wf-button-secondary { flex: 1 1 calc(50% - 4px); padding: 0 8px; }   /* een enkele knop groeit mee tot de volle breedte */
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen .wf-button .ic, .wf-sidebar.wf-sticky .wf-paneel-knoppen .wf-button-secondary .ic { display: none; }
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen > a.wf-link > .wf-annuleer { flex: 1 1 100%; min-height: 36px; }
+}
+
+/* ---- 15d2. Statuspaneel in de balk: meer lucht, minder hoogte ------------------
+   De balk was te krap en toch hoog (140 px): kop, twee knoppen onder elkaar, bijna geen ruimte rondom, en het aantal wijzigingen (de reden voor de
+   knop) ontbrak. Nu: meer opvulling, de reden onder de kop, en bij een gepubliceerde activiteit "Alles ongedaan maken" als tekst links naast de
+   groene knop in plaats van als tweede knop eronder. */
+@media (max-width: 700px) {
+    .wf-columns > .wf-sidebar.wf-sticky > .wf-card { padding: 16px var(--padding-page) 20px; }
+    .wf-sidebar.wf-sticky .wf-card > .wf-subtitle.wf-paneel-reden { display: block; margin-top: 2px !important; }
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen { margin-top: 12px; }   /* altijd lucht tussen de status en de knoppen, ook als de reden of uitleg verborgen is */
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen:has(> a.wf-link > .wf-annuleer:not(.wf-gevaar)) { flex-wrap: nowrap; align-items: center; gap: 16px; }
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen:has(> a.wf-link > .wf-annuleer:not(.wf-gevaar)) > a.wf-link:has(> .wf-annuleer) { display: block; order: -1; flex: 0 0 auto; }
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen:has(> a.wf-link > .wf-annuleer:not(.wf-gevaar)) > a.wf-link:not(:has(> .wf-annuleer)) { display: block; flex: 1 1 0; min-width: 0; }
+    .wf-sidebar.wf-sticky .wf-paneel-knoppen > a.wf-link > .wf-annuleer:not(.wf-gevaar) { border-color: transparent; background: none; padding: 0 4px; min-height: 48px; font-weight: 600; }
+}
+
+/* ---- 15d3. Conceptbalk compact (mobiel) ----------------------------------------
+   De conceptbalk was 238 px hoog (bijna 30% van het scherm): kop, een lijstje met wat nog nodig is, twee knoppen en de verwijderlink. Nu: wat nog nodig is
+   staat in één rij, en "Concept verwijderen" staat niet meer in de balk maar onderaan het formulier (bouw.py, concept_weg_op_mobiel). */
+@media (max-width: 700px) {
+    .wf-sidebar.wf-sticky .wf-checklist { display: flex; flex-wrap: wrap; gap: 0 16px; margin-top: 2px; }
+    .wf-sidebar.wf-sticky .wf-checklist li { min-height: 36px; }
+    .wf-sidebar.wf-sticky .wf-card > .wf-spacer { display: none; }
+    .wf-sidebar.wf-sticky .wf-card > .wf-label { margin-top: 0; }
+    a.wf-link.wf-niet-op-mobiel { display: none; }   /* a.wf-link is display: contents en wint anders van .wf-niet-op-mobiel */
+    .wf-concept-weg { order: 5; margin-top: 8px; text-align: center; }
+    .wf-concept-weg .wf-annuleer { min-height: 48px; display: inline-flex; }
+}
+
+/* ---- 15d4. Tikdoelen en leesbaarheid (mobiel, check 26-10-2026) -----------------
+   Gemeten op alle schermen op 375 en 320 px: geen zijwaartse scroll, maar (1) tekstlinks en knoppen lager dan 40 px ("Alles tonen" 20, "Al je diensten"
+   32, rijen in de bulkcontrole 36), (2) 11 px tekst in het jaarblokje en (3) invoervelden van 14 px: Safari op iPhone zoomt de pagina in bij een veld
+   kleiner dan 16 px. Minimaal 44 px voor wat je aantikt (Apple HIG; WCAG 2.2 vraagt 24, Material 48). */
+@media (max-width: 700px) {
+    input, select, textarea, .wf-input { font-size: 1rem; }
+    .wf-rolgroep-kop .wf-plek-weg { display: inline-flex; align-items: center; min-height: 44px; margin: -12px 0; }
+    .wf-bestand > .wf-tekstactie { display: flex; align-items: center; min-height: 44px; }
+    .wf-list-item:has(> .wf-datum > .wf-input), .wf-list-item.wf-disabled:has(> .wf-plek-weg) { padding-top: 8px; row-gap: 0; }
+    .wf-list-item .wf-input.wf-error { min-height: 40px; display: inline-flex !important; align-items: center; }
+}
+
+/* ---- 15e. welkom-twee op mobiel: elke kaart bij zijn eigen activiteit ------------
+   Twee activiteiten, elk met een kaartje, een rolbezetting en een statuskaart. Op mobiel stond de statuskaart van Jeugdmiddag bij Oud papier zuid. Nu staat
+   elke status direct onder het kaartje van zijn eigen activiteit: kaartje 1, status 1, rolbezetting 1, kaartje 2, status 2, rolbezetting 2. */
+/* desktop: de twee kolommen op één raster, zodat de statuskaart van elke activiteit op dezelfde hoogte staat als het kaartje van die activiteit
+   (kaartje 1 | status 1, rolbezetting 1, kaartje 2 | status 2, rolbezetting 2) */
+@media (min-width: 701px) {
+    .wf-twee { display: grid; grid-template-columns: minmax(0, 680px) minmax(280px, 380px); justify-content: space-between; column-gap: 24px; row-gap: var(--gap-group); align-items: start; }
+    .wf-twee > .wf-col, .wf-twee > .wf-sidebar { display: contents; }
+    .wf-twee > .wf-col > :nth-child(1) { grid-column: 1; grid-row: 1; }
+    .wf-twee > .wf-col > :nth-child(2) { grid-column: 1; grid-row: 2; }
+    .wf-twee > .wf-col > :nth-child(3) { grid-column: 1; grid-row: 3; }
+    .wf-twee > .wf-col > :nth-child(4) { grid-column: 1; grid-row: 4; }
+    .wf-twee > .wf-sidebar > :nth-child(1) { grid-column: 2; grid-row: 1; }
+    .wf-twee > .wf-sidebar > :nth-child(2) { grid-column: 2; grid-row: 3; }
+}
+@media (max-width: 700px) {
+    .wf-twee > .wf-col, .wf-twee > .wf-sidebar { display: contents; }
+    .wf-twee > .wf-col > :nth-child(1) { order: 1; }
+    .wf-twee > .wf-sidebar > :nth-child(1) { order: 2; }
+    .wf-twee > .wf-col > :nth-child(2) { order: 3; }
+    .wf-twee > .wf-col > :nth-child(3) { order: 4; }
+    .wf-twee > .wf-sidebar > :nth-child(2) { order: 5; }
+    .wf-twee > .wf-col > :nth-child(4) { order: 6; }
+}
+
+/* ---- 15f. Lijstrijen in een smalle kaart (container query) ---------------------
+   Op een middelgroot scherm is de hoofdkolom maar 320-450 px breed (naast een zijkolom). Dan werd de tekst van een rij zo smal dat "Bonte Avond"
+   over twee regels brak, met het label ernaast. Is de kaart smaller dan 540 px, dan krijgt de rij dezelfde opbouw als op mobiel:
+   blok | tekst | pijltje, met het label onder de tekst. */
+.wf-card:has(.wf-lijst-a) { container-type: inline-size; }
+@container (max-width: 540px) {
+    .wf-list-item.wf-lijst-a { display: grid; grid-template-columns: 64px minmax(0, 1fr) 20px; gap: 4px 12px; align-items: center; }
+    .wf-lijst-a > .wf-blok { grid-column: 1; grid-row: 1 / span 2; width: 64px; }
+    .wf-lijst-a > .wf-rij-tekst { grid-column: 2; grid-row: 1; }
+    .wf-lijst-a > .wf-badge { grid-column: 2; grid-row: 2; justify-self: start; }
+    .wf-lijst-a > .ic-chevron-rechts { grid-column: 3; grid-row: 1 / span 2; }
+}
+
+/* ---- 16. update van de opdrachtgever van 15-10-2026: agenda, Voor wie, Bak -------------------
+   De nieuwe onderdelen hadden eerst alleen hergebruikte kaarten. Hier krijgen ze een eigen uitwerking, opgebouwd uit bestaande
+   onderdelen (radiorondje van de vorm, themakleur). Geen nieuwe kleuren, en geen icoon voor een kaarttitel: dat doet geen andere kaart. */
+
+/* keuze Alles / Diensten: een radiogroep, geen filter. De niet-gekozen tegel heeft ook een rand, zodat hij als tegel te herkennen is */
+.wf-tegel.wf-keuze { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: var(--radius-card);
+                     box-shadow: inset 0 0 0 1px var(--neutraal-lijn-sterk); color: var(--neutraal-tekst-zacht); }
+.wf-tegel.wf-keuze.wf-actief { background: var(--thema-primair-tint); box-shadow: inset 0 0 0 2px var(--thema-primair); color: var(--neutraal-tekst); }
+.wf-keuze .wf-radio { flex: none; width: 20px; height: 20px; margin-top: 4px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--neutraal-lijn-sterk);
+                      background: var(--neutraal-kaart); position: relative; }
+.wf-keuze.wf-actief .wf-radio { box-shadow: inset 0 0 0 2px var(--thema-primair); }
+.wf-keuze.wf-actief .wf-radio::after { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--thema-primair); }
+.wf-keuze .wf-keuze-tekst { min-width: 0; }
+.wf-tegel.wf-keuze b { display: block; font: 700 1.25rem/1.4 var(--font-tekst); letter-spacing: 0; }
+
+/* Android: de route in drie stappen, en de link in een veld met de knop ernaast */
+.wf-agendastappen { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; counter-reset: stap;
+                    color: var(--neutraal-tekst-zacht); font-size: 0.875rem; }
+.wf-agendastappen li { counter-increment: stap; display: flex; align-items: baseline; gap: 12px; }
+.wf-agendastappen li::before { content: counter(stap); flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center;
+                               justify-content: center; background: var(--neutraal-vlak); color: var(--neutraal-tekst); font: 700 0.8125rem/1 var(--font-tekst);
+                               align-self: flex-start; }
+.wf-kopieerrij { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.wf-kopieerrij > .wf-input { flex: 1 1 260px; min-width: 0; color: var(--neutraal-tekst-zacht); }
+.wf-kopieerrij > a.wf-link > * { flex: none; }
+.wf-linktekst { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Bak: de Raad van Elf in twee kolommen, anders staan er elf namen onder elkaar */
+.wf-bak { container-type: inline-size; }
+.wf-bak .wf-rolgroep.wf-raad { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 12px; }
+@container (min-width: 560px) { .wf-bak .wf-rolgroep.wf-raad { grid-template-columns: repeat(2, minmax(0, 1fr)); } }   /* twee kolommen alleen als de kaart breed genoeg is (niet naast een zijkolom op een middelgroot scherm) */
+.wf-bak .wf-raad > .wf-rolgroep-kop { grid-column: 1 / -1; }
+/* staat de keuzelijst open, dan blijft het raster staan en krijgt het paneel de volle breedte onder de rij waarop je klikte; `dense` laat de
+   volgende naam het vrije vakje naast het open veld vullen, zodat er geen gat valt en de indeling niet verspringt */
+.wf-bak .wf-rolgroep.wf-raad { grid-auto-flow: row dense; }
+@media (max-width: 700px) {
+    .wf-tegels[role="radiogroup"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .wf-tegel.wf-keuze { flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radius-card); }
+    .wf-tegel.wf-keuze b { font-size: 1.125rem; }
+    .wf-kopieerrij > .wf-input { flex: 1 1 100%; }
+    .wf-kopieerrij > a.wf-link > * { width: 100%; }
+    .wf-bak .wf-rolgroep.wf-raad { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Knop "Al je diensten" op je eigen rij in de rolbezetting (16-10-2026): kleiner dan een gewone knop, want de rij is een regel tekst */
+.wf-rolnaam .wf-button-secondary { flex: none; width: auto; min-height: 32px; height: 32px; padding: 0 14px; font-size: 0.875rem; white-space: nowrap; }
+
+/* ---- 17. Proef 16-10-2026: de tijdlijn van het kaartje onder elkaar, elke tijd met zijn plaats ------------------------
+   Vier kolommen naast elkaar werden krap ("Bonte Avond is afgelopen" brak over twee regels), en met een bus stonden er twee plaatsen
+   (de locatie onder het kaartje, de busplaats bij de bus) zonder dat duidelijk was waar je verzamelt. Nu één regel per moment:
+   tijd, wat, waar; de strook met de locatie onder het kaartje is vervallen (bouw.py, kaartje_plekken). Het kaartje is overal even
+   breed als de kolom waar het in staat (680 px naast een zijkolom, kleiner op een middelgroot scherm, volle breedte op mobiel); daarom
+   kiest de opbouw op de breedte van het kaartje (container query), niet op die van het scherm. */
+.wf-kaartje { container-type: inline-size; }
+.wf-kaartje-boven { border-radius: var(--radius-card); }
+.wf-kaartje-boven > .wf-kaartje-stops:first-child { margin-top: 0; }   /* kaartje zonder dag en naam erboven (de naam staat dan in de kop): geen lege ruimte bovenaan */
+.wf-kaartje-stops { flex-direction: column; margin-top: 20px; }
+.wf-kaartje-stop, .wf-kaartje-stop.eerst { flex: none; display: grid; grid-template-columns: 4.25rem minmax(0, 12rem) minmax(0, 1fr);
+                                           column-gap: 16px; align-items: baseline; padding: 0 0 18px 32px; font-size: 1rem; }
+.wf-kaartje-stop:last-child { padding-bottom: 0; }
+.wf-kaartje-stop strong, .wf-kaartje-stop.eerst strong { font: 700 1.25rem/1.4 var(--font-tekst); letter-spacing: 0; }
+.wf-kaartje-naam { color: var(--neutraal-tekst); }
+.wf-kaartje-dot { top: 8px; }
+.wf-kaartje-stop:not(:last-child)::after { top: 26px; bottom: -8px; left: 6px; right: auto; border-top: none; border-left: 2px dotted var(--neutraal-lijn-sterk); }
+/* de plaats van een moment: kaartspeld, naam, en het adres eronder */
+/* een gewoon blok met het speldje er absoluut naast (geen flexcontainer: dan bepaalt het icoon de baseline en staat de tekst hoger dan de tijd en het wat) */
+.wf-kaartje-plek { position: relative; display: block; padding-left: 26px; color: var(--neutraal-tekst-zacht); font-size: 0.9375rem; line-height: 1.4; }
+.wf-kaartje-plek > .ic { position: absolute; left: 0; top: 2px; width: 18px; height: 18px; margin: 0; vertical-align: 0; color: var(--neutraal-tekst-zacht); }
+.wf-kaartje-plek b { display: block; font-weight: 600; color: var(--neutraal-tekst); }
+.wf-kaartje-adres { display: block; }
+/* smal kaartje (naast een zijkolom op een middelgroot scherm, en op mobiel): de plaats op een eigen regel onder tijd en wat */
+@container (max-width: 600px) {
+    .wf-kaartje-stop, .wf-kaartje-stop.eerst { grid-template-columns: 4rem minmax(0, 1fr); column-gap: 12px; padding-bottom: 16px; }
+    .wf-kaartje-stop .wf-kaartje-plek { grid-column: 1 / -1; margin-top: 4px; }   /* onder tijd en wat, over de volle breedte: zo past de naam van de locatie op 375 px op één regel */
+}
+
+/* kaarttitel met een icoon ervoor, zonder vlak: het icoon heeft de kleur van de titel (currentColor) */
+.wf-titel-icoon { display: inline-flex; align-items: center; gap: 10px; }
+.wf-titel-icoon > .ic { width: 24px; height: 24px; margin: 0; vertical-align: 0; }
+
+/* ---- 18. De wisselaar op het programma als pillen (16-10-2026) -------------------------------------------------------
+   Twee tegels met een titel van 2 rem in vet, een ring en een regel eronder wogen zwaarder dan de lijst waar ze bij horen ("hier gebeurt
+   veel met die filters"). Op mobiel waren het al pillen; nu op elk scherm, zo is het één bedieningsrij en geen tweede kop. De
+   tellers in beheer (`.wf-tegels` zonder `.wf-wisselaar`) blijven tegels: daar zijn de getallen de inhoud. */
+.wf-wisselaar { display: flex; flex-wrap: wrap; gap: 8px; }
+.wf-wisselaar .wf-tegel { display: flex; align-items: baseline; gap: 8px; padding: 8px 16px; border-radius: var(--radius-full); font-size: 0.875rem; }
+.wf-wisselaar .wf-tegel b { display: inline; font: 700 1rem/1.5 var(--font-tekst); letter-spacing: 0; }
+a.wf-link:hover > .wf-tegel:not(.wf-actief) { background: var(--neutraal-hover); }
+.wf-wisselaar .wf-tegel.wf-nul, .wf-wisselaar .wf-tegel.wf-nul b { color: var(--neutraal-tekst-zacht); }
+/* smal scherm: de twee pillen passen met de tekst op één regel niet naast elkaar. Dan twee gelijke vlakken, naam boven en aantal eronder */
+@media (max-width: 560px) {
+    .wf-wisselaar:not(.wf-tellers) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .wf-wisselaar:not(.wf-tellers) .wf-tegel { flex-direction: column; align-items: flex-start; gap: 0; padding: 8px 14px; border-radius: var(--radius-card); }
+}
+
+/* ---- 19. Welkomscherm op mobiel: de activiteit eerst, daaronder een compacte status (16-10-2026) ----------------------
+   De statuskaart stond bovenaan en nam met uitleg, een volle-breedte-knop, de vraag en nog een volle-breedte-knop een heel scherm in
+   voordat je de activiteit zag. Nu staat het kaartje van de activiteit bovenaan en daaronder de status met de twee knoppen naast
+   elkaar. Dit vervangt de afspraak van 09-10 ("status voor het kaartje"): zo zijn de activiteit en de twee acties samen in beeld.
+   De uitleg "Iedereen staat standaard op aanwezig..." en de vraag "Kun je wel komen, maar wil je alleen je dienst kwijt?" zijn op mobiel
+   weggelaten (ze staan nog op desktop): de vraag hoort bij de tweede knop en las naast elkaar als bijschrift van beide. */
+@media (max-width: 700px) {
+    .wf-sidebar > :first-child:has(.wf-status-zin) { order: 2; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; align-items: stretch; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) > .wf-spacer,
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) .wf-tweede-keus > .wf-spacer,
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) > .wf-uitleg { display: none; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) > .wf-activiteit-badge { grid-column: 1 / -1; justify-self: start; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) > .wf-status-zin { grid-column: 1 / -1; font-size: 1rem; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) > a.wf-link > .wf-button { grid-column: 1; padding: 0 8px; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) > .wf-tweede-keus { display: contents; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) .wf-tweede-keus > a.wf-link > .wf-button-secondary { grid-column: 2; padding: 0 8px; white-space: nowrap; }
+    .wf-sidebar > .wf-card:not(.wf-niet-op-mobiel):has(> .wf-status-zin):has(> .wf-tweede-keus) .wf-tweede-keus > .wf-subtitle { display: none; }   /* de vraag hoort bij de tweede knop; naast elkaar leest hij als bijschrift van beide, dus op mobiel weg */
+}
+
+/* ---- 20. Mobiel: de afmeld- en ruilschermen compacter, de agendakeuze en de platformkaarten (16-10-2026) ---------------------
+   Op een telefoon duwde veel uitleg de eigenlijke taak naar beneden. Details die het lid al kent (verzameltijd en locatie in de
+   bevestiging, de regel onder "Dienst die je overdraagt") zijn weg op mobiel; twee knoppen (hoofdactie en Annuleren) staan naast elkaar;
+   de waarschuwing "Stop je hier..." staat voor de knoppen, want ze gaat over wat er gebeurt als je annuleert. */
+.wf-platform > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wf-platform > summary::-webkit-details-marker { display: none; }
+.wf-platform > summary .ic { color: var(--neutraal-tekst-zacht); transition: transform .15s; }
+.wf-platform[open] > summary .ic { transform: rotate(180deg); }
+.wf-platform[open] > summary { margin-bottom: 4px; }
+.wf-platform > summary:focus-visible { outline: 2px solid var(--thema-primair); outline-offset: 4px; border-radius: var(--radius-control); }
+.wf-col:has(> .wf-button-row:has(> a.wf-link):has(+ .wf-alert.warning)) > .wf-button-row:has(> a.wf-link) { order: 2; }
+.wf-col:has(> .wf-button-row:has(> a.wf-link):has(+ .wf-alert.warning)) > .wf-button-row + .wf-alert.warning { order: 1; }
+@media (max-width: 700px) {
+    .wf-detail-desktop { display: none; }
+    .wf-input[style*="min-height:90px"] { min-height: 64px !important; }
+    .wf-button-row:has(> a.wf-link + a.wf-link) { flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
+    .wf-button-row:has(> a.wf-link + a.wf-link) > a.wf-link > * { flex: 1 1 0; width: auto; min-width: 0; padding: 0 8px; }
+    .wf-col > .wf-button-row:has(> a.wf-link):has(+ .wf-alert.warning) { order: 5; }
+    .wf-col > .wf-button-row + .wf-alert.warning { order: 4; }
+    /* agendakeuze: twee tegels onder elkaar, naam en aantal op één regel (naast elkaar brak "Alle activiteiten" over drie regels) */
+    .wf-tegels[role="radiogroup"] { grid-template-columns: 1fr; }
+    .wf-tegel.wf-keuze { flex-direction: row; align-items: center; gap: 12px; padding: 12px 14px; }
+    .wf-keuze .wf-radio { margin-top: 0; }
+    .wf-keuze .wf-keuze-tekst { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+    .wf-tegel.wf-keuze b { display: inline; font-size: 1rem; }
+}
+
+/* datumblok met jaartal ("nov 2027"): in één regel, iets kleiner, zodat het blokje niet hoger wordt */
+.wf-blok span.wf-blok-jaar { font-size: 0.75rem; letter-spacing: 0; white-space: nowrap; }
+@media (max-width: 700px) {
+    /* rij met naam, nummer en label (ondergrens): de naam met het nummer neemt de hele regel, het label komt eronder; anders overlapt het nummer */
+    .wf-role-row > span[style*="flex:1"] { flex: 1 1 100%; }
+}
+
+/* ---- 21. De open keuzelijst in de bak als uitklaplijst onder het veld (16-10-2026) --------------------------------------
+   Eerst een paneel over de volle breedte onder de rij: dat hing onder twee velden tegelijk en leek bij geen van beide te horen.
+   Nu hangt de lijst onder het aangeklikte veld, even breed, over de rijen eronder; er verschuift niets. In een smalle kaart (één kolom) blijft hij
+   gewoon onder het veld staan, zoals in de rolbezetting; de breedte van de kaart beslist, niet die van het scherm. */
+.wf-bak .wf-role-row:has(> .wf-popover) { position: relative; flex-wrap: wrap; }
+.wf-bak .wf-role-row > .wf-popover { flex: 1 1 100%; }
+@container (min-width: 560px) {
+    .wf-bak .wf-role-row > .wf-popover { position: absolute; top: calc(100% + 4px); left: 0; width: max(100%, 380px); z-index: 10; }   /* iets breder dan het veld: zoekresultaten met een label passen anders niet */
+    .wf-bak .wf-raad > .wf-role-row:nth-child(odd) > .wf-popover { left: auto; right: 0; }   /* veld in de rechterkolom: de lijst wijst naar links, niet over de rand van de kaart */
+}
+
+/* Bak voor leden (16-10-2026): de Raad van Elf is elf namen; onder elkaar is dat een lange kolom. Vanaf zeven namen in een rol twee kolommen. */
+.wf-rolnamen:has(> .wf-rolnaam:nth-child(7)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+
+/* ---- 22. Aankruisvakjes en de schakelaar voor de bak (16-10-2026, reactie van de opdrachtgever) ---------------------------------------
+   Voor wie: meerdere groepen tegelijk (vakje per groep, Iedereen sluit de rest uit). Bak: een schakelaar bovenaan de kaart; uit = alleen de
+   schakelaar, aan = de bak eronder. Alleen de visuele versie is interactief (wireframes zijn statisch). */
+.wf-vink { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 12px; border-radius: 6px;
+           background: var(--neutraal-kaart); box-shadow: inset 0 0 0 1px var(--neutraal-lijn-sterk); color: var(--thema-op-primair); }   /* rand 1 px, zoals de velden en knoppen */
+.wf-vink .ic { display: none; width: 14px; height: 14px; margin: 0; }
+.wf-vink.wf-aan { background: var(--thema-primair); box-shadow: none; }
+.wf-vink.wf-aan .ic { display: block; }
+.wf-keuzelijst .wf-list-item[data-groep] { align-items: center; }
+.wf-keuzelijst .wf-list-item[data-groep]:hover { background: var(--neutraal-hover); }
+.wf-keuzelijst > a.wf-link > .wf-button-secondary { margin: 8px 12px 4px; }
+/* de bak aan of uit: kop met de titel links en een schakelaar rechts, daaronder steeds één uitleg */
+.wf-kaartkop { margin-bottom: 4px; }
+.wf-schakelaar { display: inline-flex; align-items: center; gap: 10px; user-select: none; }
+.wf-schakelaar:focus-visible { outline: 2px solid var(--thema-primair); outline-offset: 4px; border-radius: var(--radius-control); }
+.wf-schakelaar .wf-vink { width: 44px; height: 26px; margin: 0; border-radius: 11px; background: var(--neutraal-lijn-sterk); box-shadow: none; position: relative; transition: background .15s; }
+.wf-schakelaar .wf-vink::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 8px; background: #FFFFFF; transition: transform .15s; }   /* geen cirkel: afgeronde vierkantjes zoals de vinkvakjes, velden en knoppen */
+.wf-schakelaar .wf-vink.wf-aan { background: var(--status-succes); }
+.wf-schakelaar .wf-vink.wf-aan::after { transform: translateX(18px); }
+.wf-schakelaar .wf-vink .ic, .wf-schakelaar .wf-vink.wf-aan .ic { display: none; }
+.wf-schakelaar-tekst { min-width: 2.2em; font: 600 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst-zacht); }
+.wf-bak-body { margin-top: 4px; }
+
+/* ---- 16. "Al je diensten" op mobiel: tikdoel 48 px, zichtbaar 40 px -----------------
+   Staat achter de regel hierboven (rij 1174, 32 px) en moet die overrulen. Het knopje staat in de rolbezetting naast de naam: 44 px zichtbaar zou daar
+   onrustig zijn, dus 40 px met een onzichtbare marge van 4 px rondom. */
+@media (max-width: 700px) {
+    .wf-rolnaam .wf-button-secondary { height: 40px; min-height: 40px; position: relative; }
+    .wf-rolnaam .wf-button-secondary::after { content: ""; position: absolute; inset: -4px; }
+}
+
+/* ---- 17. "In je agenda" bovenaan als tikbare rij (mobiel) ---------------------------
+   Stond als zwaar kaartje helemaal onderaan: wie de agenda wil koppelen moest eerst door de hele lijst. Nu een rij direct onder de kop: icoon en titel,
+   daaronder de uitleg in één zin, rechts een pijltje; de hele rij is de link (de knop wordt verborgen, op desktop blijft de kaart zoals hij was). */
+@media (max-width: 700px) {
+    .wf-columns > * > .wf-agenda-rij { order: 0; }
+    .wf-agenda-rij { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 12px var(--padding-card); }
+    .wf-agenda-rij > .wf-title { grid-column: 1; grid-row: 1; font-size: 1.0625rem; }
+    .wf-agenda-rij > .wf-subtitle { grid-column: 1; grid-row: 2; margin-top: 2px !important; }
+    .wf-agenda-rij > .wf-spacer, .wf-agenda-rij .wf-button-secondary { display: none; }
+    .wf-agenda-rij .ic-chevron-rechts { grid-column: 2; grid-row: 1 / span 2; width: 20px; height: 20px; margin: 0; color: var(--neutraal-tekst-zacht); }
+    .wf-agenda-rij a.wf-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+}

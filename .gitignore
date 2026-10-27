@@ -1,0 +1,21 @@
+# Geheimen en lokale bestanden. Nooit committen.
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# Build en afhankelijkheden
+node_modules/
+.next/
+.open-next/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+
+# Besturingssysteem en editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
