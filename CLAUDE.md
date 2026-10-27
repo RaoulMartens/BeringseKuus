@@ -22,6 +22,10 @@ bouwer het kan volgen en later zelf kleine dingen kan aanpassen.
 Bij een tegenspraak tussen de bronnen: eerst `Bouwbesluiten`, dan de bouwgids, dan het FO. Meld het
 verschil in plaats van zelf te kiezen (V8 15.3).
 
+**Waar wijzig je een document?** Zie `docs/README.md`: technische afspraken (dit bestand, `docs/bouw/`,
+`docs/licenties.md`) wijzig je hier, via een pull request. Ontwerpdocumenten (`docs/ux-flows/`,
+`docs/visueel/`, de `.docx`'en) zijn opgeschoonde kopieën uit de ontwerpmap: niet hier wijzigen.
+
 Wijkt de code af van deze bronnen, dan is de code fout, tenzij de bron aantoonbaar een gat heeft.
 Meld een gat (een foutcode zonder scherm, een regel die elkaar tegenspreekt); verzin geen eigen
 gedrag of eigen tekst.
