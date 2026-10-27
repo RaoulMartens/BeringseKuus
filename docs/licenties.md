@@ -1,7 +1,7 @@
 # Licenties en bronnen
 
 Alles wat in de repository of in de app staat heeft een bekende licentie (bouwgids 14.7). Een bestand zonder
-vermelding hieronder komt niet in de hoofdcode; `scripts/controleer-repo.mjs` faalt erop.
+vermelding hieronder komt niet in de hoofdcode; `scripts/controleer-repo.ts` faalt erop.
 
 **Hoe vermelden.** Eén rij per bestand, met het pad zoals het in de repository staat (met `/`). Alle vier de
 velden achter het bestand zijn verplicht: bron, licentie, licentiehouder en wie toestemming gaf. Past een veld

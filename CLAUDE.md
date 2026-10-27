@@ -77,6 +77,8 @@ npm run format:check           # Prettier (npm run format zet het goed)
 npm run controle:poort         # de instellingen van de poort zijn niet verzwakt
 npm run controle:omwegen       # geen eslint-disable, @ts-ignore, .only, .skip in de code
 npm run test                   # Vitest en de tests van de controles (met rapporten in testuitkomsten/)
+npm run supabase:start         # lokale Supabase (Docker): database, inloggen, Mailpit
+npm run env:lokaal             # schrijft .env.local voor npm run dev (niet in git)
 npm run test:db                # lokale database (Docker): migraties opnieuw, pgTAP-tests op RLS en rechten
 npm run build                  # productiebuild
 npm run test:e2e               # Playwright op 1200 en 375 px: axe, zichtbare focus, headers

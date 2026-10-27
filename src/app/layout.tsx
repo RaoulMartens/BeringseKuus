@@ -1,6 +1,7 @@
 import './globals.css';
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
@@ -11,7 +12,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="nl">
-      <body>{children}</body>
+      <body>
+        <header>
+          <nav aria-label="Hoofdmenu">
+            <Link href="/">Ledenplatform</Link> · <Link href="/inloggen">Inloggen</Link>
+          </nav>
+        </header>
+        {children}
+      </body>
     </html>
   );
 }
