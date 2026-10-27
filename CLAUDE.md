@@ -64,17 +64,26 @@ eerst de sleutel intrekken, dan pas opruimen.
 
 ## Commando's
 
-In fase 0 aangemaakt; vul hier de echte namen in.
-
 ```bash
-npm run check        # alles hieronder achter elkaar, hetzelfde als in GitHub Actions
-npm run typecheck    # tsc, strict
-npm run lint         # ESLint, 0 fouten en 0 waarschuwingen
-npm run format:check # Prettier
-npm run test         # unit- en componenttests
-npm run test:db      # databasetests: RLS, rechten per rol, databasefuncties, regels R1–R24
-npm run test:e2e     # browser, desktop en 375px, inclusief axe
+npm run check                  # alles: check:basis en controle:repo (lokaal met .verboden-woorden)
+npm run check:basis            # de poort zonder namenlijst; zo draait hij in GitHub
+npm run typecheck              # next typegen + tsc, strict; alle code is TypeScript
+npm run lint                   # ESLint met typebewuste regels, 0 waarschuwingen; uitzetten met commentaar kan niet
+npm run format:check           # Prettier (npm run format zet het goed)
+npm run controle:poort         # de instellingen van de poort zijn niet verzwakt
+npm run controle:omwegen       # geen eslint-disable, @ts-ignore, .only, .skip in de code
+npm run test                   # Vitest en de tests van de controles (met rapporten in testuitkomsten/)
+npm run build                  # productiebuild
+npm run test:e2e               # Playwright op 1200 en 375 px: axe, zichtbare focus, headers
+npm run controle:overgeslagen  # geen enkele test overgeslagen of todo, volgens de rapporten van de testrunners
+npm run controle:repo          # niets wat niet in een publieke repository hoort (vraagt de namenlijst)
 ```
+
+De namenlijst staat lokaal in `.verboden-woorden` (niet in git) en in GitHub als geheim `VERBODEN_WOORDEN`. Druk
+de namen nooit af, ook niet in een foutmelding of een pull request. Een document dat de controle niet kan lezen
+(docx, pdf) mag alleen met een uitzondering voor precies die inhoud in `scripts/uitzonderingen.json`.
+`npm run test:db` (RLS, rechten per rol, databasefuncties, regels R1–R24) komt in fase 0 stap D, met Supabase.
+In GitHub draait daarna nog `npm audit --audit-level=high`.
 
 Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, ook als er iets rood is.
 

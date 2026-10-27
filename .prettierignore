@@ -1,0 +1,12 @@
+# De bronnen in docs/ en de markdown in de root zijn met de hand opgemaakt documenten, geen code.
+docs/
+*.md
+package-lock.json
+.next/
+.open-next/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+next-env.d.ts
+testuitkomsten/

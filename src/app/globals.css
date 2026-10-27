@@ -1,0 +1,14 @@
+/* Basis tot het visuele ontwerp in fase 1 komt: leesbare tekst en een zichtbare focus voor wie met het
+   toetsenbord werkt (WCAG 2.2, 2.4.7). De browserstandaard is op sommige achtergronden nauwelijks te zien. */
+
+body {
+  margin: 0;
+  padding: 1rem;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}

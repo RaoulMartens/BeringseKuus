@@ -1,0 +1,45 @@
+{
+  "name": "ledenplatform",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ledenplatform voor een carnavalsvereniging",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "controle:poort": "node scripts/controleer-poort.ts",
+    "controle:omwegen": "node scripts/controleer-omwegen.ts",
+    "controle:repo": "node scripts/controleer-repo.ts",
+    "controle:overgeslagen": "node scripts/controleer-overgeslagen.ts",
+    "test": "node -e \"require('node:fs').mkdirSync('testuitkomsten',{recursive:true})\" && vitest run && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=testuitkomsten/node.tap \"scripts/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "check:basis": "npm run typecheck && npm run lint && npm run format:check && npm run controle:poort && npm run controle:omwegen && npm run test && npm run build && npm run test:e2e && npm run controle:overgeslagen",
+    "check": "npm run check:basis && npm run controle:repo",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.3",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}
