@@ -1,0 +1,12 @@
+#!/bin/sh
+# Vóór elke push: niets in de publieke repository wat er niet in hoort, en geen omwegen (bouwgids 14.1 en 14.4).
+# Wat eenmaal gepusht is, is openbaar; de controle in GitHub komt pas daarna. Daarom draait hij ook hier.
+# Overslaan met `git push --no-verify` telt als omweg.
+npm run --silent controle:repo || {
+  echo "Push gestopt: controle:repo vond een probleem (zie hierboven)." >&2
+  exit 1
+}
+npm run --silent controle:omwegen || {
+  echo "Push gestopt: controle:omwegen vond een probleem (zie hierboven)." >&2
+  exit 1
+}
