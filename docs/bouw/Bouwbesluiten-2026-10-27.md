@@ -312,3 +312,24 @@ datamodelkeuzes bewezen zijn en de fase-0-test is gedaan. Tot dan geldt dit best
 
 Bij tegenspraak tussen FO, V8 en dit bestand: dit bestand, dan V8, dan het FO (V8 15.3). Meld het verschil
 in plaats van zelf te kiezen.
+
+## 8. Bron van de documenten en beveiliging van de repository
+
+**Besluit (de bouwer, 27-10-2026).** Er waren twee kopieën van de documenten: de ontwerpmap en deze
+repository. Die liepen uit elkaar. Vanaf nu:
+
+- **Technische afspraken** (`CLAUDE.md`, `SECURITY.md`, `README.md`, `docs/bouw/`, `docs/licenties.md`,
+  `docs/README.md`): **de repository is de bron**. Wijzigen via een branch en een pull request. De versies in de
+  ontwerpmap zijn archief.
+- **Ontwerpdocumenten** (`docs/ux-flows/`, `docs/visueel/stijl.css` en `INDEX.md`, bouwgids en FO als `.docx`):
+  **de ontwerpmap is de bron**. De repository krijgt een opgeschoonde kopie via het kopieerscript in de
+  ontwerpmap, in een pull request. Niet in de repository met de hand wijzigen.
+- Bouwgids V9 wordt markdown in de repository.
+
+**Beveiliging van de repository (27-10-2026)**, naast secret scanning, push protection en de beschermde `main`:
+Dependabot-meldingen en -beveiligingsupdates aan; GitHub Actions moeten op een volledige commit-SHA staan
+(afgedwongen in de instellingen); privé melden van lekken aan, met uitleg in `SECURITY.md`.
+
+**Nog open:** een licentie. Zonder licentie geldt "alle rechten voorbehouden". Kies pas na overleg met de
+stagebegeleider en de vereniging wie eigenaar is van de code.
+
