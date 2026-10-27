@@ -17,6 +17,7 @@ Nodig: Node.js 24 of nieuwer, en Linux of WSL (op Windows niet in OneDrive).
 npm ci                                  # afhankelijkheden, precies volgens package-lock.json; zet ook de pre-push-controle aan
 npx playwright install chromium         # eenmalig: de browser voor de browsertests
 npm run dev                             # ontwikkelserver op http://localhost:3000
+npx supabase start                      # lokale database en inlog in Docker (Docker moet draaien)
 ```
 
 **Eenmalig: de namenlijst.** De controle op de publieke repository zoekt naar namen die er niet in mogen (van
@@ -43,4 +44,5 @@ is, is openbaar.
 
 `main` is beschermd: elke wijziging gaat via een branch en een pull request, ook voor de beheerder.
 
-Uitrollen (Cloudflare Workers) en de database (Supabase) komen in fase 0 stap D en E.
+De database (Supabase) draait lokaal in Docker; `npm run test:db` zet hem schoon op uit de migraties en draait
+de databasetests. Inloggen (stap D2) en uitrollen naar Cloudflare Workers (stap E) volgen.

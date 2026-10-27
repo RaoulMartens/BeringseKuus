@@ -342,3 +342,17 @@ Dependabot negeert grote versie-updates van `typescript` en `eslint` voortaan (`
 updates komen gewoon binnen. Een grote update gebeurt bewust, in een eigen pull request met de hele poort groen,
 uiterlijk vóór het begin van fase 1 bekeken.
 
+## 10. Supabase: regio, lokale database en standaardrechten
+
+**Besluit (de bouwer, 27-10-2026).**
+
+- Het ontwikkelproject `ledenplatform-ontwikkel` staat in West Europe (Londen, `eu-west-2`), op het gratis plan,
+  met alleen verzonnen gegevens. Het pilotproject met echte leden komt in een **EU-regio (Frankfurt,
+  `eu-central-1`)** op Pro: de regio van een bestaand project is niet te wijzigen, en een EU-regio maakt de
+  AVG-uitleg eenvoudig.
+- Ontwikkelen en testen gebeurt tegen een **lokale database** (Supabase-CLI in Docker), ook in GitHub. De online
+  projecten worden pas gekoppeld bij het inloggen (stap D2) en het uitrollen (stap E).
+- **Standaardrechten staan dicht** (eerste migratie): nieuwe tabellen, reeksen en functies in `public` krijgen
+  geen rechten voor `anon` of `authenticated`, en functies niet voor iedereen (`PUBLIC`). `npm run test:db`
+  faalt op een tabel zonder RLS en op een nieuwe tabel of functie die toch vanzelf bereikbaar is.
+

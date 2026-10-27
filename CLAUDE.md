@@ -77,6 +77,7 @@ npm run format:check           # Prettier (npm run format zet het goed)
 npm run controle:poort         # de instellingen van de poort zijn niet verzwakt
 npm run controle:omwegen       # geen eslint-disable, @ts-ignore, .only, .skip in de code
 npm run test                   # Vitest en de tests van de controles (met rapporten in testuitkomsten/)
+npm run test:db                # lokale database (Docker): migraties opnieuw, pgTAP-tests op RLS en rechten
 npm run build                  # productiebuild
 npm run test:e2e               # Playwright op 1200 en 375 px: axe, zichtbare focus, headers
 npm run controle:overgeslagen  # geen enkele test overgeslagen of todo, volgens de rapporten van de testrunners
@@ -86,7 +87,8 @@ npm run controle:repo          # niets wat niet in een publieke repository hoort
 De namenlijst staat lokaal in `.verboden-woorden` (niet in git) en in GitHub als geheim `VERBODEN_WOORDEN`. Druk
 de namen nooit af, ook niet in een foutmelding of een pull request. Een document dat de controle niet kan lezen
 (docx, pdf) mag alleen met een uitzondering voor precies die inhoud in `scripts/uitzonderingen.json`.
-`npm run test:db` (RLS, rechten per rol, databasefuncties, regels R1–R24) komt in fase 0 stap D, met Supabase.
+De database verandert alleen via migraties in `supabase/migrations/`; elke tabel en functie krijgt zijn rechten
+expliciet, met een test in `supabase/tests/` op wat níet mag (standaardrechten staan dicht).
 In GitHub draait daarna nog `npm audit --audit-level=high`.
 
 Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, ook als er iets rood is.
