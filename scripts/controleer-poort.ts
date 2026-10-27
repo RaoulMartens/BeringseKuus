@@ -36,6 +36,7 @@ const VERPLICHTE_STAPPEN = [
   'npm run controle:poort',
   'npm run controle:omwegen',
   'npm run test',
+  'npm run test:db',
   'npm run build',
   'npm run test:e2e',
   'npm run controle:overgeslagen',

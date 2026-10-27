@@ -18,7 +18,7 @@ jobs:
   check:
     name: check
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       # Actions staan vast op een commit (niet op een tag die kan verschuiven); Dependabot houdt ze bij.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
