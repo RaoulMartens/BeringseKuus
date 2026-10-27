@@ -333,3 +333,12 @@ Dependabot-meldingen en -beveiligingsupdates aan; GitHub Actions moeten op een v
 **Nog open:** een licentie. Zonder licentie geldt "alle rechten voorbehouden". Kies pas na overleg met de
 stagebegeleider en de vereniging wie eigenaar is van de code.
 
+## 9. Grote versie-updates van TypeScript en ESLint
+
+**Besluit (de bouwer, 27-10-2026).** Dependabot opende direct na het aanzetten pull requests voor TypeScript 7 en
+ESLint 10. Die zijn gesloten. TypeScript 7 is een herbouwde compiler; het is niet zeker dat Next.js 16 en de
+typebewuste lintregels ermee werken. ESLint 10 is net uit; `eslint-config-next` is met ESLint 9 getest.
+Dependabot negeert grote versie-updates van `typescript` en `eslint` voortaan (`.github/dependabot.yml`); kleine
+updates komen gewoon binnen. Een grote update gebeurt bewust, in een eigen pull request met de hele poort groen,
+uiterlijk vóór het begin van fase 1 bekeken.
+
