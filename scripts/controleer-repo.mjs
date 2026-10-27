@@ -33,7 +33,21 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const AFBEELDING = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'ico', 'bmp', 'tif', 'tiff', 'heic', 'heif']);
+const AFBEELDING = new Set([
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'avif',
+  'svg',
+  'ico',
+  'bmp',
+  'tif',
+  'tiff',
+  'heic',
+  'heif',
+]);
 const LETTERTYPE = new Set(['woff', 'woff2', 'ttf', 'otf', 'eot']);
 const MEDIA = new Set(['pdf', 'mp3', 'mp4', 'mov', 'webm', 'wav']);
 const GEGEVENS = new Set(['xlsx', 'xlsm', 'xls', 'ods', 'csv']);
@@ -42,24 +56,57 @@ const VEREIST_LICENTIE = new Set([...AFBEELDING, ...LETTERTYPE, ...MEDIA, ...GEG
 
 // Binaire bestanden die we niet als tekst lezen. Een svg is wel tekst.
 const NIET_LEZEN = new Set([...AFBEELDING].filter((e) => e !== 'svg'));
-for (const e of [...LETTERTYPE, ...MEDIA, ...ARCHIEF, ...GEGEVENS, 'docx', 'doc', 'pptx', 'odt']) NIET_LEZEN.add(e);
+for (const e of [...LETTERTYPE, ...MEDIA, ...ARCHIEF, ...GEGEVENS, 'docx', 'doc', 'pptx', 'odt'])
+  NIET_LEZEN.add(e);
 NIET_LEZEN.delete('csv'); // csv is tekst en juist daar staan adressen en nummers in
 
-const OVERSLAAN_MAPPEN = new Set(['node_modules', '.git', '.next', '.open-next', '.wrangler', 'coverage', 'playwright-report', 'test-results']);
+const OVERSLAAN_MAPPEN = new Set([
+  'node_modules',
+  '.git',
+  '.next',
+  '.open-next',
+  '.wrangler',
+  'coverage',
+  'playwright-report',
+  'test-results',
+]);
 // Deze bestanden bevatten de patronen zelf of lange hashes; scannen geeft alleen ruis.
-const NIET_SCANNEN = new Set(['scripts/controleer-repo.mjs', 'scripts/controleer-repo.test.mjs', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock']);
+const NIET_SCANNEN = new Set([
+  'scripts/controleer-repo.mjs',
+  'scripts/controleer-repo.test.mjs',
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+]);
 const MAX_SCAN_BYTES = 2 * 1024 * 1024;
 
 const VERBODEN_PADEN = [
-  [/^docs\/visueel\/(?!stijl\.css$|INDEX\.md$)/, 'docs/visueel/ bevat iconen en foto’s met een licentie die openbaar delen niet toestaat; alleen stijl.css en INDEX.md mogen erin'],
-  [/^docs\/(communicatie|uitrol|versies|design)\//, 'correspondentie, uitrolpakketten en ontwerpproeven horen in de ontwerpmap, niet in de publieke repository'],
+  [
+    /^docs\/visueel\/(?!stijl\.css$|INDEX\.md$)/,
+    'docs/visueel/ bevat iconen en foto’s met een licentie die openbaar delen niet toestaat; alleen stijl.css en INDEX.md mogen erin',
+  ],
+  [
+    /^docs\/(communicatie|uitrol|versies|design)\//,
+    'correspondentie, uitrolpakketten en ontwerpproeven horen in de ontwerpmap, niet in de publieke repository',
+  ],
   [/(^|\/)code\.txt$/, 'verouderd designsysteem uit de ontwerpmap'],
   [/(^|\/)prototype[^/]*\.html$/, 'prototype uit de ontwerpmap; bevat iconen en foto’s'],
-  [/central-icons?/i, 'de Central-iconen mogen niet openbaar worden gedeeld (licentie Iconists, bouwgids 14.7)'],
-  [/(^|\/)(Review-bouwgids-chatgpt|Beoordeling-review-chatgpt|Prompt-ChatGPT-review-bouwgids|Opschoning-repo-kopie)[^/]*$/, 'interne beoordeling met namen; hoort in de ontwerpmap'],
+  [
+    /central-icons?/i,
+    'de Central-iconen mogen niet openbaar worden gedeeld (licentie Iconists, bouwgids 14.7)',
+  ],
+  [
+    /(^|\/)(Review-bouwgids-chatgpt|Beoordeling-review-chatgpt|Prompt-ChatGPT-review-bouwgids|Opschoning-repo-kopie)[^/]*$/,
+    'interne beoordeling met namen; hoort in de ontwerpmap',
+  ],
 ];
 
-const TOEGESTANE_ADRESDOMEINEN = [/(^|\.)example\.(com|org|net)$/i, /\.(example|test|invalid|localhost)$/i, /^users\.noreply\.github\.com$/i, /^noreply\.github\.com$/i];
+const TOEGESTANE_ADRESDOMEINEN = [
+  /(^|\.)example\.(com|org|net)$/i,
+  /\.(example|test|invalid|localhost)$/i,
+  /^users\.noreply\.github\.com$/i,
+  /^noreply\.github\.com$/i,
+];
 const TOEGESTANE_ADRESSEN = new Set(['git@github.com']);
 
 // Een duidelijk verzonnen nummer heeft acht cijfers die oplopen (12345678, 23456789), aflopen
@@ -74,7 +121,10 @@ function isVerzonnen(cijfers) {
 const SLEUTELS = [
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'privésleutel'],
   [/\bre_[A-Za-z0-9_]{20,}/, 'lijkt op een Resend-sleutel'],
-  [/\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/, 'lijkt op een JWT (bijvoorbeeld een Supabase-sleutel)'],
+  [
+    /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+    'lijkt op een JWT (bijvoorbeeld een Supabase-sleutel)',
+  ],
   [/\bsb_secret_[A-Za-z0-9_-]{10,}/, 'lijkt op een geheime Supabase-sleutel'],
   [/\bsbp_[a-f0-9]{30,}/, 'lijkt op een Supabase-toegangstoken'],
   [/\bgh[pousr]_[A-Za-z0-9]{30,}/, 'lijkt op een GitHub-token'],
@@ -110,7 +160,10 @@ export function lijstBestanden(root) {
       encoding: 'utf8',
       maxBuffer: 256 * 1024 * 1024,
     });
-    return uit.split('\0').filter(Boolean).filter((p) => existsSync(path.join(root, p)));
+    return uit
+      .split('\0')
+      .filter(Boolean)
+      .filter((p) => existsSync(path.join(root, p)));
   }
   const gevonden = [];
   const loop = (map) => {
@@ -142,7 +195,11 @@ export function leesLicenties(root) {
       kolom = null; // een tabel eindigt bij de eerste regel zonder |
       return;
     }
-    const cellen = lijn.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+    const cellen = lijn
+      .trim()
+      .replace(/^\||\|$/g, '')
+      .split('|')
+      .map((c) => c.trim());
     if (cellen.every((c) => /^:?-{3,}:?$/.test(c))) return;
     if (!kolom) {
       const kop = cellen.map((c) => c.toLowerCase());
@@ -160,10 +217,20 @@ export function leesLicenties(root) {
     const waarde = (n) => (cellen[n] ?? '').replace(/`/g, '').trim();
     const bestand = waarde(kolom.bestand);
     if (!bestand || /^\(.*\)$/.test(bestand)) return; // lege of voorbeeldrij
-    const ontbreekt = ['bron', 'licentie', 'houder', 'toestemming'].filter((n) => PLACEHOLDER.test(waarde(kolom[n])));
-    const namen = { bron: 'Bron', licentie: 'Licentie', houder: 'Licentiehouder', toestemming: 'Toestemming' };
+    const ontbreekt = ['bron', 'licentie', 'houder', 'toestemming'].filter((n) =>
+      PLACEHOLDER.test(waarde(kolom[n])),
+    );
+    const namen = {
+      bron: 'Bron',
+      licentie: 'Licentie',
+      houder: 'Licentiehouder',
+      toestemming: 'Toestemming',
+    };
     if (ontbreekt.length > 0) {
-      resultaat.onvolledig.push({ regelnummer, melding: `vermelding van "${bestand}" is onvolledig; vul in: ${ontbreekt.map((n) => namen[n]).join(', ')} (schrijf "n.v.t." als het niet van toepassing is)` });
+      resultaat.onvolledig.push({
+        regelnummer,
+        melding: `vermelding van "${bestand}" is onvolledig; vul in: ${ontbreekt.map((n) => namen[n]).join(', ')} (schrijf "n.v.t." als het niet van toepassing is)`,
+      });
       return;
     }
     resultaat.vermeldingen.push(bestand);
@@ -175,7 +242,9 @@ function vermeldingPast(vermelding, bestand) {
   if (vermelding === bestand) return true;
   if (vermelding.endsWith('/')) return bestand.startsWith(vermelding);
   if (vermelding.includes('*')) {
-    const re = escape(vermelding).replace(/\\\*\\\*/g, '.*').replace(/\\\*/g, '[^/]*');
+    const re = escape(vermelding)
+      .replace(/\\\*\\\*/g, '.*')
+      .replace(/\\\*/g, '[^/]*');
     return new RegExp(`^${re}$`).test(bestand);
   }
   return false;
@@ -184,7 +253,9 @@ function vermeldingPast(vermelding, bestand) {
 /** Controleert de repository op root. Geeft een lijst problemen terug; leeg = goed. */
 export function controleer(root, opties = {}) {
   const verbodenWoorden = (opties.verbodenWoorden ?? []).map((w) => w.trim()).filter(Boolean);
-  const woordRegex = verbodenWoorden.map((w) => new RegExp(`(?<![\\p{L}\\p{N}])${escape(w)}(?![\\p{L}\\p{N}])`, 'iu'));
+  const woordRegex = verbodenWoorden.map(
+    (w) => new RegExp(`(?<![\\p{L}\\p{N}])${escape(w)}(?![\\p{L}\\p{N}])`, 'iu'),
+  );
   const problemen = [];
   const meld = (regel, pad, melding, regelnummer) => problemen.push({ regel, pad, melding, regelnummer });
 
@@ -197,10 +268,18 @@ export function controleer(root, opties = {}) {
     const ext = path.posix.extname(naam).slice(1).toLowerCase();
 
     if (/^\.env(\..+)?$/.test(naam) && !naam.endsWith('.example')) {
-      meld('geheim-bestand', pad, 'een .env-bestand hoort nooit in de repository; zet een .env.example met lege waarden neer en de echte waarden in GitHub Secrets');
+      meld(
+        'geheim-bestand',
+        pad,
+        'een .env-bestand hoort nooit in de repository; zet een .env.example met lege waarden neer en de echte waarden in GitHub Secrets',
+      );
     }
     if (/^\.dev\.vars(\..+)?$/.test(naam) && !naam.endsWith('.example')) {
-      meld('geheim-bestand', pad, '.dev.vars bevat lokale geheimen van Wrangler en hoort niet in de repository');
+      meld(
+        'geheim-bestand',
+        pad,
+        '.dev.vars bevat lokale geheimen van Wrangler en hoort niet in de repository',
+      );
     }
     if (/\.(pem|p12|pfx)$/i.test(naam) || /^id_(rsa|ed25519)$/.test(naam)) {
       meld('geheim-bestand', pad, 'lijkt op een privésleutel of certificaat');
@@ -209,50 +288,82 @@ export function controleer(root, opties = {}) {
     for (const [regex, uitleg] of VERBODEN_PADEN) {
       if (regex.test(pad)) meld('verboden-pad', pad, uitleg);
     }
-    if (ARCHIEF.has(ext)) meld('archief', pad, 'een archief kan alles bevatten en is niet te controleren; pak het uit en voeg alleen toe wat mag');
+    if (ARCHIEF.has(ext))
+      meld(
+        'archief',
+        pad,
+        'een archief kan alles bevatten en is niet te controleren; pak het uit en voeg alleen toe wat mag',
+      );
     if (GEGEVENS.has(ext) && /leden/i.test(naam)) {
-      meld('ledenbestand', pad, 'een bestand met "leden" in de naam kan echte ledengegevens bevatten; gebruik verzonnen testgegevens met een andere naam');
+      meld(
+        'ledenbestand',
+        pad,
+        'een bestand met "leden" in de naam kan echte ledengegevens bevatten; gebruik verzonnen testgegevens met een andere naam',
+      );
     }
 
     if (VEREIST_LICENTIE.has(ext) && !licenties.vermeldingen.some((v) => vermeldingPast(v, pad))) {
-      meld('licentie', pad, 'staat niet (volledig) in docs/licenties.md; zet er bron, licentie, licentiehouder en toestemming bij (bouwgids 14.7)');
+      meld(
+        'licentie',
+        pad,
+        'staat niet (volledig) in docs/licenties.md; zet er bron, licentie, licentiehouder en toestemming bij (bouwgids 14.7)',
+      );
     }
 
     woordRegex.forEach((re, n) => {
-      if (re.test(pad)) meld('verboden-woord', pad, `de bestandsnaam bevat verboden woord nr ${n + 1} uit VERBODEN_WOORDEN`);
+      if (re.test(pad))
+        meld('verboden-woord', pad, `de bestandsnaam bevat verboden woord nr ${n + 1} uit VERBODEN_WOORDEN`);
     });
 
     // De inhoud scannen
     if (NIET_LEZEN.has(ext) || NIET_SCANNEN.has(pad)) continue;
     const volledig = path.join(root, pad);
     if (statSync(volledig).size > MAX_SCAN_BYTES) {
-      meld('niet-gescand', pad, 'te groot om te scannen (meer dan 2 MB); controleer met de hand of maak het kleiner');
+      meld(
+        'niet-gescand',
+        pad,
+        'te groot om te scannen (meer dan 2 MB); controleer met de hand of maak het kleiner',
+      );
       continue;
     }
     const buffer = readFileSync(volledig);
     if (buffer.subarray(0, 8000).includes(0)) continue; // binair
-    buffer.toString('utf8').split(/\r?\n/).forEach((lijn, i) => {
-      const nr = i + 1;
-      for (const adres of vindAdressen(lijn)) {
-        const domein = adres.slice(adres.indexOf('@') + 1);
-        const laatste = domein.split('.').pop() ?? '';
-        if (!/^[A-Za-z]{2,}$/.test(laatste)) continue; // react@18.3.1 is geen adres
-        if (TOEGESTANE_ADRESSEN.has(adres.toLowerCase())) continue;
-        if (TOEGESTANE_ADRESDOMEINEN.some((re) => re.test(domein))) continue;
-        meld('adres', pad, `e-mailadres ${masker(adres)}; gebruik een voorbeelddomein zoals example.com`, nr);
-      }
-      for (const m of lijn.matchAll(/(?<![\d+])(?:\+31|0031|0)[\s-]?6[\s-]?(?:\d[\s-]?){8}(?!\d)/g)) {
-        if (isVerzonnen(m[0].replace(/\D/g, ''))) continue;
-        meld('telefoon', pad, `mobiel nummer ${masker(m[0].trim())}; gebruik een duidelijk verzonnen nummer zoals 06 12 34 56 78`, nr);
-      }
-      for (const [regex, soort] of SLEUTELS) {
-        const m = regex.exec(lijn);
-        if (m) meld('sleutel', pad, `${soort} (${masker(m[0])}); haal hem eruit en trek hem in`, nr);
-      }
-      woordRegex.forEach((re, n) => {
-        if (re.test(lijn)) meld('verboden-woord', pad, `bevat verboden woord nr ${n + 1} uit VERBODEN_WOORDEN`, nr);
+    buffer
+      .toString('utf8')
+      .split(/\r?\n/)
+      .forEach((lijn, i) => {
+        const nr = i + 1;
+        for (const adres of vindAdressen(lijn)) {
+          const domein = adres.slice(adres.indexOf('@') + 1);
+          const laatste = domein.split('.').pop() ?? '';
+          if (!/^[A-Za-z]{2,}$/.test(laatste)) continue; // react@18.3.1 is geen adres
+          if (TOEGESTANE_ADRESSEN.has(adres.toLowerCase())) continue;
+          if (TOEGESTANE_ADRESDOMEINEN.some((re) => re.test(domein))) continue;
+          meld(
+            'adres',
+            pad,
+            `e-mailadres ${masker(adres)}; gebruik een voorbeelddomein zoals example.com`,
+            nr,
+          );
+        }
+        for (const m of lijn.matchAll(/(?<![\d+])(?:\+31|0031|0)[\s-]?6[\s-]?(?:\d[\s-]?){8}(?!\d)/g)) {
+          if (isVerzonnen(m[0].replace(/\D/g, ''))) continue;
+          meld(
+            'telefoon',
+            pad,
+            `mobiel nummer ${masker(m[0].trim())}; gebruik een duidelijk verzonnen nummer zoals 06 12 34 56 78`,
+            nr,
+          );
+        }
+        for (const [regex, soort] of SLEUTELS) {
+          const m = regex.exec(lijn);
+          if (m) meld('sleutel', pad, `${soort} (${masker(m[0])}); haal hem eruit en trek hem in`, nr);
+        }
+        woordRegex.forEach((re, n) => {
+          if (re.test(lijn))
+            meld('verboden-woord', pad, `bevat verboden woord nr ${n + 1} uit VERBODEN_WOORDEN`, nr);
+        });
       });
-    });
   }
   return problemen;
 }

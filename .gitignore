@@ -19,3 +19,7 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Gegenereerd door Next.js
+next-env.d.ts
+*.tsbuildinfo

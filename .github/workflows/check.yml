@@ -1,0 +1,47 @@
+# De poort (bouwgids 14.1): elke pull request en elke wijziging op main draait alle controles.
+# Is één stap rood, dan kan de pull request niet worden samengevoegd.
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # Actions staan vast op een commit (niet op een tag die kan verschuiven); Dependabot houdt ze bij.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Afhankelijkheden
+        run: npm ci
+
+      - name: Browser voor de browsertests
+        run: npx playwright install --with-deps chromium
+
+      - name: Alle controles (npm run check)
+        run: npm run check
+        env:
+          # Persoonsnamen die nergens in de repository mogen staan. De waarde staat als variabele in de
+          # instellingen van de repository en niet in de code; de uitvoer noemt de woorden zelf niet.
+          VERBODEN_WOORDEN: ${{ vars.VERBODEN_WOORDEN }}
+
+      - name: Bekende lekken in afhankelijkheden (hoog of kritiek blokkeert)
+        run: npm audit --audit-level=high

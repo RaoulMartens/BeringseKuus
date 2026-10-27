@@ -14,10 +14,16 @@ import { controleer } from './controleer-repo.mjs';
 const SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'controleer-repo.mjs');
 const opgeruimd = [];
 
-const TABEL_KOP = '| Bestand | Soort | Bron | Licentie | Licentiehouder | Toestemming |\n|---|---|---|---|---|---|\n';
+const TABEL_KOP =
+  '| Bestand | Soort | Bron | Licentie | Licentiehouder | Toestemming |\n|---|---|---|---|---|---|\n';
 const licenties = (...rijen) => `# Licenties\n\n${TABEL_KOP}${rijen.join('\n')}\n`;
-const rij = (bestand, bron = 'Google Fonts', licentie = 'SIL OFL 1.1', houder = 'Nunito-ontwerpers', toestemming = 'n.v.t.') =>
-  `| \`${bestand}\` | lettertype | ${bron} | ${licentie} | ${houder} | ${toestemming} |`;
+const rij = (
+  bestand,
+  bron = 'Google Fonts',
+  licentie = 'SIL OFL 1.1',
+  houder = 'Nunito-ontwerpers',
+  toestemming = 'n.v.t.',
+) => `| \`${bestand}\` | lettertype | ${bron} | ${licentie} | ${houder} | ${toestemming} |`;
 
 /** Maakt een tijdelijke repository met de gegeven bestanden. docs/licenties.md staat er standaard in. */
 function maakRepo(bestanden = {}) {
@@ -63,7 +69,12 @@ describe('licentie: afbeeldingen, iconen, lettertypen', () => {
   });
 
   it('faalt op een svg-icoon, een lettertype, een pdf en een spreadsheet zonder vermelding', () => {
-    const root = maakRepo({ 'src/icoon.svg': '<svg/>', 'public/f.woff2': PNG, 'docs/p.pdf': PNG, 'seed/data.xlsx': PNG });
+    const root = maakRepo({
+      'src/icoon.svg': '<svg/>',
+      'public/f.woff2': PNG,
+      'docs/p.pdf': PNG,
+      'seed/data.xlsx': PNG,
+    });
     assert.equal(regels(root).filter((r) => r === 'licentie').length, 4);
   });
 
@@ -81,7 +92,10 @@ describe('licentie: afbeeldingen, iconen, lettertypen', () => {
       'docs/licenties.md': licenties(rij('public/a.woff2', 'Google Fonts', 'SIL OFL 1.1', 'tbd', 'n.v.t.')),
     });
     const res = controleer(root);
-    assert.deepEqual(res.map((p) => p.regel), ['licentie', 'licentie']);
+    assert.deepEqual(
+      res.map((p) => p.regel),
+      ['licentie', 'licentie'],
+    );
     assert.ok(res.some((p) => p.pad === 'docs/licenties.md' && /Licentiehouder/.test(p.melding)));
   });
 
@@ -109,7 +123,10 @@ describe('licentie: afbeeldingen, iconen, lettertypen', () => {
       'docs/licenties.md': licenties(rij('public/fonts/*.woff2')),
     });
     const res = controleer(root);
-    assert.deepEqual(res.map((p) => p.pad), ['public/b.woff2']);
+    assert.deepEqual(
+      res.map((p) => p.pad),
+      ['public/b.woff2'],
+    );
   });
 
   it('negeert hoofdletters in de extensie niet: .PNG telt als afbeelding', () => {
@@ -142,7 +159,10 @@ describe('geheim-bestand', () => {
   });
 
   it('faalt op een privésleutelbestand', () => {
-    assert.deepEqual(regels(maakRepo({ 'sleutel.pem': 'x', 'keys/id_rsa': 'x' })), ['geheim-bestand', 'geheim-bestand']);
+    assert.deepEqual(regels(maakRepo({ 'sleutel.pem': 'x', 'keys/id_rsa': 'x' })), [
+      'geheim-bestand',
+      'geheim-bestand',
+    ]);
   });
 });
 
@@ -155,7 +175,10 @@ describe('verboden-pad en archief', () => {
       'docs/visueel/iconen/a.svg': '<svg/>',
     });
     const res = controleer(root);
-    const verboden = res.filter((p) => p.regel === 'verboden-pad').map((p) => p.pad).sort();
+    const verboden = res
+      .filter((p) => p.regel === 'verboden-pad')
+      .map((p) => p.pad)
+      .sort();
     assert.deepEqual(verboden, ['docs/visueel/iconen/a.svg', 'docs/visueel/welkom.html']);
   });
 
@@ -170,7 +193,11 @@ describe('verboden-pad en archief', () => {
   });
 
   it('faalt op code.txt, een prototype en de Central-iconen', () => {
-    const root = maakRepo({ 'code.txt': 'x', 'docs/prototype-2026.html': 'x', 'iconen/central-icons-export.svg': '<svg/>' });
+    const root = maakRepo({
+      'code.txt': 'x',
+      'docs/prototype-2026.html': 'x',
+      'iconen/central-icons-export.svg': '<svg/>',
+    });
     const res = controleer(root);
     assert.equal(res.filter((p) => p.regel === 'verboden-pad').length, 3);
   });
@@ -180,7 +207,11 @@ describe('verboden-pad en archief', () => {
   });
 
   it('faalt op een zip en andere archieven', () => {
-    assert.deepEqual(regels(maakRepo({ 'a.zip': PNG, 'b.tar': PNG, 'c.7z': PNG })), ['archief', 'archief', 'archief']);
+    assert.deepEqual(regels(maakRepo({ 'a.zip': PNG, 'b.tar': PNG, 'c.7z': PNG })), [
+      'archief',
+      'archief',
+      'archief',
+    ]);
   });
 });
 
@@ -202,13 +233,17 @@ describe('adres', () => {
   it('faalt op een echt e-mailadres', () => {
     const root = maakRepo({ 'docs/a.md': 'Mail naar iemand@vereniging.nl graag' });
     const res = controleer(root);
-    assert.deepEqual(res.map((p) => p.regel), ['adres']);
+    assert.deepEqual(
+      res.map((p) => p.regel),
+      ['adres'],
+    );
     assert.equal(res[0]?.regelnummer, 1);
   });
 
   it('laat voorbeelddomeinen, git@github.com en pakketnamen met versie toe', () => {
     const root = maakRepo({
-      'docs/a.md': 'mark@example.com, x@test.example, git@github.com:org/repo.git, react@18.3.1, eslint@9.0.0-rc.1, 12345+a@users.noreply.github.com',
+      'docs/a.md':
+        'mark@example.com, x@test.example, git@github.com:org/repo.git, react@18.3.1, eslint@9.0.0-rc.1, 12345+a@users.noreply.github.com',
     });
     assert.deepEqual(controleer(root), []);
   });
@@ -224,7 +259,9 @@ describe('adres', () => {
   });
 
   it('vindt een adres midden in een lange regel', () => {
-    const root = maakRepo({ 'public/app.js': `${'x '.repeat(50000)}iemand@vereniging.nl${' y'.repeat(50000)}` });
+    const root = maakRepo({
+      'public/app.js': `${'x '.repeat(50000)}iemand@vereniging.nl${' y'.repeat(50000)}`,
+    });
     assert.deepEqual(regels(root), ['adres']);
   });
 
@@ -242,7 +279,14 @@ describe('telefoon', () => {
   });
 
   it('laat een duidelijk verzonnen nummer toe', () => {
-    const verzonnen = ['06 12 34 56 78', '0612345678', '06 23 45 67 89', '06 34 56 78 90', '06 87 65 43 21', '06 00 00 00 00'];
+    const verzonnen = [
+      '06 12 34 56 78',
+      '0612345678',
+      '06 23 45 67 89',
+      '06 34 56 78 90',
+      '06 87 65 43 21',
+      '06 00 00 00 00',
+    ];
     for (const nummer of verzonnen) {
       assert.deepEqual(controleer(maakRepo({ 'docs/a.md': `Bel ${nummer}.` })), [], nummer);
     }
@@ -287,7 +331,10 @@ describe('verboden-woord', () => {
   it('faalt op een woord uit de lijst, hoofdletterongevoelig, per regel', () => {
     const root = maakRepo({ 'docs/a.md': 'eerste regel\nPiet JANSSEN was er' });
     const res = controleer(root, { verbodenWoorden: ['Janssen'] });
-    assert.deepEqual(res.map((p) => [p.regel, p.regelnummer]), [['verboden-woord', 2]]);
+    assert.deepEqual(
+      res.map((p) => [p.regel, p.regelnummer]),
+      [['verboden-woord', 2]],
+    );
   });
 
   it('zet het woord zelf niet in de melding', () => {
@@ -360,7 +407,10 @@ describe('de opdrachtregel', () => {
 
   it('leest VERBODEN_WOORDEN uit de omgeving', () => {
     const root = maakRepo({ 'docs/a.md': 'Piet Janssen' });
-    const r = spawnSync(process.execPath, [SCRIPT, '--root', root], { encoding: 'utf8', env: { ...process.env, VERBODEN_WOORDEN: 'Janssen, Pietersen' } });
+    const r = spawnSync(process.execPath, [SCRIPT, '--root', root], {
+      encoding: 'utf8',
+      env: { ...process.env, VERBODEN_WOORDEN: 'Janssen, Pietersen' },
+    });
     assert.equal(r.status, 1);
     assert.match(r.stderr, /verboden-woord/);
     assert.ok(!r.stderr.includes('Janssen'));

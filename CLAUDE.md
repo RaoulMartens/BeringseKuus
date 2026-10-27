@@ -64,17 +64,20 @@ eerst de sleutel intrekken, dan pas opruimen.
 
 ## Commando's
 
-In fase 0 aangemaakt; vul hier de echte namen in.
-
 ```bash
-npm run check        # alles hieronder achter elkaar, hetzelfde als in GitHub Actions
-npm run typecheck    # tsc, strict
-npm run lint         # ESLint, 0 fouten en 0 waarschuwingen
-npm run format:check # Prettier
-npm run test         # unit- en componenttests
-npm run test:db      # databasetests: RLS, rechten per rol, databasefuncties, regels R1–R24
-npm run test:e2e     # browser, desktop en 375px, inclusief axe
+npm run check             # alles hieronder achter elkaar, hetzelfde als de controle `check` in GitHub Actions
+npm run typecheck         # next typegen + tsc, strict
+npm run lint              # ESLint, 0 fouten en 0 waarschuwingen; uitzetten met commentaar kan niet
+npm run format:check      # Prettier (npm run format zet het goed)
+npm run controle:omwegen  # geen eslint-disable, @ts-ignore, .only, .skip
+npm run controle:repo     # niets wat niet in een publieke repository hoort
+npm run test              # Vitest en de tests van de controles in scripts/
+npm run build             # productiebuild
+npm run test:e2e          # Playwright op 1200 en 375 px, met axe en de beveiligingsheaders
 ```
+
+`npm run test:db` (RLS, rechten per rol, databasefuncties, regels R1–R24) komt in fase 0 stap D, met Supabase.
+In GitHub draait daarna nog `npm audit --audit-level=high`.
 
 Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, ook als er iets rood is.
 
