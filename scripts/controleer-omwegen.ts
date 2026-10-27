@@ -1,30 +1,37 @@
-// Poortcontrole: geen omwegen (bouwgids 14.1).
+// Poortcontrole: geen omwegen in de broncode (bouwgids 14.1).
 //
-// Een controle uitzetten of een test overslaan om iets groen te krijgen, telt als een fout. Deze controle faalt
-// daarom op code die dat doet:
+// Een controle uitzetten of een test overslaan om iets groen te krijgen, telt als een fout. Deze controle zoekt
+// in alle code naar de bekende schrijfwijzen:
 //
 //   eslint-disable              een lintregel uitzetten met commentaar
 //   ts-ignore en verwanten      een typefout negeren (ook ts-expect-error en ts-nocheck, met een @ ervoor)
 //   .only / .skip               een test die alle andere uitzet, of zelf wordt overgeslagen (ook .fixme, .todo)
 //
-// ESLint (noInlineConfig, ban-ts-comment), Vitest (allowOnly: false) en Playwright (forbidOnly) vangen het meeste
-// ook af; deze controle geldt voor alle code, ook de scripts die buiten die gereedschappen vallen.
+// Dit is een extra vangnet, geen bewijs: een test kan ook op andere manieren worden overgeslagen (een optie,
+// een andere naam, t.skip()). Daarom kijkt scripts/controleer-overgeslagen.ts naar de uitkomsten van de
+// testrunners zelf, en controleert scripts/controleer-poort.ts dat de instellingen niet zijn verzwakt.
 //
-// Gebruik:   node scripts/controleer-omwegen.mjs [--root pad]
+// Gebruik:   node scripts/controleer-omwegen.ts [--root pad]
 // Uitkomst:  "0 problemen" en exitcode 0, of een lijst en exitcode 1.
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { lijstBestanden } from './controleer-repo.mjs';
+import { lijstBestanden } from './controleer-repo.ts';
+
+export interface Omweg {
+  pad: string;
+  regelnummer: number;
+  melding: string;
+}
 
 const CODE = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/;
 
 // Deze twee bestanden bevatten de patronen zelf.
-const EIGEN_BESTANDEN = new Set(['scripts/controleer-omwegen.mjs', 'scripts/controleer-omwegen.test.mjs']);
+const EIGEN_BESTANDEN = new Set(['scripts/controleer-omwegen.ts', 'scripts/controleer-omwegen.test.ts']);
 
-const OMWEGEN = [
+const OMWEGEN: readonly (readonly [RegExp, string])[] = [
   [/eslint-disable/, 'eslint-disable zet een lintregel uit; los de oorzaak op'],
   [/@ts-(?:ignore|expect-error|nocheck)/, 'een typefout negeren; los de oorzaak op'],
   [
@@ -34,8 +41,8 @@ const OMWEGEN = [
 ];
 
 /** Controleert alle code in root. Geeft een lijst problemen terug; leeg = goed. */
-export function controleerOmwegen(root) {
-  const problemen = [];
+export function controleerOmwegen(root: string): Omweg[] {
+  const problemen: Omweg[] = [];
   for (const pad of lijstBestanden(root)) {
     if (!CODE.test(pad) || EIGEN_BESTANDEN.has(pad)) continue;
     readFileSync(path.join(root, pad), 'utf8')
@@ -49,10 +56,10 @@ export function controleerOmwegen(root) {
   return problemen;
 }
 
-function uitvoeren() {
+function uitvoeren(): number {
   const argumenten = process.argv.slice(2);
   const i = argumenten.indexOf('--root');
-  const root = path.resolve(i >= 0 && argumenten[i + 1] ? argumenten[i + 1] : '.');
+  const root = path.resolve((i >= 0 ? argumenten[i + 1] : undefined) ?? '.');
   const problemen = controleerOmwegen(root);
   if (problemen.length === 0) {
     console.log('controleer-omwegen: 0 problemen');

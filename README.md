@@ -11,24 +11,35 @@ zie `CLAUDE.md` en `docs/licenties.md`. De bronnen staan in `docs/`, te beginnen
 
 ## Lokaal draaien
 
-Nodig: Node.js 24 of nieuwer. Werk in Linux of WSL (op Windows niet in OneDrive).
+Nodig: Node.js 24 of nieuwer, en Linux of WSL (op Windows niet in OneDrive).
 
 ```bash
-npm ci                                  # afhankelijkheden, precies volgens package-lock.json
+npm ci                                  # afhankelijkheden, precies volgens package-lock.json; zet ook de pre-push-controle aan
 npx playwright install chromium         # eenmalig: de browser voor de browsertests
 npm run dev                             # ontwikkelserver op http://localhost:3000
 ```
 
+**Eenmalig: de namenlijst.** De controle op de publieke repository zoekt naar namen die er niet in mogen (van
+mensen die bij het project betrokken zijn). Die lijst staat niet in de repository. Vraag hem aan de beheerder
+en zet hem in een bestand `.verboden-woorden` in de root, één naam per regel. Dat bestand staat in `.gitignore`.
+Zonder lijst faalt de controle: dan is hij niet volledig. In GitHub staat dezelfde lijst als geheim
+`VERBODEN_WOORDEN`.
+
 ## Controles
 
 ```bash
-npm run check   # alles, in dezelfde volgorde als de controle `check` in GitHub
+npm run check   # alles: de poort en de controle op de publieke repository
 ```
 
-Wat erin zit: types (strict), ESLint (0 waarschuwingen, uitzetten met commentaar kan niet), Prettier, een
-controle op omwegen (`eslint-disable`, `@ts-ignore`, `.only`, `.skip`), een controle op wat niet in een
-publieke repository hoort, unittests, de productiebuild en browsertests op 1200 en 375 px met axe en de
-beveiligingsheaders. In GitHub komt daar `npm audit` (hoog of kritiek blokkeert) bij.
+Wat erin zit: types (strict, alle code is TypeScript), ESLint met typebewuste regels (0 waarschuwingen, uitzetten
+met commentaar kan niet), Prettier, een controle dat de poort zelf niet is verzwakt, een controle op omwegen
+(`eslint-disable`, `@ts-ignore`, `.only`, `.skip`), unittests, de productiebuild, browsertests op 1200 en 375 px
+met axe, zichtbare focus en de beveiligingsheaders, een controle dat geen enkele test is overgeslagen, en de
+controle op wat niet in een publieke repository hoort. In GitHub komt daar `npm audit` (hoog of kritiek
+blokkeert) bij.
+
+Vóór elke `git push` draaien de controle op de publieke repository en die op omwegen automatisch: wat gepusht
+is, is openbaar.
 
 `main` is beschermd: elke wijziging gaat via een branch en een pull request, ook voor de beheerder.
 

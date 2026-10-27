@@ -2,6 +2,7 @@
   "name": "ledenplatform",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "Ledenplatform voor een carnavalsvereniging",
   "engines": {
     "node": ">=24"
@@ -14,11 +15,15 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "controle:omwegen": "node scripts/controleer-omwegen.mjs",
-    "controle:repo": "node scripts/controleer-repo.mjs",
-    "test": "vitest run && node --test \"scripts/**/*.test.mjs\"",
+    "controle:poort": "node scripts/controleer-poort.ts",
+    "controle:omwegen": "node scripts/controleer-omwegen.ts",
+    "controle:repo": "node scripts/controleer-repo.ts",
+    "controle:overgeslagen": "node scripts/controleer-overgeslagen.ts",
+    "test": "node -e \"require('node:fs').mkdirSync('testuitkomsten',{recursive:true})\" && vitest run && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=testuitkomsten/node.tap \"scripts/**/*.test.ts\"",
     "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run controle:omwegen && npm run controle:repo && npm run test && npm run build && npm run test:e2e"
+    "check:basis": "npm run typecheck && npm run lint && npm run format:check && npm run controle:poort && npm run controle:omwegen && npm run test && npm run build && npm run test:e2e && npm run controle:overgeslagen",
+    "check": "npm run check:basis && npm run controle:repo",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "next": "16.4.3",

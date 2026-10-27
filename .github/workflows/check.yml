@@ -18,7 +18,7 @@ jobs:
   check:
     name: check
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       # Actions staan vast op een commit (niet op een tag die kan verschuiven); Dependabot houdt ze bij.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,12 +36,25 @@ jobs:
       - name: Browser voor de browsertests
         run: npx playwright install --with-deps chromium
 
-      - name: Alle controles (npm run check)
-        run: npm run check
+      # Deze stap krijgt de namenlijst niet: de code van de pull request draait hier.
+      - name: De poort (npm run check:basis)
+        run: npm run check:basis
+
+      # Alleen deze stap krijgt de namenlijst, als geheim. GitHub toont een geheim als *** in de log; elk woord
+      # wordt bovendien apart gemaskeerd, omdat GitHub anders alleen de hele lijst als één tekst herkent.
+      # Een pull request uit een fork krijgt geen geheimen: dan faalt deze stap (geen lijst = geen groen) en
+      # beoordeelt de beheerder de wijziging met de hand.
+      - name: Publieke repository (npm run controle:repo)
         env:
-          # Persoonsnamen die nergens in de repository mogen staan. De waarde staat als variabele in de
-          # instellingen van de repository en niet in de code; de uitvoer noemt de woorden zelf niet.
-          VERBODEN_WOORDEN: ${{ vars.VERBODEN_WOORDEN }}
+          VERBODEN_WOORDEN: ${{ secrets.VERBODEN_WOORDEN }}
+        run: |
+          IFS=','
+          for woord in $VERBODEN_WOORDEN; do
+            woord="$(echo "$woord" | xargs)"
+            [ -n "$woord" ] && echo "::add-mask::$woord"
+          done
+          unset IFS
+          npm run controle:repo
 
       - name: Bekende lekken in afhankelijkheden (hoog of kritiek blokkeert)
         run: npm audit --audit-level=high

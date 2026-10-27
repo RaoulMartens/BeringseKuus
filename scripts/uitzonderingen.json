@@ -1,0 +1,16 @@
+{
+  "bestanden": [
+    {
+      "pad": "docs/Bouwgids_Beringse_Kuus_V8.docx",
+      "sha256": "57c7ef86a3354667ea32efaab248a19f8b0b70d52f33d6c83c07cb871ef4c18f",
+      "reden": "Opgeschoonde kopie uit de ontwerpmap: persoonsnamen vervangen door rollen; de tekst (word/document.xml) is nagelopen op namen, e-mailadressen en telefoonnummers",
+      "gecontroleerd": "2026-10-27"
+    },
+    {
+      "pad": "docs/FO_Beringse_Kuus_V4.docx",
+      "sha256": "5435880b2e9306a06dc29587147f9cb5ce337ef7611e0dded68bfb7fe3b2a264",
+      "reden": "Opgeschoonde kopie uit de ontwerpmap: persoonsnamen vervangen door rollen; de tekst (word/document.xml) is nagelopen op namen, e-mailadressen en telefoonnummers",
+      "gecontroleerd": "2026-10-27"
+    }
+  ]
+}

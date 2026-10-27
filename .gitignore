@@ -23,3 +23,7 @@ Thumbs.db
 # Gegenereerd door Next.js
 next-env.d.ts
 *.tsbuildinfo
+
+# Testrapporten en de lokale namenlijst (nooit committen)
+testuitkomsten/
+.verboden-woorden

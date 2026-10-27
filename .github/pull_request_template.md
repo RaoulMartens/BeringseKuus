@@ -6,10 +6,20 @@
 
 - [ ] `npm run check` is groen, lokaal én in GitHub (de controle `check`)
 - [ ] Elke nieuwe regel en foutcode heeft een test die eerst rood was
-- [ ] De schermen van deze wijziging zijn met alleen het toetsenbord en op 375 px doorlopen
+- [ ] De schermen van deze wijziging zijn met alleen het toetsenbord en op een echte telefoon doorlopen
 - [ ] Nieuwe schermen zijn vergeleken met het visuele ontwerp op 1200 en 375 px; afwijkingen staan hieronder
-- [ ] Nieuwe afbeeldingen, lettertypen of iconen staan in `docs/licenties.md`
+- [ ] Nieuwe afbeeldingen, lettertypen of iconen staan in `docs/licenties.md`; nieuwe documenten zijn met de hand
+      gecontroleerd en staan in `scripts/uitzonderingen.json`
 - [ ] De README is bijgewerkt als er iets nieuws te draaien of in te stellen is
+
+## Wijzigt deze pull request de poort?
+
+<!-- De poort: .github/workflows/, eslint.config.mjs, tsconfig.json, de scripts in package.json, vitest.config.ts,
+     playwright.config.ts, .githooks/ en scripts/controleer-*. Een verzwakking mag alleen als aparte, gemotiveerde
+     wijziging van hoofdstuk 14 (14.1). Leg hier uit wat er verandert en waarom; de reviewer toetst dit apart. -->
+
+- [ ] Nee
+- [ ] Ja, met reden:
 
 ## Review (bouwgids hoofdstuk 11)
 
