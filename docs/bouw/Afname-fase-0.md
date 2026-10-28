@@ -3,8 +3,8 @@
 Stand 28-10-2026. Bewijs per afrondingscriterium (bouwgids 14.6, `Fase-0-plan.md` punt 5), de review van fase 0 als
 geheel met wat ermee is gedaan, en de lijst "Van fase 0 naar fase 1". Wie fase 1 begint, leest dit bestand eerst.
 
-**Stand:** fase 0 is af zodra de open vakjes in "Nog door de bouwer" zijn afgevinkt (de handmatige doorloop, de
-Supabase-adviseur en het opruimen van de proefgeheimen) en de bouwer het voorstel in `Bouwbesluiten` 11 heeft
+**Stand:** fase 0 is af zodra de open vakjes in "Nog door de bouwer" zijn afgevinkt (het opruimen van de
+proefgeheimen en het Dependabot-geheim; de handmatige doorloop en de adviseur zijn gedaan) en de bouwer het voorstel in `Bouwbesluiten` 11 heeft
 bevestigd of afgewezen. De techniek zelf staat: de review van fase 0 vond niets dat de hostingkeuze of de opzet ter
 discussie stelt.
 
@@ -15,45 +15,53 @@ discussie stelt.
 | 1 | Alle controles uit stap C groen in GitHub, niet alleen lokaal | Workflow `check` groen op `main` (commit `75ae5f9`, run 40718577763) en op elke pull request; `main` is beschermd (pull request verplicht, ook voor de beheerder; verplichte controle `check`, gebonden aan de GitHub Actions-app). Databasetypen met controle erbij in PR 14 (review F0-02). De testopzet voor gelijktijdigheid schuift naar fase 1, met reden (`Bouwbesluiten` 11, voorstel) | Gehaald na PR 14 en de bevestiging van `Bouwbesluiten` 11 |
 | 2 | Drie proefroutes geslaagd en gemeten; hostingkeuze in `Bouwbesluiten` | Route 1 (agenda-feed op een iPhone), route 2 (inloggen op een telefoon, na een uur nog ingelogd, uitloggen zonder cookie), route 3 (elke minuut één rij, één testbericht, gedwongen fout zichtbaar): `Fase-0-plan.md` punt 4. Metingen: `docs/hosting.md`, Metingen (mediaan 218 ms CPU per aanvraag, 0 fouten; taken-Worker 0,24 ms). Besluit: `Bouwbesluiten` 3.1 en 6 (OpenNext) | Gehaald |
 | 3 | Een schone chat heeft de fase gereviewd tegen hoofdstuk 14, bevindingen in de pull request | Review van fase 0 als geheel (28-10-2026, een nieuwe Claude-subagent zonder het bouwgesprek): 21 bevindingen, oordeel "af na kleine punten". De afhandeling per bevinding staat in punt 3 hieronder en in de pull request van deze afronding. Daarnaast een eigen review per pull request: PR 1, 8, 10, 11, 12 en 14 (PR 14: 9 bevindingen, verwerkt in die pull request of hieronder op de lijst) | Gehaald |
-| 4 | Het lege scherm met toetsenbord en op 375 px doorlopen | Geautomatiseerd: axe (WCAG 2.2 AA) op `/`, `/inloggen` (vier toestanden), `/auth/bevestigen` en `/mijn`, op 1200 en 375 px, zonder opzij scrollen; zichtbare focus op de eerste link. Met de hand: punt 2 hieronder | **Open:** de doorloop met de hand |
+| 4 | Het lege scherm met toetsenbord en op 375 px doorlopen | Geautomatiseerd: axe (WCAG 2.2 AA) op `/`, `/inloggen` (vier toestanden), `/auth/bevestigen` en `/mijn`, op 1200 en 375 px, zonder opzij scrollen; zichtbare focus op de eerste link. Met de hand (28-10-2026): toetsenbord, telefoon en VoiceOver, punt 2.1 | Gehaald |
 | 5 | `docs/hosting.md` en de README beschrijven vorm, versies, adapter, geheimen, plek van de taak, lokaal draaien en uitrollen | `docs/hosting.md` (Hoe het werkt, Versies, Keuzes, Metingen, Eenmalig instellen, Geheimen, Als er iets misgaat, Lokaal); README (Lokaal draaien in de juiste volgorde, met een testlid; Uitrollen) | Gehaald na PR 14 en deze afronding |
 
 ## 2. Met de hand
 
 ### 2.1 Doorloop met alleen het toetsenbord en op 375 px
 
-In te vullen door de bouwer, op de site online (`https://ledenplatform.<subdomein>.workers.dev`), met een verzonnen
-testlid. Per scherm: met Tab door alle links, velden en knoppen; de focus is steeds zichtbaar en de volgorde klopt;
+Door de bouwer, op de site online (`https://ledenplatform.<subdomein>.workers.dev`), met het eigen account van de
+bouwer (zonder eigen domein stuurt Resend alleen naar het adres van het account). Per scherm: met Tab door alle links, velden en knoppen; de focus is steeds zichtbaar en de volgorde klopt;
 Enter (en Spatie op een knop) doet wat je verwacht; op een telefoon (375 px of smaller) schuift niets opzij. Eén keer
 met een schermlezer (VoiceOver op de iPhone of NVDA op Windows): wordt de melding na "Stuur inloglink" voorgelezen?
 
 | Scherm | Toetsenbord | Focus zichtbaar | Telefoon | Schermlezer | Gevonden |
 |---|---|---|---|---|---|
-| `/` (start) | ☐ | ☐ | ☐ | — | |
-| `/inloggen`, leeg en met een fout adres | ☐ | ☐ | ☐ | ☐ | |
-| `/inloggen?verstuurd=1` (na versturen) | ☐ | ☐ | ☐ | ☐ | |
-| `/inloggen?fout=link` (verlopen link) | ☐ | ☐ | ☐ | — | |
-| `/auth/bevestigen` (knop "Inloggen") | ☐ | ☐ | ☐ | — | |
-| `/mijn` (knop "Uitloggen") | ☐ | ☐ | ☐ | — | |
-| Een pagina die niet bestaat (404) | ☐ | ☐ | ☐ | — | Engelse tekst van Next.js: bekend, fase-1-lijst |
+| `/` (start) | ☑ | ☑ | ☑ | — | Niets |
+| `/inloggen`, leeg en met een fout adres | ☑ | ☑ | ☑ | ☑ | Niets |
+| `/inloggen?verstuurd=1` (na versturen) | ☑ | ☑ | ☑ | ☑ | Niets |
+| `/inloggen?fout=link` (verlopen link) | ☑ | ☑ | ☑ | — | Niets |
+| `/auth/bevestigen` (knop "Inloggen") | ☑ | ☑ | ☑ | — | Niets |
+| `/mijn` (knop "Uitloggen") | ☑ | ☑ | ☑ | — | Niets |
+| Een pagina die niet bestaat (404) | ☑ | ☑ | ☑ | — | Engelse tekst van Next.js: bekend, fase-1-lijst |
 
-Datum: … · Apparaat en browser: … · Door: de bouwer
+Datum: 28-10-2026 · Apparaat: laptop en iPhone (versies niet genoteerd) · Door: de bouwer · Uitkomst: alles in
+orde, niets gevonden.
 
 ### 2.2 Supabase-adviseur (bouwgids 14.4)
 
-In te vullen door de bouwer: Supabase, het project `ledenplatform-ontwikkel`, Advisors, **Security Advisor** en
-**Performance Advisor**, de knop *Rerun linter*. Verwacht: alleen "RLS enabled, no policy" op `proef_taak` en
-`proef_taak_bericht` (bewust: niemand anders dan de taak mag erbij).
+Door de bouwer: Supabase, het project `ledenplatform-ontwikkel`, Advisors, **Security Advisor** en **Performance
+Advisor**, de knop *Rerun linter*. Verwacht: alleen "RLS enabled, no policy" op `proef_taak` en `proef_taak_bericht`
+(bewust: niemand anders dan de taak mag erbij).
 
 | Adviseur | Datum | Meldingen | Verwacht? |
 |---|---|---|---|
-| Security | … | … | |
-| Performance | … | … | |
+| Security | 28-10-2026 | 0 errors. 1 warning: *Leaked Password Protection Disabled* (Auth). 2 info: *RLS Enabled No Policy* op `public.proef_taak` en `public.proef_taak_bericht` | Info: ja. Warning: bekend, zie hieronder |
+| Performance | 28-10-2026 | 0 errors, 0 warnings, 0 info | Ja |
+
+**De warning over gelekte wachtwoorden.** Supabase kan nieuwe wachtwoorden toetsen aan lijsten met gelekte
+wachtwoorden (HaveIBeenPwned). Het platform gebruikt geen wachtwoorden: leden loggen in met een link per mail,
+aanmelden staat uit, en een lid krijgt geen wachtwoord (`Inloggen.md`). De controle beschermt hier dus niets. Volgens
+de documentatie van Supabase kan hij bovendien pas aan vanaf het Pro-plan. Besluit: tot de pilot een bekende warning;
+bij de overstap naar Pro zetten we hem aan (Authentication, Attack Protection), zodat de adviseur 0 waarschuwingen geeft
+(bouwgids 14.4). Staat op de lijst "Vóór de pilot" hieronder.
 
 ### 2.3 Nog door de bouwer (online, niet in de code)
 
-- [ ] Doorloop 2.1 ingevuld.
-- [ ] Adviseur 2.2 ingevuld.
+- [x] Doorloop 2.1 ingevuld (28-10-2026).
+- [x] Adviseur 2.2 ingevuld (28-10-2026).
 - [ ] `Bouwbesluiten` 11 (gelijktijdigheid naar fase 1) bevestigd of afgewezen.
 - [ ] `VERBODEN_WOORDEN` ook als **Dependabot-geheim** (GitHub, Settings, Secrets and variables, Dependabot), zodat een
       Dependabot-PR groen kan worden (review F0-04).
@@ -144,6 +152,7 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 |---|---|
 | De pilotcheck: veilig inloggen, MFA voor beheer, berichten binnen de mailgrens, een teruggezette back-up, twee beheerders | `Bouwbesluiten` 5.2 |
 | Workers betaald ($5), en Supabase Pro in Frankfurt | `Bouwbesluiten` 3.1, 3.2, 10 |
+| Op Pro: bescherming tegen gelekte wachtwoorden aanzetten, zodat de Security Advisor 0 waarschuwingen geeft | Punt 2.2 |
 | Looptijd van de sessiecookie: nu blijft een lid tot ±400 dagen ingelogd, ook op een gedeelde computer. Ontwerpkeuze | Review PR10-02 |
 | Logs: een tussenvorm (alleen eigen meldingen), zodat een mislukte verzending zichtbaar is | `hosting.md`, Keuzes |
 | De mailgrens beschermen (Turnstile of een eigen limiet) | `hosting.md` (F0-20) |
