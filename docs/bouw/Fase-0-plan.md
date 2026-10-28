@@ -183,6 +183,11 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
   uniform foutantwoord zonder gegevens. Het token komt **niet** in een log.
 - **Klaar als:** een onafhankelijke iCal-parser leest het bestand zonder fouten; het antwoord komt van de
   Worker; de rekentijd per aanvraag is gemeten.
+- **Uitkomst (28-10-2026, lokaal):** `src/app/proef/agenda/[bestand]/route.ts`, geschreven bestand in
+  `src/lib/agenda/ics.ts`. ical.js (Mozilla, alleen in de tests) leest het goed terug, ook de tijdzone en de eindtijd na
+  middernacht; de browsertests op de Worker in workerd slagen. `Cache-Control` maakt Next.js zelf nog strenger
+  (`private, no-cache, no-store, …`). Online te bevestigen: `docs/hosting.md` stap 11 (abonneren op een telefoon) en
+  de rekentijd.
 
 ### Route 2: inloggen met een magic link
 
@@ -194,8 +199,9 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
   documentatie geen Node.js-middleware. Controleer in deze proef welke bestandsnaam en welke runtime werken
   (een gewone `middleware`, of een andere Next-versie). Dit is de grootste onzekerheid.
 - **Uitkomst (28-10-2026):** beide werken lokaal in workerd; gekozen is `middleware.ts` met de edge-runtime
-  (`Bouwbesluiten` 3.1, `docs/hosting.md`). Online te bevestigen na de uitrol: stap 9 in `docs/hosting.md`
-  (na een uur ingelogd blijven, en uitloggen laat geen sessie achter).
+  (`Bouwbesluiten` 3.1, `docs/hosting.md`). **Online bevestigd (28-10-2026):** inloggen met de link op een telefoon,
+  na herladen en na ruim een uur nog ingelogd, een gebruikte link geweigerd, uitloggen (ook met een verlopen
+  sessie) laat geen sessiecookie achter, CSP met nonce op elke pagina. Route 2 is geslaagd.
 
 ### Route 3: een geplande taak
 

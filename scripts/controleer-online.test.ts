@@ -37,6 +37,7 @@ function site(
     pagina?: (nonce: string) => Response;
     vastHeaders?: Record<string, string>;
     mijn?: () => Response;
+    agenda?: () => Response;
   } = {},
 ): Ophalen {
   const buildIds = [...(opties.buildIds ?? ['nieuw'])];
@@ -54,6 +55,11 @@ function site(
       );
     if (pad.startsWith('/_next/static/'))
       return Promise.resolve(new Response('', { headers: opties.vastHeaders ?? VAST }));
+    if (pad.startsWith('/proef/agenda/'))
+      return Promise.resolve(
+        opties.agenda?.() ??
+          new Response('Niet gevonden', { status: 404, headers: { 'Cache-Control': 'private, no-store' } }),
+      );
     return Promise.resolve(new Response('', { status: 404 }));
   };
 }
@@ -113,6 +119,13 @@ describe('controleer-online', () => {
       mijn: () => new Response('', { status: 307, headers: { Location: 'https://elders.invalid/' } }),
     });
     assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', elders, 0), []);
+  });
+
+  it('faalt als de agenda-feed een onbekend token toch bedient of laat bewaren (proefroute 1)', async () => {
+    const bedient = () => new Response('BEGIN:VCALENDAR', { headers: { 'Cache-Control': 'no-store' } });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ agenda: bedient }), 0), []);
+    const bewaarbaar = () => new Response('Niet gevonden', { status: 404 });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ agenda: bewaarbaar }), 0), []);
   });
 
   it('keurt een header af die er wel is maar een andere waarde heeft', () => {

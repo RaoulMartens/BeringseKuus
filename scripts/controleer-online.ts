@@ -113,6 +113,14 @@ export async function controleerOnline(
       `/mijn: stuurt niet door naar /inloggen (status ${mijn.status}); kloppen de Supabase-gegevens?`,
     );
 
+  // Proefroute 1: een onbekend agenda-token geeft een kale 404, zonder agenda en niet te bewaren.
+  const agenda = await ophalen(`${site}/proef/agenda/onbekend-token-voor-de-controle-0123456789.ics`);
+  const agendaTekst = await agenda.text();
+  if (agenda.status !== 404 || agendaTekst.includes('VCALENDAR'))
+    problemen.push(`/proef/agenda: onbekend token gaf status ${agenda.status} of een agenda`);
+  if (!/\bno-store\b/.test(agenda.headers.get('cache-control') ?? ''))
+    problemen.push('/proef/agenda: het antwoord mag bewaard worden (geen no-store)');
+
   const vast = vindVastBestand(startHtml);
   if (vast === undefined) {
     problemen.push('/: geen vast bestand onder /_next/static/ gevonden');

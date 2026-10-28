@@ -75,7 +75,7 @@ niet, maar `npm audit` blokkeert terecht. 10.5.0 is dezelfde hoofdversie met de 
 | Meting | Uitkomst | Drempel |
 |---|---|---|
 | Bundelgrootte (`wrangler deploy --dry-run`) | Stap E: gecomprimeerd 970 KiB. Met de middleware (proefroute 2): 5717 KiB, gecomprimeerd 1198 KiB | Gratis plan: 3 MiB gecomprimeerd volgens OpenNext |
-| Rekentijd per aanvraag (CPU) | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen). Gemeten **vóór** de middleware; daarna draait ook `/` via de Worker en krijgt elke pagina een nonce. Opnieuw meten na de uitrol van proefroute 2 | Gratis plan: 10 ms |
+| Rekentijd per aanvraag (CPU) | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen). Gemeten **vóór** de middleware; daarna draait ook `/` via de Worker en krijgt elke pagina een nonce. Opnieuw meten na de uitrol van proefroute 1 en 2, ook voor `/proef/agenda/…` apart | Gratis plan: 10 ms |
 | Totale tijd per aanvraag (wall) | P50 209 ms. Van buiten, 30 aanvragen achter elkaar op `/inloggen`: mediaan 188 ms tot de eerste byte, dus niet alleen een koude start | — |
 | Geheugen | P50 18 MB | 128 MB |
 | Fouten, waaronder "Exceeded CPU Time Limits" | 0 | — |
@@ -121,10 +121,20 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
 9. **Na een uur** (de sessie verloopt na een uur): de pagina "Mijn account" opnieuw openen; je hoort ingelogd te
    blijven. Daarna uitloggen, en in de ontwikkelhulpmiddelen van de browser (Application, Cookies) controleren dat er
    geen cookie `sb-…-auth-token` meer staat. Zo is het verversen ook online bewezen, niet alleen in de tests.
-10. **Type JWT-sleutel** in Supabase (Project Settings, JWT Keys): noteer hier of het online project een gedeeld
-    geheim (HS256) of een asymmetrische sleutel gebruikt. Bij HS256 vraagt de middleware Supabase bij elke pagina van
-    een ingelogd lid om het token te controleren; met een asymmetrische sleutel gebeurt dat in de Worker zelf.
-    **Nog niet nagekeken.**
+   **Gedaan 28-10-2026:** na ruim een uur nog ingelogd, na uitloggen geen sessiecookie meer; de cookie was
+   `HttpOnly`, `Secure`, `SameSite=Lax`.
+10. **Type JWT-sleutel** in Supabase (Project Settings, JWT Keys). Bij een gedeeld geheim (HS256) vraagt de
+    middleware Supabase bij elke pagina van een ingelogd lid om het token te controleren; met een asymmetrische
+    sleutel gebeurt dat in de Worker zelf. **Nagekeken 28-10-2026:** *current* is ECC (P-256), dus asymmetrisch;
+    *previous* is het oude gedeelde geheim (HS256), dat alleen nog oudere tokens controleert. Lokaal is het nog
+    HS256, dus de tests doen per pagina één aanroep meer dan online. Later bekijken: lokaal ook ECC, en of de oude
+    sleutel kan worden ingetrokken (eerst nagaan dat niets hem nog gebruikt).
+11. **Agenda-feed (proefroute 1):** maak een token (`openssl rand -hex 32`, of 64 willekeurige letters en cijfers)
+    en zet het als geheim `PROEF_AGENDA_TOKEN` bij de Worker, type *Secret*, zoals in stap 5. Abonneer je daarna op
+    je telefoon op `https://<site>/proef/agenda/<token>.ics` (iPhone: Instellingen, Agenda, Accounts, Voeg account
+    toe, Andere, Voeg agenda-abonnement toe; Google Agenda: op de computer, Andere agenda's, Via URL). Je hoort de
+    afspraak "Bonte Avond (proef)" te zien op vrijdag 15 januari 2027, van 20:11 tot 01:11. Bewaar het token in je
+    wachtwoordmanager en zet het nergens anders neer: wie het token kent, ziet de agenda.
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
