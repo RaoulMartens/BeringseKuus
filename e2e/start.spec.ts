@@ -54,6 +54,20 @@ test.describe('startpagina', () => {
     expect(headers['x-powered-by']).toBeUndefined();
   });
 
+  // De eigen computer stuurt de middleware niet door; met een andere hostnaam wel. Zo is de doorverwijzing ook in
+  // workerd met OpenNext bewezen, vóór de uitrol (review F0-05 en PR14-05). Let op: zonder X-Forwarded-Proto
+  // schrijft de lokale proxy van wrangler dev het adres in Location terug naar http (uitgeprobeerd 28-10-2026); met
+  // de header laat hij het staan. De Worker ziet de aanvraag in beide gevallen als http en stuurt door. Online
+  // controleert scripts/controleer-online.ts het exacte adres.
+  test('stuurt http met een gewone hostnaam door naar https', async ({ request }) => {
+    const antwoord = await request.get('/inloggen?fout=link', {
+      headers: { host: 'leden.voorbeeld.test', 'x-forwarded-proto': 'https' },
+      maxRedirects: 0,
+    });
+    expect(antwoord.status()).toBe(308);
+    expect(antwoord.headers()['location']).toBe('https://leden.voorbeeld.test/inloggen?fout=link');
+  });
+
   // Vaste bestanden serveert Cloudflare zonder de Worker; de headers uit next.config.ts komen daar niet mee
   // (review PR8-04). Ze krijgen hun eigen set uit public/_headers.
   test('stuurt de eigen beveiligingsheaders van vaste bestanden mee', async ({ request }) => {

@@ -62,6 +62,5 @@ npm run env:lokaal       # schrijft .env.local (niet in git)
 npm run dev              # http://127.0.0.1:3000/inloggen
 ```
 
-Inloggen kan alleen met een bestaand (verzonnen) testlid. Zo'n lid maak je met de beheer-API, zoals
-`e2e/inloggen.spec.ts` doet; Studio staat bij `supabase:start` uit om geheugen te sparen. De mail komt aan in
-Mailpit: <http://127.0.0.1:54324>.
+Inloggen kan alleen met een bestaand (verzonnen) testlid: `npm run lid:lokaal -- iemand@example.com` (Studio staat
+bij `supabase:start` uit om geheugen te sparen). De mail komt aan in Mailpit: <http://127.0.0.1:54324>.

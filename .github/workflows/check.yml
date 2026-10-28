@@ -30,6 +30,32 @@ jobs:
           node-version: 24
           cache: npm
 
+      # Alleen deze stap krijgt de namenlijst, als geheim. GitHub toont een geheim als *** in de log; elk woord
+      # wordt bovendien apart gemaskeerd, omdat GitHub anders alleen de hele lijst als één tekst herkent.
+      # Deze stap draait vóór alles uit de pull request (vóór npm ci en de poort), met het script uit main, niet uit
+      # de pull request (review F0-21, PR14-01 en PR14-07). Anders kan een gewijzigd script, een test of een
+      # installatiescript van een pakket de lijst in een andere vorm afdrukken, en dan helpt maskeren niet.
+      # Wijzig je het script én de gegevens die het leest (uitzonderingen.json, licenties.md) op een manier die niet
+      # samengaat, doe dat dan in twee pull requests: eerst het script, dan de gegevens.
+      # Een pull request uit een fork krijgt geen geheimen: dan faalt deze stap (geen lijst = geen groen) en
+      # beoordeelt de beheerder de wijziging met de hand. Dependabot krijgt alleen Dependabot-geheimen: daar moet
+      # dezelfde lijst ook staan (docs/hosting.md, Geheimen; review F0-04).
+      - name: Publieke repository (controle:repo, het script uit main)
+        env:
+          VERBODEN_WOORDEN: ${{ secrets.VERBODEN_WOORDEN }}
+        run: |
+          IFS=','
+          for woord in $VERBODEN_WOORDEN; do
+            woord="$(echo "$woord" | xargs)"
+            [ -n "$woord" ] && echo "::add-mask::$woord"
+          done
+          unset IFS
+          git fetch --no-tags --depth=1 origin main
+          mkdir -p "$RUNNER_TEMP/basis"
+          echo '{ "type": "module" }' > "$RUNNER_TEMP/basis/package.json"
+          git show FETCH_HEAD:scripts/controleer-repo.ts > "$RUNNER_TEMP/basis/controleer-repo.ts"
+          node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .
+
       - name: Afhankelijkheden
         run: npm ci
 
@@ -39,32 +65,6 @@ jobs:
       # Deze stap krijgt de namenlijst niet.
       - name: De poort (npm run check:basis)
         run: npm run check:basis
-
-      # Alleen deze stap krijgt de namenlijst, als geheim. GitHub toont een geheim als *** in de log; elk woord
-      # wordt bovendien apart gemaskeerd, omdat GitHub anders alleen de hele lijst als één tekst herkent.
-      # Het script komt uit de basis van de pull request (bij een push naar main: die commit zelf), niet uit de
-      # pull request: anders kan een gewijzigd script de lijst in een andere vorm afdrukken, en dan helpt maskeren
-      # niet (review F0-21). Grens: npm ci draaide al installatiescripts van pakketten op deze machine; daarom bevat
-      # de lijst alleen namen, geen sleutels.
-      # Een pull request uit een fork krijgt geen geheimen: dan faalt deze stap (geen lijst = geen groen) en
-      # beoordeelt de beheerder de wijziging met de hand. Dependabot krijgt alleen Dependabot-geheimen: daar staat
-      # dezelfde lijst ook (docs/hosting.md, review F0-04).
-      - name: Publieke repository (controle:repo, het script uit de basis)
-        env:
-          VERBODEN_WOORDEN: ${{ secrets.VERBODEN_WOORDEN }}
-          BASIS: ${{ github.event.pull_request.base.sha || github.sha }}
-        run: |
-          IFS=','
-          for woord in $VERBODEN_WOORDEN; do
-            woord="$(echo "$woord" | xargs)"
-            [ -n "$woord" ] && echo "::add-mask::$woord"
-          done
-          unset IFS
-          git fetch --no-tags --depth=1 origin "$BASIS"
-          mkdir -p "$RUNNER_TEMP/basis"
-          echo '{ "type": "module" }' > "$RUNNER_TEMP/basis/package.json"
-          git show "$BASIS:scripts/controleer-repo.ts" > "$RUNNER_TEMP/basis/controleer-repo.ts"
-          node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .
 
       - name: Bekende lekken in afhankelijkheden (hoog of kritiek blokkeert)
         run: npm audit --audit-level=high

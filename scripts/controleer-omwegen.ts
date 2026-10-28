@@ -47,7 +47,12 @@ const OMWEGEN: readonly (readonly [RegExp, string])[] = [
 const DATABASETEST = /^supabase\/tests\/.*\.sql$/;
 
 const OMWEGEN_DATABASE: readonly (readonly [RegExp, string])[] = [
-  [/\b(?:skip|todo|todo_start)\s*\(/i, 'een overgeslagen of uitgestelde databasetest (skip, todo)'],
+  // Ook als "skip"( geschreven, en no_plan(): zonder vast aantal merkt pg_prove een ontbrekende test niet op
+  // (review PR14-03). Verwacht falen bij Playwright toetst controle:overgeslagen op het rapport zelf.
+  [
+    /(?<!\w)"?(?:skip|todo|todo_start)"?\s*\(|\bno_plan\s*\(/i,
+    'een overgeslagen of uitgestelde databasetest (skip, todo, no_plan)',
+  ],
 ];
 
 /** Controleert alle code in root. Geeft een lijst problemen terug; leeg = goed. */

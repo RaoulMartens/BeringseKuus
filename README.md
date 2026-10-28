@@ -21,7 +21,7 @@ npm ci                                  # afhankelijkheden, precies volgens pack
 npx playwright install chromium         # eenmalig: de browser voor de browsertests
 npm run supabase:start                  # lokale database en inlog in Docker (Docker moet draaien)
 npm run env:lokaal                      # schrijft .env.local en .dev.vars met de lokale adressen en sleutels
-npm run dev                             # ontwikkelserver op http://localhost:3000
+npm run dev                             # ontwikkelserver: open http://127.0.0.1:3000 (de inloglink wijst daarheen)
 ```
 
 Inloggen kan alleen als lid; aanmelden bestaat niet. Maak lokaal een verzonnen lid aan en vraag op `/inloggen`

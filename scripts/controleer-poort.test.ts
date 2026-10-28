@@ -19,7 +19,7 @@ import {
   controleerWranglerZonderBuild,
   controleerWorkflow,
   sparsePaden,
-  UITROL_STARTBESTANDEN,
+  uitrolStartbestanden,
 } from './controleer-poort.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -137,6 +137,17 @@ describe('workflow', () => {
     );
     assert.notDeepEqual(controleerWorkflow(uitPr), []);
   });
+
+  it('faalt als controle:repo pas na npm ci draait, of alleen in commentaar staat (review PR14-01)', () => {
+    const laat = workflow.replace(
+      '      # Alleen deze stap',
+      '      - run: npm ci\n      # Alleen deze stap',
+    );
+    assert.notDeepEqual(controleerWorkflow(laat), []);
+    const repoStap = 'node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .';
+    const inCommentaar = workflow.replace(repoStap, `true\n          # ${repoStap}`);
+    assert.notDeepEqual(controleerWorkflow(inCommentaar), []);
+  });
 });
 
 describe('taken-Worker (review PR12-05 en PR12-06)', () => {
@@ -153,7 +164,31 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
       }
     };
     assert.ok(sparsePaden(uitrol).includes('taken'));
-    assert.deepEqual(controleerUitrolBestanden(UITROL_STARTBESTANDEN, leesAls, sparsePaden(uitrol)), []);
+    const starts = uitrolStartbestanden(lees('taken/wrangler.jsonc'));
+    assert.equal(starts[0]?.pad, 'taken/worker.ts');
+    assert.deepEqual(controleerUitrolBestanden(starts, leesAls, sparsePaden(uitrol)), []);
+  });
+
+  it('leest alleen de paden onder sparse-checkout, zonder uitsluitingen of patronen (review PR14-04)', () => {
+    const yaml =
+      '          sparse-checkout: |\n            uitrol\n            !geheim\n            src/*.ts\n          sparse-checkout-cone-mode: false\n';
+    assert.deepEqual(sparsePaden(yaml), ['uitrol']);
+    assert.ok(!sparsePaden(uitrol).some((p) => p.includes(':')));
+  });
+
+  it('faalt op een import die de poort niet kan volgen (review PR14-04)', () => {
+    for (const regel of [
+      'const m = await import(`../src/lib/x.ts`);',
+      'const m = await import(pad);',
+      "const z = createRequire(import.meta.url)('zod');",
+      "const z = require('zod');",
+    ]) {
+      assert.notDeepEqual(
+        controleerUitrolBestanden(ALLEEN_TAAK, taak({ 'taken/worker.ts': regel }), SPARSE),
+        [],
+        regel,
+      );
+    }
   });
 
   it('faalt als de code van de taken-Worker een pakket importeert: de uitrolstap installeert niets', () => {

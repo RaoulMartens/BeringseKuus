@@ -37,6 +37,8 @@ const MAG_FALEN = `${['test', 'fail'].join('.')}('e', () => {});`;
 const MAG_FALEN_VITEST = `${['it', 'fails'].join('.')}('f', () => {});`;
 const DB_OVERSLAAN = `select ${['sk', 'ip'].join('')}('later', 2);`;
 const DB_LATER = `select ${['todo', 'start'].join('_')}('nog niet');`;
+const DB_GEQUOTEERD = `select "${['sk', 'ip'].join('')}"('x', 1);`;
+const DB_GEEN_PLAN = `select * from ${['no', 'plan'].join('_')}();`;
 
 after(() => {
   for (const root of opgeruimd) rmSync(root, { recursive: true, force: true });
@@ -88,7 +90,7 @@ describe('controleer-omwegen', () => {
   it('faalt op skip en todo in de databasetests, niet in een migratie (review F0-09)', () => {
     const res = controleerOmwegen(
       maakRepo({
-        'supabase/tests/database/a.test.sql': `begin;\n${DB_OVERSLAAN}\n${DB_LATER}\n`,
+        'supabase/tests/database/a.test.sql': `begin;\n${DB_OVERSLAAN}\n${DB_LATER}\n${DB_GEQUOTEERD}\n${DB_GEEN_PLAN}\n`,
         'supabase/migrations/1_a.sql': `-- ${DB_OVERSLAAN}\n`,
       }),
     );
@@ -97,6 +99,8 @@ describe('controleer-omwegen', () => {
       [
         ['supabase/tests/database/a.test.sql', 2],
         ['supabase/tests/database/a.test.sql', 3],
+        ['supabase/tests/database/a.test.sql', 4],
+        ['supabase/tests/database/a.test.sql', 5],
       ],
     );
   });

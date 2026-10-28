@@ -3,7 +3,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(13);
 
 -- 1. Elke tabel in public heeft rechten per rij (RLS) aan. Een test die faalt zodra er één zonder bestaat.
 select is(
@@ -53,21 +53,47 @@ select is_empty(
 );
 
 -- Een view zonder security_invoker leest met de rechten van zijn eigenaar, en slaat zo de rechten per rij over.
+-- Postgres bewaart de optie zoals hij is geschreven (true, on, yes, 1); die tellen allemaal (review PR14-02).
 select is_empty(
   $$ select c.oid::regclass::text
        from pg_class c join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public' and c.relkind = 'v'
-        and not coalesce(c.reloptions @> array['security_invoker=true'], false) $$,
+        and not exists (select 1 from pg_options_to_table(c.reloptions) o
+                         where o.option_name = 'security_invoker'
+                           and lower(o.option_value) in ('true', 'on', 'yes', '1')) $$,
   'elke view in public heeft security_invoker'
 );
 
--- Niet ingelogd leest niets uit public: geen tabel, view of reeks. Bewust toegestaan: nog niets.
+-- Niet ingelogd leest niets uit public: geen tabel, view of reeks, ook niet één kolom (review PR14-02).
+-- Bewust toegestaan: nog niets.
 select is_empty(
   $$ select c.oid::regclass::text
        from pg_class c join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'f', 'S')
-        and has_table_privilege('anon', c.oid, 'select') $$,
+        and (has_table_privilege('anon', c.oid, 'select')
+          or (c.relkind <> 'S' and has_any_column_privilege('anon', c.oid, 'select'))) $$,
   'niet ingelogd: niets in public is leesbaar'
+);
+
+-- Schrijven gaat alleen via de databasefuncties (bouwgids 14.4), dus niemand schrijft rechtstreeks in een tabel,
+-- ook niet in één kolom. TRUNCATE valt bovendien buiten de rechten per rij (review PR14-02).
+select is_empty(
+  $$ select r.rol || ': ' || c.oid::regclass::text
+       from pg_class c join pg_namespace n on n.oid = c.relnamespace
+            cross join (values ('anon'), ('authenticated')) r(rol)
+      where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'f')
+        and (has_table_privilege(r.rol, c.oid, 'insert, update, delete, truncate')
+          or has_any_column_privilege(r.rol, c.oid, 'insert, update')) $$,
+  'anon en authenticated schrijven nergens rechtstreeks in public'
+);
+
+-- Een materialized view of foreign table kent geen rechten per rij: wie hem mag lezen, leest alles.
+select is_empty(
+  $$ select c.oid::regclass::text
+       from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind in ('m', 'f')
+        and has_any_column_privilege('authenticated', c.oid, 'select') $$,
+  'ingelogd: geen materialized view of foreign table in public leesbaar'
 );
 
 -- Extensies horen in het schema extensions, nooit in public: daar zouden hun functies en tabellen via de Data API

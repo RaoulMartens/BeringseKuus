@@ -126,15 +126,26 @@ function controleerShas(bestand: string, tekst: string): string[] {
 /** De workflow: alle stappen, de namenlijst alleen als geheim in de stap die hem nodig heeft, actions op een SHA. */
 export function controleerWorkflow(tekst: string): string[] {
   const problemen: string[] = [];
-  // controle:repo draait het script uit de basis, niet uit de pull request (review F0-21).
+  // Commentaar telt niet mee (review PR14-01): alleen regels die de workflow echt uitvoert.
+  const code = tekst
+    .split('\n')
+    .filter((regel) => !regel.trim().startsWith('#'))
+    .join('\n');
+  // controle:repo draait het script uit main, vóór alle code uit de pull request (review F0-21, PR14-01).
+  const repoStap = 'node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .';
   for (const nodig of [
     'npm run check:basis',
-    'BASIS: ${{ github.event.pull_request.base.sha || github.sha }}',
-    'git show "$BASIS:scripts/controleer-repo.ts"',
-    'node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .',
+    'git fetch --no-tags --depth=1 origin main',
+    'git show FETCH_HEAD:scripts/controleer-repo.ts',
+    repoStap,
   ]) {
-    if (!tekst.includes(nodig)) problemen.push(`workflow check.yml: stap "${nodig}" ontbreekt`);
+    if (!code.includes(nodig)) problemen.push(`workflow check.yml: stap "${nodig}" ontbreekt`);
   }
+  const eersteCode = Math.min(
+    ...['npm ci', 'npm run', 'npx '].map((s) => code.indexOf(s)).filter((i) => i >= 0),
+  );
+  if (code.indexOf(repoStap) < 0 || code.indexOf(repoStap) > eersteCode)
+    problemen.push('workflow check.yml: controle:repo moet draaien vóór npm ci en de poort');
   // Per hele regel: de audit van uitrol/ bevat de audit van de root als stuk tekst.
   for (const nodig of ['npm audit --audit-level=high', 'npm audit --audit-level=high --prefix uitrol']) {
     if (!tekst.split('\n').some((regel) => regel.trim() === `run: ${nodig}`))
@@ -202,19 +213,37 @@ export function controleerUitrol(tekst: string): string[] {
   return problemen;
 }
 
-/** Wat de uitroljob zelf draait: de taken-Worker (bundelt wrangler) en de controle na afloop (draait node). */
-export const UITROL_STARTBESTANDEN = [
-  { pad: 'taken/worker.ts', nodeToegestaan: false },
-  { pad: 'scripts/controleer-online.ts', nodeToegestaan: true },
-] as const;
+/**
+ * Wat de uitroljob zelf draait: de taken-Worker (bundelt wrangler; het startbestand komt uit "main" in
+ * taken/wrangler.jsonc, review PR14-04) en de controle na afloop (draait node).
+ */
+export function uitrolStartbestanden(takenWrangler: string): { pad: string; nodeToegestaan: boolean }[] {
+  const main = /"main"\s*:\s*"([^"]+)"/.exec(takenWrangler)?.[1] ?? 'worker.ts';
+  return [
+    { pad: path.posix.join('taken', main), nodeToegestaan: false },
+    { pad: 'scripts/controleer-online.ts', nodeToegestaan: true },
+  ];
+}
 
-/** De paden uit de sparse checkout van de job "uitrol". */
+/**
+ * De paden uit de sparse checkout van de job "uitrol": de regels onder "sparse-checkout: |" die verder inspringen
+ * dan de sleutel. Een uitsluiting (!) of een patroon (*, ?, [) telt niet als pad: dan kan de controle niet zeker
+ * weten wat er wordt uitgecheckt, en keurt hij een bestand daaronder af (veilige kant, review PR14-04).
+ */
 export function sparsePaden(uitrol: string): string[] {
-  const blok = /sparse-checkout:\s*\|\s*\n((?:[ \t]+\S.*\n)+)/.exec(uitrol)?.[1] ?? '';
-  return blok
-    .split('\n')
-    .map((regel) => regel.trim())
-    .filter((regel) => regel !== '' && !regel.startsWith('#'));
+  const regels = uitrol.split('\n');
+  const begin = regels.findIndex((r) => /^\s*sparse-checkout:\s*\|-?\s*$/.test(r));
+  if (begin < 0) return [];
+  const inspringing = (r: string): number => r.length - r.trimStart().length;
+  const sleutel = inspringing(regels[begin] ?? '');
+  const paden: string[] = [];
+  for (const regel of regels.slice(begin + 1)) {
+    if (regel.trim() === '') continue;
+    if (inspringing(regel) <= sleutel) break;
+    const pad = regel.trim();
+    if (!pad.startsWith('#') && !/[!*?[\]]/.test(pad)) paden.push(pad);
+  }
+  return paden;
 }
 
 /**
@@ -246,6 +275,12 @@ export function controleerUitrolBestanden(
       }
       if (!inSparse(pad))
         problemen.push(`${pad}: staat niet in de sparse checkout van de job "uitrol" (uitrol.yml)`);
+      // Wat de controle niet kan volgen, mag niet (review PR14-04): een import met een berekend pad of backticks,
+      // en require, ook via createRequire.
+      if (/\bimport\s*\(\s*[^'"\s]/.test(tekst) || /\brequire\s*\(|\bcreateRequire\b/.test(tekst))
+        problemen.push(
+          `${pad}: een import die de poort niet kan volgen (berekend pad of require); gebruik een vaste import`,
+        );
       for (const m of tekst.matchAll(importen)) {
         const bron = m[1] ?? '';
         if (bron.startsWith('./') || bron.startsWith('../')) {
@@ -362,7 +397,7 @@ export async function controleerPoort(root: string): Promise<string[]> {
     ),
     ...controleerTestinstellingen(lees('vitest.config.ts'), lees('playwright.config.ts')),
     ...controleerUitrolBestanden(
-      UITROL_STARTBESTANDEN,
+      uitrolStartbestanden(lees('taken/wrangler.jsonc')),
       leesAls,
       sparsePaden(lees('.github/workflows/uitrol.yml')),
     ),

@@ -16,6 +16,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { contentSecurityPolicy, nieuweNonce } from '@/lib/beveiligingsheaders';
 import { cookieOpties } from '@/lib/supabase/cookies';
+import type { Database } from '@/lib/supabase/database.types';
 import { veiligeVerbinding } from '@/lib/verbinding';
 
 const omgeving = process.env.NODE_ENV === 'development' ? 'development' : 'production';
@@ -47,9 +48,10 @@ async function hooguit(ms: number, belofte: Promise<unknown>): Promise<void> {
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   // 308 en niet 301: de browser herhaalt een formulier (POST) dan ook over https. De agenda-feed niet: die weigert
-  // http zelf, zodat een verkeerd ingesteld abonnement meteen faalt (review PR11-01).
+  // http zelf, zodat een verkeerd ingesteld abonnement meteen faalt (review PR11-01). En niet bij `npm run dev`: dan
+  // kun je ook vanaf een telefoon op het eigen netwerk kijken (http://192.168.…:3000, review PR14-05).
   const agenda = request.nextUrl.pathname.startsWith('/proef/agenda/');
-  if (!veiligeVerbinding(request.nextUrl) && !agenda) {
+  if (omgeving === 'production' && !veiligeVerbinding(request.nextUrl) && !agenda) {
     const naar = request.nextUrl.clone();
     naar.protocol = 'https:';
     naar.port = '';
@@ -72,7 +74,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const sleutel = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !sleutel) return antwoord;
 
-  const supabase = createServerClient(url, sleutel, {
+  const supabase = createServerClient<Database>(url, sleutel, {
     cookieOptions: cookieOpties,
     cookies: {
       getAll() {
