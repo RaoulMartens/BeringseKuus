@@ -15,9 +15,26 @@ import path from 'node:path';
 import { setTimeout as wacht } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 
-import { beveiligingsheaders, type Header } from '../src/lib/beveiligingsheaders.ts';
+import {
+  contentSecurityPolicy,
+  type Header,
+  headersVasteBestanden,
+  vasteHeaders,
+} from '../src/lib/beveiligingsheaders.ts';
 
 export type Ophalen = (url: string) => Promise<Response>;
+
+/**
+ * Wat een pagina hoort mee te sturen. De nonce verschilt per aanvraag, dus die nemen we over uit het antwoord;
+ * de rest van de CSP moet precies kloppen. Zonder nonce in het antwoord klopt de CSP dus nooit.
+ */
+export function verwachtePaginaHeaders(ontvangen: Headers): Header[] {
+  const nonce = /'nonce-([^']+)'/.exec(ontvangen.get('content-security-policy') ?? '')?.[1] ?? 'ontbreekt';
+  return [
+    { key: 'Content-Security-Policy', value: contentSecurityPolicy('production', nonce) },
+    ...vasteHeaders(),
+  ];
+}
 
 /** Vergelijkt de ontvangen headers met de verwachte waarden; een header die ontbreekt of afwijkt is een probleem. */
 export function vergelijkHeaders(waar: string, verwacht: Header[], ontvangen: Headers): string[] {
@@ -55,12 +72,11 @@ export async function controleerOnline(
 ): Promise<string[]> {
   if (!(await wachtOpVersie(site, buildId, ophalen, 12, pauzeMs)))
     return ['de site levert na een minuut nog niet de nieuwe versie uit (BUILD_ID wijkt af)'];
-  const verwacht = beveiligingsheaders('production');
   const problemen: string[] = [];
 
   const start = await ophalen(`${site}/`);
   if (start.status !== 200) problemen.push(`/: status ${start.status}`);
-  problemen.push(...vergelijkHeaders('/', verwacht, start.headers));
+  problemen.push(...vergelijkHeaders('/', verwachtePaginaHeaders(start.headers), start.headers));
 
   const inloggen = await ophalen(`${site}/inloggen`);
   if (inloggen.status !== 200) problemen.push(`/inloggen: status ${inloggen.status}`);
@@ -81,7 +97,7 @@ export async function controleerOnline(
   } else {
     const bestand = await ophalen(`${site}${vast}`);
     if (bestand.status !== 200) problemen.push(`vast bestand: status ${bestand.status}`);
-    problemen.push(...vergelijkHeaders('vast bestand', verwacht, bestand.headers));
+    problemen.push(...vergelijkHeaders('vast bestand', headersVasteBestanden(), bestand.headers));
   }
   return problemen;
 }

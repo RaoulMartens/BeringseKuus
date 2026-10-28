@@ -25,8 +25,14 @@ De **browsertests** (`npm run test:e2e`) draaien tegen dezelfde build in workerd
 (`wrangler dev`), en niet tegen `next start`. Zo test de poort wat er online gaat. Alle browsertests slagen daar,
 ook het inloggen met de link per mail (stap D2).
 
+**De middleware** (`src/middleware.ts`) draait vóór elke pagina. Hij zet de CSP met een nieuwe nonce per aanvraag
+(alleen scripts met die nonce mogen draaien, geen `'unsafe-inline'`), en ververst een verlopen sessie, zodat een
+lid niet na een uur uitgelogd raakt. Zonder sessiecookie roept hij Supabase niet aan. Omdat de nonce per aanvraag
+is, worden alle pagina's per aanvraag gemaakt (`connection()` in `layout.tsx`).
+
 **Vaste bestanden** (alles onder `/_next/static/` en uit `public/`) serveert Cloudflare zonder de Worker. Ze
-krijgen hun headers uit `public/_headers`; een unittest bewaakt dat die gelijk zijn aan `beveiligingsheaders.ts`.
+krijgen hun headers uit `public/_headers`, met een CSP die niets toestaat; een unittest bewaakt dat het bestand
+gelijk is aan `headersVasteBestanden()` in `beveiligingsheaders.ts`.
 
 ## Versies
 
@@ -52,13 +58,14 @@ niet, maar `npm audit` blokkeert terecht. 10.5.0 is dezelfde hoofdversie met de 
 | Incrementele cache in R2 | Niet. Pagina's met ledengegevens worden niet bewaard. R2 vraagt ook een betaalmethode |
 | Beeldoptimalisatie (`images`) | Niet. Er zijn nog geen afbeeldingen |
 | Eigen Worker met `scheduled` (geplande taak) | Komt met proefroute 3; dan een typebestand voor `.open-next/worker.js` in plaats van `@ts-ignore` (Fase-0-plan 1.3) |
-| Proxy (middleware) die de sessie ververst, en een CSP met nonce | Proefroute 2. Tot dan staat `script-src 'unsafe-inline'` in de CSP (`src/lib/beveiligingsheaders.ts`) |
+| `middleware.ts` (edge-runtime), niet `proxy.ts` (Node-runtime) | **Besluit 28-10-2026** (`Bouwbesluiten` 3.1). Beide slaagden lokaal in workerd voor alle browsertests. `proxy.ts` is de standaard van Next.js 16, maar draait altijd in de Node-runtime, en die noemt OpenNext op Workers "experimental, not officially maintained": hij gebruikt interne uitvoer van Next.js die per versie kan veranderen. `middleware.ts` is het pad dat OpenNext ondersteunt, met een kleinere bundel (1198 tegen 1397 KiB gecomprimeerd). Prijs: Next.js 16 noemt het "deprecated" en waarschuwt bij elke build. **Wat te doen** als een update van Next.js `middleware.ts` weghaalt of de browsertests rood worden: opnieuw beide varianten proberen, met dezelfde tests |
+| Stijlen in de CSP | `style-src` houdt `'unsafe-inline'`: een nonce werkt niet voor style-attributen, en een stijl voert geen code uit. Scripts zijn wat telt |
 
 ## Metingen
 
 | Meting | Uitkomst | Drempel |
 |---|---|---|
-| Bundelgrootte (`wrangler deploy --dry-run`) | 4668 KiB, gecomprimeerd 970 KiB | Gratis plan: 3 MiB gecomprimeerd volgens OpenNext |
+| Bundelgrootte (`wrangler deploy --dry-run`) | Stap E: gecomprimeerd 970 KiB. Met de middleware (proefroute 2): 5717 KiB, gecomprimeerd 1198 KiB | Gratis plan: 3 MiB gecomprimeerd volgens OpenNext |
 | Rekentijd per aanvraag (CPU) | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen) | Gratis plan: 10 ms |
 | Totale tijd per aanvraag (wall) | P50 209 ms. Van buiten, 30 aanvragen achter elkaar op `/inloggen`: mediaan 188 ms tot de eerste byte, dus niet alleen een koude start | — |
 | Geheugen | P50 18 MB | 128 MB |

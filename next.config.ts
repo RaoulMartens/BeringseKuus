@@ -1,14 +1,13 @@
 import type { NextConfig } from 'next';
 
-import { beveiligingsheaders } from './src/lib/beveiligingsheaders';
+import { vasteHeaders } from './src/lib/beveiligingsheaders';
 
-const omgeving = process.env.NODE_ENV === 'development' ? 'development' : 'production';
-
+// De CSP zet src/middleware.ts, met een nonce per aanvraag; hier de overige beveiligingsheaders.
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
-    return [{ source: '/:path*', headers: beveiligingsheaders(omgeving) }];
+    return [{ source: '/:path*', headers: vasteHeaders() }];
   },
 };
 

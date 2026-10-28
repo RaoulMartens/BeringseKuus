@@ -193,6 +193,8 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
 - **Let op, nog niet bewezen:** Next.js 16 noemt middleware nu *proxy*, en OpenNext ondersteunt volgens zijn
   documentatie geen Node.js-middleware. Controleer in deze proef welke bestandsnaam en welke runtime werken
   (een gewone `middleware`, of een andere Next-versie). Dit is de grootste onzekerheid.
+- **Uitkomst (28-10-2026):** beide werken in workerd; gekozen is `middleware.ts` met de edge-runtime
+  (`Bouwbesluiten` 3.1, `docs/hosting.md`).
 
 ### Route 3: een geplande taak
 

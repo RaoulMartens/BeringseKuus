@@ -1,18 +1,14 @@
 // Supabase aan de serverkant (Server Components, serveracties en route handlers). Er is bewust geen
 // Supabase-client in de browser: alle aanroepen gaan via de server, met de sessie in een cookie.
 //
-// Nog niet: de sessie verversen bij elke aanvraag via een proxy (middleware). Of dat op Cloudflare Workers werkt,
-// bewijst fase 0 proefroute 2. Tot dan ververst de sessie bij een serveractie of de callback; een Server Component kan
-// zelf geen cookies zetten (vandaar de lege catch hieronder).
+// De sessie ververst src/middleware.ts bij elke aanvraag, vóór de pagina. Een Server Component kan zelf geen
+// cookies zetten (vandaar de lege catch hieronder); dat hoeft ook niet, want de middleware heeft de sessie al
+// ververst.
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export function verplicht(naam: string): string {
-  const waarde = process.env[naam];
-  if (!waarde) throw new Error(`De omgevingsvariabele ${naam} ontbreekt (zie .env.example).`);
-  return waarde;
-}
+import { verplicht } from '@/lib/omgeving';
 
 export async function maakSupabase() {
   const winkel = await cookies();
