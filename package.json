@@ -12,7 +12,6 @@
     "build": "next build",
     "build:worker": "opennextjs-cloudflare build",
     "preview:worker": "opennextjs-cloudflare preview",
-    "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
@@ -21,14 +20,17 @@
     "controle:omwegen": "node scripts/controleer-omwegen.ts",
     "controle:repo": "node scripts/controleer-repo.ts",
     "controle:overgeslagen": "node scripts/controleer-overgeslagen.ts",
+    "controle:dbtypen": "node scripts/controleer-dbtypen.ts",
     "test": "node -e \"require('node:fs').mkdirSync('testuitkomsten',{recursive:true})\" && vitest run && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=testuitkomsten/node.tap \"scripts/**/*.test.ts\"",
     "test:e2e": "playwright test",
-    "check:basis": "npm run typecheck && npm run lint && npm run format:check && npm run controle:poort && npm run controle:omwegen && npm run test && npm run test:db && npm run build:worker && npm run test:e2e && npm run controle:overgeslagen",
+    "check:basis": "npm run typecheck && npm run lint && npm run format:check && npm run controle:poort && npm run controle:omwegen && npm run test && npm run test:db && npm run controle:dbtypen && npm run build:worker && npm run test:e2e && npm run controle:overgeslagen",
     "check": "npm run check:basis && npm run controle:repo",
     "prepare": "git config core.hooksPath .githooks || true",
     "test:db": "npm run supabase:start && supabase db reset --local && supabase test db",
     "supabase:start": "supabase start -x realtime,storage-api,imgproxy,studio,postgres-meta,edge-runtime,logflare,vector,supavisor",
-    "env:lokaal": "node scripts/schrijf-env-lokaal.ts"
+    "env:lokaal": "node scripts/schrijf-env-lokaal.ts",
+    "types:db": "node scripts/controleer-dbtypen.ts --schrijf",
+    "lid:lokaal": "node scripts/maak-lid-lokaal.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.13",

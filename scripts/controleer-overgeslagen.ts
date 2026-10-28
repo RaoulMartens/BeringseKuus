@@ -23,6 +23,27 @@ export interface Uitkomst {
   overgeslagen: number;
   todo: number;
   mislukt: number;
+  /** Tests die groen zijn als ze falen (Playwright: met fail gemarkeerd, op welke manier ook; review PR14-03). */
+  verwachtFalen?: number;
+}
+
+interface PlaywrightSuite {
+  suites?: PlaywrightSuite[];
+  specs?: { tests?: { expectedStatus?: unknown }[] }[];
+}
+
+/** Telt de tests in het rapport die niet "passed" als verwachte uitkomst hebben, hoe fail ook is geschreven. */
+function telVerwachtFalen(suites: PlaywrightSuite[]): number {
+  let aantal = 0;
+  for (const suite of suites) {
+    for (const spec of suite.specs ?? []) {
+      for (const test of spec.tests ?? []) {
+        if (test.expectedStatus !== 'passed' && test.expectedStatus !== 'skipped') aantal += 1;
+      }
+    }
+    aantal += telVerwachtFalen(suite.suites ?? []);
+  }
+  return aantal;
 }
 
 /** Leest de samenvatting onderaan een TAP-rapport van node --test. */
@@ -64,6 +85,7 @@ export function leesPlaywright(inhoud: unknown): Uitkomst {
     overgeslagen: getal(stats.skipped),
     todo: 0,
     mislukt: getal(stats.unexpected) + flaky,
+    verwachtFalen: telVerwachtFalen((inhoud as { suites?: PlaywrightSuite[] }).suites ?? []),
   };
 }
 
@@ -76,6 +98,8 @@ export function beoordeel(naam: string, u: Uitkomst): string[] {
   if (u.overgeslagen > 0) problemen.push(`${naam}: ${u.overgeslagen} test(s) overgeslagen`);
   if (u.todo > 0) problemen.push(`${naam}: ${u.todo} test(s) als todo gemarkeerd`);
   if (u.mislukt > 0) problemen.push(`${naam}: ${u.mislukt} test(s) mislukt of wisselend (flaky)`);
+  if ((u.verwachtFalen ?? 0) > 0)
+    problemen.push(`${naam}: ${u.verwachtFalen ?? 0} test(s) zijn groen als ze falen (gemarkeerd met fail)`);
   return problemen;
 }
 

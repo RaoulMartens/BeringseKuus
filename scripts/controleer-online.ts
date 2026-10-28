@@ -1,5 +1,5 @@
 // Controle na de uitrol (workflow uitrol, review PR8-07): antwoordt de nieuwe versie, met precies de
-// beveiligingsheaders, ook bij een vast bestand, en kan de Worker Supabase bereiken?
+// beveiligingsheaders, ook bij een vast bestand, alleen over https, en heeft de Worker zijn Supabase-gegevens?
 //
 // Eerst wachten tot /BUILD_ID gelijk is aan de build die net is uitgerold; anders zou de controle nog de vorige
 // versie kunnen keuren. Let op: de nieuwe versie staat dan al online. Rood betekent "online en niet in orde":
@@ -104,14 +104,25 @@ export async function controleerOnline(
     ...vergelijkHeaders('/inloggen', verwachtePaginaHeaders(inloggen.headers), inloggen.headers),
   );
 
-  // /inloggen toont het formulier ook zonder Supabase. /mijn vraagt Supabase wie er is ingelogd en stuurt een
-  // bezoeker zonder sessie door: alleen dan weten we dat de Worker zijn Supabase-gegevens heeft.
+  // Over http geen formulier, maar een doorverwijzing naar hetzelfde adres over https (review F0-05).
+  if (site.startsWith('https://')) {
+    const http = await ophalen(`${site.replace(/^https:/, 'http:')}/inloggen`);
+    if (![301, 308].includes(http.status) || http.headers.get('location') !== `${site}/inloggen`)
+      problemen.push(`http://…/inloggen: status ${http.status}, geen doorverwijzing naar https`);
+  } else {
+    problemen.push('--site moet met https:// beginnen');
+  }
+
+  // /inloggen toont het formulier ook zonder Supabase. /mijn stuurt een bezoeker zonder sessie door, maar alleen als
+  // SUPABASE_URL en SUPABASE_PUBLISHABLE_KEY bij de Worker staan (anders een serverfout). Meer bewijst dit niet:
+  // zonder sessiecookie belt de Supabase-client niet naar buiten, dus een typfout in het adres of een ingetrokken
+  // sleutel valt hier niet op (review F0-14). Dat laat pas inloggen zien (docs/hosting.md stap 10).
   // Next.js stuurt een relatief adres (location: /inloggen); lees het als adres op deze site.
   const mijn = await ophalen(`${site}/mijn`);
   const naar = new URL(mijn.headers.get('location') ?? '', `${site}/`).href;
   if (mijn.status !== 307 || naar !== `${site}/inloggen`)
     problemen.push(
-      `/mijn: stuurt niet door naar /inloggen (status ${mijn.status}); kloppen de Supabase-gegevens?`,
+      `/mijn: stuurt niet door naar /inloggen (status ${mijn.status}); staan de Supabase-gegevens bij de Worker?`,
     );
 
   // Proefroute 1: het testtoken uit deze publieke repository mag online nooit werken (review PR11-03). Het antwoord

@@ -11,10 +11,13 @@ import { cookies } from 'next/headers';
 import { verplicht } from '@/lib/omgeving';
 
 import { cookieOpties } from './cookies';
+import type { Database } from './database.types';
 
 export async function maakSupabase() {
   const winkel = await cookies();
-  return createServerClient(verplicht('SUPABASE_URL'), verplicht('SUPABASE_PUBLISHABLE_KEY'), {
+  // Getypeerd met de gegenereerde databasetypen (npm run types:db): een tabel of kolom die niet bestaat, is een
+  // typefout, en antwoorden hoeven niet met de hand te worden omgezet (bouwgids 14.2).
+  return createServerClient<Database>(verplicht('SUPABASE_URL'), verplicht('SUPABASE_PUBLISHABLE_KEY'), {
     cookieOptions: cookieOpties,
     cookies: {
       getAll() {

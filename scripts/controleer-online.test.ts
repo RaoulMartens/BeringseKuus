@@ -40,13 +40,21 @@ function site(
     mijn?: () => Response;
     agenda?: (pad: string) => Response;
     taak?: () => Response;
+    http?: (pad: string) => Response;
   } = {},
 ): Ophalen {
   const buildIds = [...(opties.buildIds ?? ['nieuw'])];
   let teller = 0;
   const pagina =
     opties.pagina ?? ((nonce: string) => new Response(html(nonce), { headers: paginaHeaders(nonce) }));
+  const HTTP = SITE.replace(/^https:/, 'http:');
   return (url: string) => {
+    if (url.startsWith(`${HTTP}/`)) {
+      const pad = url.slice(HTTP.length);
+      return Promise.resolve(
+        opties.http?.(pad) ?? new Response('', { status: 308, headers: { Location: `${SITE}${pad}` } }),
+      );
+    }
     const pad = url.slice(SITE.length);
     if (pad === '/BUILD_ID') return Promise.resolve(new Response(buildIds.shift() ?? 'nieuw'));
     teller += 1;
@@ -73,6 +81,13 @@ function site(
 describe('controleer-online', () => {
   it('geeft 0 problemen als de nieuwe versie antwoordt met alle headers', async () => {
     assert.deepEqual(await controleerOnline(SITE, 'nieuw', site(), 0), []);
+  });
+
+  it('faalt als de site over http gewoon antwoordt of elders heen stuurt (review F0-05)', async () => {
+    const antwoordt = () => new Response('<form>', { status: 200 });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ http: antwoordt }), 0), []);
+    const elders = () => new Response('', { status: 308, headers: { Location: 'https://elders.invalid/' } });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ http: elders }), 0), []);
   });
 
   it('wacht tot de nieuwe versie antwoordt', async () => {
