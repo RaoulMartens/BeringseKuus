@@ -33,6 +33,12 @@ const ALLEEN = `${['test', 'only'].join('.')}('a', () => {});`;
 const OVERSLAAN = `${['describe', 'skip'].join('.')}('b', () => {});`;
 const PLAYWRIGHT_OVERSLAAN = `${['test', 'describe', 'skip'].join('.')}('c', () => {});`;
 const LATER = `${['it', 'todo'].join('.')}('d');`;
+const MAG_FALEN = `${['test', 'fail'].join('.')}('e', () => {});`;
+const MAG_FALEN_VITEST = `${['it', 'fails'].join('.')}('f', () => {});`;
+const DB_OVERSLAAN = `select ${['sk', 'ip'].join('')}('later', 2);`;
+const DB_LATER = `select ${['todo', 'start'].join('_')}('nog niet');`;
+const DB_GEQUOTEERD = `select "${['sk', 'ip'].join('')}"('x', 1);`;
+const DB_GEEN_PLAN = `select * from ${['no', 'plan'].join('_')}();`;
 
 after(() => {
   for (const root of opgeruimd) rmSync(root, { recursive: true, force: true });
@@ -69,6 +75,33 @@ describe('controleer-omwegen', () => {
         maakRepo({ 'e2e/a.spec.ts': `${ALLEEN}\n${OVERSLAAN}\n${PLAYWRIGHT_OVERSLAAN}\n${LATER}\n` }),
       ).length,
       4,
+    );
+  });
+
+  it('faalt op een test die groen is als hij faalt (.fail, .fails; review F0-09)', () => {
+    assert.equal(
+      controleerOmwegen(
+        maakRepo({ 'e2e/a.spec.ts': `${MAG_FALEN}\n`, 'src/a.test.ts': `${MAG_FALEN_VITEST}\n` }),
+      ).length,
+      2,
+    );
+  });
+
+  it('faalt op skip en todo in de databasetests, niet in een migratie (review F0-09)', () => {
+    const res = controleerOmwegen(
+      maakRepo({
+        'supabase/tests/database/a.test.sql': `begin;\n${DB_OVERSLAAN}\n${DB_LATER}\n${DB_GEQUOTEERD}\n${DB_GEEN_PLAN}\n`,
+        'supabase/migrations/1_a.sql': `-- ${DB_OVERSLAAN}\n`,
+      }),
+    );
+    assert.deepEqual(
+      res.map((p) => [p.pad, p.regelnummer]),
+      [
+        ['supabase/tests/database/a.test.sql', 2],
+        ['supabase/tests/database/a.test.sql', 3],
+        ['supabase/tests/database/a.test.sql', 4],
+        ['supabase/tests/database/a.test.sql', 5],
+      ],
     );
   });
 

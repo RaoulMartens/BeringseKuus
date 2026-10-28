@@ -124,4 +124,18 @@ test.describe('inloggen met een link per mail', () => {
       expect(teBreed).toBe(false);
     });
   }
+
+  // Ook de schermen achter de link en na het inloggen (review F0-15).
+  test('de bevestigpagina en mijn account hebben geen toegankelijkheidsfouten', async ({ page }) => {
+    const email = nieuwAdres();
+    await maakLid(email);
+    await vraagLinkAan(page, email);
+    await page.goto(await inloglinkVoor(email));
+    await expect(page.getByRole('button', { name: 'Inloggen' })).toBeVisible();
+    expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+
+    await page.getByRole('button', { name: 'Inloggen' }).click();
+    await expect(page).toHaveURL(/\/mijn$/);
+    expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+  });
 });

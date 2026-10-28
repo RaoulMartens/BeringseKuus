@@ -116,6 +116,15 @@ describe('Vitest en Playwright', () => {
     );
   });
 
+  it('Playwright: een test die groen is als hij faalt, telt als fout, hoe fail ook is geschreven (review PR14-03)', () => {
+    const rapport = (expectedStatus: string) => ({
+      stats: { expected: 1, skipped: 0, unexpected: 0, flaky: 0 },
+      suites: [{ suites: [{ specs: [{ tests: [{ expectedStatus }] }] }] }],
+    });
+    assert.match(beoordeel('p', leesPlaywright(rapport('failed'))).join(), /groen als ze falen/);
+    assert.deepEqual(beoordeel('p', leesPlaywright(rapport('passed'))), []);
+  });
+
   it('nul tests en een onvolledig rapport zijn fout', () => {
     assert.notDeepEqual(
       beoordeel(
