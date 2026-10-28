@@ -85,8 +85,8 @@ cookies en de geplande meldingen vragen serveruitvoering. V8 2.1 ("Cloudflare Pa
   - **Gemeten (28-10-2026, na de eerste uitrol):** CPU-tijd P50 198 ms, P99 506 ms; ook warm (30 aanvragen achter
     elkaar) blijft het rond de 190 ms. Dat is ongeveer 20 keer de grens. Er was nog geen enkele fout ("Exceeded CPU
     Time Limits": 0). Details: `docs/hosting.md`, Metingen.
-  - **Uitkomst:** te krap, dus het betaalde plan ($5 per maand) volgens deze regel. **Moment, voorstel (besluit van
-    de bouwer staat nog open):** tijdens het bouwen gratis houden zolang er geen CPU-fouten zijn (alleen
+  - **Uitkomst:** te krap, dus het betaalde plan ($5 per maand) volgens deze regel.
+  - **Besluit (de bouwer, 28-10-2026):** tijdens het bouwen gratis houden zolang er geen CPU-fouten zijn (alleen
     verzonnen gegevens, één gebruiker), direct overstappen bij de eerste fout, en in elk geval vóór de pilot.
     Opnemen in de kostenvraag aan de opdrachtgever (3.2).
 
@@ -99,7 +99,7 @@ maand; goedkoper kan.
 |---|---|
 | Supabase | **Gratis tijdens het bouwen, met uitsluitend fictieve gegevens. Pro ($25) vanaf het moment dat echte leden erin staan** (uiterlijk vóór de pilot). Gratis plan: geen back-ups en pauzeert na 7 dagen zonder activiteit. Nooit echte persoonsgegevens op het gratis plan |
 | E-mail | **Resend gratis** (100 mails per dag, 3.000 per maand) door de dagmelding te **bundelen: één mail per lid per dag**, ook bij meerdere diensten. Op de drukste dag blijft dat ongeveer 42 mails. Telt per dag mee: inloglinks en wijzigingsmeldingen. Haalt het project de 100 toch, dan Resend Pro (prijs nog niet nagekeken) of een andere dienst (Brevo gratis geeft 300 per dag, vendorclaim, account moet worden goedgekeurd) |
-| Cloudflare Workers | **Betaald ($5) vanaf de pilot**: de rekentijdtest uit 3.1 (28-10-2026) liet ±200 ms per aanvraag zien, tegen 10 ms op het gratis plan. Tijdens het bouwen gratis zolang er geen CPU-fouten zijn (voorstel, zie 3.1) |
+| Cloudflare Workers | **Betaald ($5) vanaf de pilot**: de rekentijdtest uit 3.1 (28-10-2026) liet ±200 ms per aanvraag zien, tegen 10 ms op het gratis plan. Tijdens het bouwen gratis zolang er geen CPU-fouten zijn (besluit 28-10-2026, zie 3.1) |
 | Domeinnaam | Komt erbij, niet doorgerekend |
 | Point-in-time recovery | **Niet.** Zit niet in Pro (extra optie, ±$100 per maand). V8 2.1 en 7.3 beweren het wel en kloppen niet |
 
