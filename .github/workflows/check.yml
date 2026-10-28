@@ -58,3 +58,7 @@ jobs:
 
       - name: Bekende lekken in afhankelijkheden (hoog of kritiek blokkeert)
         run: npm audit --audit-level=high
+
+      # De uitrolstap heeft een eigen, kleine lockfile met alleen wrangler (uitrol/).
+      - name: Bekende lekken in de afhankelijkheden van de uitrol
+        run: npm audit --audit-level=high --prefix uitrol

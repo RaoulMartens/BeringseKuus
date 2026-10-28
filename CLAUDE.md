@@ -80,7 +80,7 @@ npm run test                   # Vitest en de tests van de controles (met rappor
 npm run supabase:start         # lokale Supabase (Docker): database, inloggen, Mailpit
 npm run env:lokaal             # schrijft .env.local voor npm run dev (niet in git)
 npm run test:db                # lokale database (Docker): migraties opnieuw, pgTAP-tests op RLS en rechten
-npm run build                  # productiebuild
+npm run build:worker           # productiebuild voor Cloudflare Workers (next build + OpenNext)
 npm run test:e2e               # Playwright op 1200 en 375 px: axe, zichtbare focus, headers
 npm run controle:overgeslagen  # geen enkele test overgeslagen of todo, volgens de rapporten van de testrunners
 npm run controle:repo          # niets wat niet in een publieke repository hoort (vraagt de namenlijst)

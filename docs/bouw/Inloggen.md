@@ -27,12 +27,12 @@ Dit bestand legt vast hoe dat werkt, waarom zo, en wat online nog moet worden in
 ## Nog niet (bewust)
 
 - **Sessie verversen bij elke aanvraag.** Dat hoort in een proxy (middleware). Of die op Cloudflare Workers werkt,
-  bewijst stap E. Tot dan ververst de sessie bij een serveractie; na een uur zonder actie kan een lid opnieuw
+  bewijst proefroute 2. Tot dan ververst de sessie bij een serveractie; na een uur zonder actie kan een lid opnieuw
   moeten inloggen.
 - **Uitnodigen.** Leden aanmaken en uitnodigen is fase 1. In de tests maakt de beheer-API het lid aan.
 - **MFA voor beheerders** (bouwgids 14.4): fase 1, met de rollen.
 
-## Online instellen (stap E, in het Supabase-dashboard of met `supabase config push`)
+## Online instellen (na stap E, in het Supabase-dashboard of met `supabase config push`; zie `docs/hosting.md`)
 
 `supabase/config.toml` geldt alleen lokaal. In het online project moet hetzelfde staan:
 

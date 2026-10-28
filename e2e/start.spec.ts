@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+import { beveiligingsheaders } from '../src/lib/beveiligingsheaders.ts';
 import { WCAG } from './normen.ts';
 
 test.describe('startpagina', () => {
@@ -51,5 +52,19 @@ test.describe('startpagina', () => {
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(headers['x-powered-by']).toBeUndefined();
+  });
+
+  // Vaste bestanden serveert Cloudflare zonder de Worker; de headers uit next.config.ts komen daar niet mee
+  // (review PR8-04). Ze moeten precies gelijk zijn aan die van de pagina's.
+  test('stuurt dezelfde beveiligingsheaders mee bij een vast bestand', async ({ request }) => {
+    const html = await (await request.get('/')).text();
+    const pad = /["'](\/_next\/static\/[^"']+\.js)["']/.exec(html)?.[1];
+    expect(pad).toBeDefined();
+    const antwoord = await request.get(pad ?? '');
+    expect(antwoord.status()).toBe(200);
+    const headers = antwoord.headers();
+    for (const { key, value } of beveiligingsheaders('production')) {
+      expect(headers[key.toLowerCase()], key).toBe(value);
+    }
   });
 });

@@ -1,0 +1,133 @@
+# Uitrol naar Cloudflare Workers (fase 0 stap E). Uitleg, terugrollen en eenmalige instellingen: docs/hosting.md.
+#
+# Alleen na een groene check op een push naar main van deze repository, en alleen als dat nog de nieuwste main
+# is. Geen handmatige start: een handmatige start zou check overslaan (review PR8-01). Opnieuw proberen = de
+# laatste run van uitrol opnieuw draaien (Re-run all jobs); die bouwt dezelfde, groen gekeurde commit.
+#
+# Twee jobs (review PR8-03): "bouw" draait npm ci en de build, zonder geheimen. "uitrol" krijgt het Cloudflare-
+# token, maar installeert alleen wrangler, zonder installatiescripts, en draait geen code van de app.
+# scripts/controleer-poort.ts bewaakt deze opzet.
+name: uitrol
+
+on:
+  workflow_run:
+    workflows: [check]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Nooit twee uitrollen tegelijk; een lopende uitrol wordt afgemaakt.
+concurrency:
+  group: uitrol
+  cancel-in-progress: false
+
+jobs:
+  bouw:
+    name: bouw
+    # Twee onafhankelijke sloten tegen een pull request uit een fork met een branch die main heet (review PR8-02):
+    # de gebeurtenis moet een push zijn, en de code moet uit deze repository komen.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Precies de commit waarop check groen was.
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      # Een opnieuw gestarte, oude check zou anders oude code over nieuwere heen zetten (review PR8-01).
+      - name: Alleen de nieuwste main
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          kop="$(git ls-remote "https://github.com/$REPO" refs/heads/main | cut -f1)"
+          if [ "$kop" != "$SHA" ]; then
+            echo "Niet uitgerold: $SHA is niet meer de nieuwste main ($kop). De nieuwere commit rolt zelf uit."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Afhankelijkheden
+        run: npm ci
+
+      - name: Bouwen (Next.js en OpenNext)
+        run: npm run build:worker
+
+      # OpenNext neemt waarden uit .env-bestanden op in de bundel (review PR8-11). In CI horen die er niet te zijn.
+      - name: Geen omgevingswaarden in de bundel
+        run: |
+          node --input-type=module -e "
+            const e = await import('./.open-next/cloudflare/next-env.mjs');
+            const gevuld = Object.entries(e).filter(([, w]) => Object.keys(w).length > 0).map(([n]) => n);
+            if (gevuld.length > 0) { console.error('Waarden in next-env.mjs: ' + gevuld.join(', ')); process.exit(1); }
+          "
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: worker
+          path: |
+            .open-next/
+            wrangler.jsonc
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  uitrol:
+    name: uitrol
+    needs: bouw
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Het Cloudflare-token staat alleen in deze omgeving.
+    environment:
+      name: ontwikkel
+      url: ${{ vars.SITE_URL }}
+    steps:
+      # Alleen wat de uitrol nodig heeft: wrangler (uitrol/) en de controle na afloop. Geen code van de app.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            uitrol
+            scripts/controleer-online.ts
+            src/lib/beveiligingsheaders.ts
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: uitrol/package-lock.json
+
+      - name: Wrangler, zonder installatiescripts
+        working-directory: uitrol
+        run: npm ci --ignore-scripts
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: worker
+
+      - name: Uitrollen
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: uitrol/node_modules/.bin/wrangler deploy
+
+      # Rood = de nieuwe versie staat online maar klopt niet: terugrollen (docs/hosting.md).
+      - name: Controle op de uitgerolde Worker
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/controleer-online.ts --site "$SITE_URL" --build-id .open-next/assets/BUILD_ID

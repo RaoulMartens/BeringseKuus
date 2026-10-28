@@ -1,6 +1,9 @@
 // Browsertests op desktop (1200 px) en telefoonbreedte (375 px), tegen de productiebuild (bouwgids 14.3 en 14.5).
-// Draai eerst `npm run build`; `npm run check` doet dat in de goede volgorde. Dit vervangt de handmatige controle
-// met toetsenbord en een echte telefoon niet (14.6).
+// Draai eerst `npm run build:worker`; `npm run check` doet dat in de goede volgorde. Dit vervangt de handmatige
+// controle met toetsenbord en een echte telefoon niet (14.6).
+//
+// De tests draaien tegen de Worker zoals hij online gaat: de OpenNext-build in workerd, de runtime van Cloudflare
+// (wrangler dev). Niet tegen `next start`, want dat is Node.js en draait online nergens (fase 0 stap E).
 import { defineConfig, devices } from '@playwright/test';
 
 import { leesLokaleSupabase } from './scripts/lokale-supabase.ts';
@@ -20,14 +23,18 @@ export default defineConfig({
     baseURL: SITE,
   },
   webServer: {
-    command: `npm run start -- --port ${POORT} --hostname 127.0.0.1`,
+    // Een Worker leest zijn omgeving niet uit process.env maar uit zijn eigen variabelen: vandaar --var.
+    command: [
+      `npm run preview:worker -- --port ${POORT} --ip 127.0.0.1`,
+      `--var SUPABASE_URL:${lokaal.apiUrl}`,
+      `--var SUPABASE_PUBLISHABLE_KEY:${lokaal.publishableKey}`,
+      `--var SITE_URL:${SITE}`,
+    ].join(' '),
     url: SITE,
     reuseExistingServer: false,
     timeout: 60_000,
     env: {
-      SUPABASE_URL: lokaal.apiUrl,
-      SUPABASE_PUBLISHABLE_KEY: lokaal.publishableKey,
-      SITE_URL: SITE,
+      WRANGLER_SEND_METRICS: 'false',
     },
   },
   projects: [

@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:worker": "opennextjs-cloudflare build",
+    "preview:worker": "opennextjs-cloudflare preview",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
@@ -21,7 +23,7 @@
     "controle:overgeslagen": "node scripts/controleer-overgeslagen.ts",
     "test": "node -e \"require('node:fs').mkdirSync('testuitkomsten',{recursive:true})\" && vitest run && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=testuitkomsten/node.tap \"scripts/**/*.test.ts\"",
     "test:e2e": "playwright test",
-    "check:basis": "npm run typecheck && npm run lint && npm run format:check && npm run controle:poort && npm run controle:omwegen && npm run test && npm run test:db && npm run build && npm run test:e2e && npm run controle:overgeslagen",
+    "check:basis": "npm run typecheck && npm run lint && npm run format:check && npm run controle:poort && npm run controle:omwegen && npm run test && npm run test:db && npm run build:worker && npm run test:e2e && npm run controle:overgeslagen",
     "check": "npm run check:basis && npm run controle:repo",
     "prepare": "git config core.hooksPath .githooks || true",
     "test:db": "npm run supabase:start && supabase db reset --local && supabase test db",
@@ -29,6 +31,7 @@
     "env:lokaal": "node scripts/schrijf-env-lokaal.ts"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "1.20.13",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",
     "next": "16.4.3",
@@ -46,6 +49,12 @@
     "prettier": "3.9.10",
     "supabase": "2.122.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "wrangler": "4.154.0"
+  },
+  "overrides": {
+    "@node-minify/core": {
+      "glob": "^10.5.0"
+    }
   }
 }
