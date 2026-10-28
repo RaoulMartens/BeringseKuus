@@ -128,6 +128,11 @@ export async function controleerOnline(
   if (!/\bno-store\b/.test(agenda.headers.get('cache-control') ?? ''))
     problemen.push('/proef/agenda: het antwoord mag bewaard worden (geen no-store)');
 
+  // Proefroute 3: de geplande taak is online niet van buiten te starten (/__scheduled bestaat alleen in wrangler dev).
+  const taak = await ophalen(`${site}/__scheduled?cron=*+*+*+*+*`);
+  if (taak.status !== 404)
+    problemen.push(`/__scheduled: status ${taak.status}; de taak is van buiten te starten`);
+
   const vast = vindVastBestand(startHtml);
   if (vast === undefined) {
     problemen.push('/: geen vast bestand onder /_next/static/ gevonden');

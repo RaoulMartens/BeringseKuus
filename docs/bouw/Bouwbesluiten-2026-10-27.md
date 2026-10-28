@@ -83,6 +83,18 @@ cookies en de geplande meldingen vragen serveruitvoering. V8 2.1 ("Cloudflare Pa
        kleinere bundel; Next.js 16 noemt het "deprecated". Reden en wat te doen bij een update: `docs/hosting.md`.
   3. een geplande taak die één bericht verstuurt (Workers Cron Trigger, of `pg_cron` in Supabase die een
      route aanroept: kies wat werkt en leg het vast).
+     - **Keuze (de bouwer, 28-10-2026): Workers Cron Trigger in een eigen taken-Worker** (`taken/`,
+       `ledenplatform-taken`), zonder route, zonder adres en zonder de Next-app. Redenen: (1) alleen deze Worker krijgt
+       de geheime sleutel van Supabase; in de app-Worker zou de hele app hem via `process.env` kunnen lezen, en hij
+       gaat om alle rechten heen (review PR12-01); (2) geen openbaar adres, dus geen geheime header nodig; (3) voor
+       fase 7 (de dagmelding) hetzelfde patroon. **Beperking:** de taken-Worker gebruikt geen pakketten (gewone
+       `fetch`), omdat de uitrolstap niets installeert (review PR8-03); `controle:poort` dwingt dat af (review PR12-06).
+       Vraagt fase 7 toch een pakket, dan bundelen in de bouwjob en uitrollen met `--no-bundle`. `pg_cron` blijft de
+       terugval. Lokaal bewezen; online te bevestigen (`docs/hosting.md` stap 12).
+     - **Migraties online (voorstel 28-10-2026, door de bouwer te bevestigen):** tot er een eigen job voor is, zet de beheerder ze met de hand
+       online met `supabase db push` (eerst `--dry-run`), alleen vanaf `main`, nooit los in de SQL Editor
+       (`docs/hosting.md` stap 12). Dat is een handeling buiten de poort; in fase 1 een job in GitHub Actions
+       overwegen, met een eigen omgeving en een eigen token.
 - Leg in `docs/` vast: gekozen deploymentvorm, frameworkversie, adapter, hoe secrets staan en waar de
   geplande taak draait. Slaagt één van de drie niet, probeer dan vinext met dezelfde drie tests.
 - **Rekentijd.** Het gratis Workers-plan geeft 10 ms rekentijd per aanvraag (wachten op de database telt

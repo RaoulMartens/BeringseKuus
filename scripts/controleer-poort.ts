@@ -182,8 +182,41 @@ export function controleerUitrol(tekst: string): string[] {
     fout('het Cloudflare-token hoort alleen in de job "uitrol", na de job "bouw"');
   if (jobUitrol >= 0 && /npm (ci|install)(?! --ignore-scripts)|npm run/.test(tekst.slice(jobUitrol)))
     fout('de job "uitrol" mag geen code van de app of installatiescripts draaien');
+  // Uit de bouwjob komt alleen de gebouwde app; configuratie en de taken-Worker komen uit git (review PR12-05).
+  const artefact = /upload-artifact[\s\S]*?path:\s*\|?\s*\n([\s\S]*?)\n\s*include-hidden-files/.exec(
+    tekst,
+  )?.[1];
+  const paden = (artefact ?? '')
+    .split('\n')
+    .map((regel) => regel.trim())
+    .filter((regel) => regel !== '' && !regel.startsWith('#'));
+  if (paden.join(',') !== '.open-next/') fout('het artefact van de bouwjob mag alleen .open-next/ bevatten');
   problemen.push(...controleerShas('uitrol.yml', tekst));
   return problemen;
+}
+
+/**
+ * De taken-Worker (taken/ en src/taken/) importeert alleen eigen bestanden, geen pakketten (review PR12-06). De
+ * uitrolstap bundelt hem zonder node_modules; een pakketimport zou pas na het samenvoegen falen.
+ */
+export function controleerTakenZonderPakketten(bestanden: { pad: string; tekst: string }[]): string[] {
+  const problemen: string[] = [];
+  const importen = /(?:\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+)['"]([^'"]+)['"]/gm;
+  for (const { pad, tekst } of bestanden) {
+    for (const m of tekst.matchAll(importen)) {
+      const bron = m[1] ?? '';
+      if (!bron.startsWith('./') && !bron.startsWith('../'))
+        problemen.push(`${pad}: importeert "${bron}"; de taken-Worker mag geen pakketten gebruiken`);
+    }
+  }
+  return problemen;
+}
+
+/** Een build-commando in een wrangler-configuratie draait bij het uitrollen, naast het token (review PR12-05). */
+export function controleerWranglerZonderBuild(pad: string, tekst: string): string[] {
+  return /"build"\s*:/.test(tekst)
+    ? [`${pad}: een "build"-commando draait bij het uitrollen; niet toegestaan`]
+    : [];
 }
 
 /** uitrol/package.json heeft alleen wrangler, in dezelfde versie als waarmee de poort test. */
@@ -207,8 +240,10 @@ export function controleerTestinstellingen(vitest: string, playwright: string): 
     problemen.push('playwright.config.ts: forbidOnly moet true zijn');
   if (!playwright.includes('`npm run preview:worker'))
     problemen.push('playwright.config.ts: de browsertests moeten de Worker starten (npm run preview:worker)');
-  if (!/reuseExistingServer:\s*false/.test(playwright))
-    problemen.push('playwright.config.ts: reuseExistingServer moet false zijn');
+  // Bij elke server (de app en de taken-Worker): nooit een al draaiende, mogelijk oude server hergebruiken.
+  const hergebruik = [...playwright.matchAll(/reuseExistingServer:\s*([^,\s}]+)/g)].map((m) => m[1]);
+  if (hergebruik.length === 0 || hergebruik.some((waarde) => waarde !== 'false'))
+    problemen.push('playwright.config.ts: reuseExistingServer moet bij elke server false zijn');
   return problemen;
 }
 
@@ -263,6 +298,12 @@ export async function controleerPoort(root: string): Promise<string[]> {
       JSON.parse(lees('uitrol/package.json')) as unknown,
     ),
     ...controleerTestinstellingen(lees('vitest.config.ts'), lees('playwright.config.ts')),
+    ...controleerTakenZonderPakketten(
+      ['taken/worker.ts', 'src/taken/proef-taak.ts'].map((pad) => ({ pad, tekst: lees(pad) })),
+    ),
+    ...['wrangler.jsonc', 'taken/wrangler.jsonc'].flatMap((pad) =>
+      controleerWranglerZonderBuild(pad, lees(pad)),
+    ),
     ...(await controleerEslint(root)),
   ];
 }

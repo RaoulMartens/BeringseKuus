@@ -12,8 +12,10 @@ import {
   controleerScripts,
   controleerTestinstellingen,
   controleerTsconfig,
+  controleerTakenZonderPakketten,
   controleerUitrol,
   controleerUitrolPakket,
+  controleerWranglerZonderBuild,
   controleerWorkflow,
 } from './controleer-poort.ts';
 
@@ -22,6 +24,7 @@ const lees = (pad: string): string => readFileSync(path.join(ROOT, pad), 'utf8')
 const pakket = JSON.parse(lees('package.json')) as { scripts: Record<string, string> };
 const workflow = lees('.github/workflows/check.yml');
 const uitrol = lees('.github/workflows/uitrol.yml');
+const uitTaak = lees('src/taken/proef-taak.ts');
 const uitrolPakket = JSON.parse(lees('uitrol/package.json')) as unknown;
 const playwright = lees('playwright.config.ts');
 const vitest = lees('vitest.config.ts');
@@ -123,6 +126,38 @@ describe('workflow', () => {
   it('faalt als de audit van uitrol/ verdwijnt of de naam verandert', () => {
     assert.notDeepEqual(controleerWorkflow(workflow.replace('--prefix uitrol', '')), []);
     assert.notDeepEqual(controleerWorkflow(workflow.replace('name: check\n', 'name: poort\n')), []);
+  });
+});
+
+describe('taken-Worker (review PR12-05 en PR12-06)', () => {
+  it('faalt als de code van de taken-Worker een pakket importeert: de uitrolstap installeert niets', () => {
+    assert.deepEqual(controleerTakenZonderPakketten([{ pad: 'taken/worker.ts', tekst: uitTaak }]), []);
+    for (const regel of [
+      "import { createClient } from '@supabase/supabase-js';",
+      "import x from 'zod';",
+      "const y = await import('node:fs');",
+      "export { z } from 'next/server';",
+    ]) {
+      assert.notDeepEqual(
+        controleerTakenZonderPakketten([{ pad: 'taken/worker.ts', tekst: regel }]),
+        [],
+        regel,
+      );
+    }
+  });
+
+  it('faalt als een wrangler-configuratie een build-commando heeft: dat draait naast het token', () => {
+    assert.deepEqual(controleerWranglerZonderBuild('wrangler.jsonc', lees('wrangler.jsonc')), []);
+    const metBuild = lees('wrangler.jsonc').replace('{', '{\n  "build": { "command": "curl …" },');
+    assert.notDeepEqual(controleerWranglerZonderBuild('wrangler.jsonc', metBuild), []);
+  });
+
+  it('faalt als het artefact van de bouwjob meer bevat dan .open-next/', () => {
+    const meer = uitrol.replace(
+      '            .open-next/\n',
+      '            .open-next/\n            wrangler.jsonc\n',
+    );
+    assert.notDeepEqual(controleerUitrol(meer), []);
   });
 });
 

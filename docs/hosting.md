@@ -13,9 +13,12 @@ doet als er iets misgaat.
 3. De uitrol start pas als de workflow `check` groen is na een push op `main` van deze repository, en alleen als
    die commit nog de nieuwste `main` is. Een pull request rolt nooit uit; met de hand starten kan niet.
 4. Job **bouw** (zonder geheimen): installeren, bouwen, controleren dat er geen waarden uit een `.env`-bestand in de
-   bundel zitten, en de bundel bewaren. Job **uitrol** (met het Cloudflare-token): alleen wrangler uit `uitrol/`,
-   geïnstalleerd zonder installatiescripts, rolt die bundel uit. Zo draait de code van de app en van haar
-   afhankelijkheden nooit naast het token.
+   bundel zitten, en alleen `.open-next/` bewaren. Job **uitrol** (met het Cloudflare-token): alleen wrangler uit
+   `uitrol/`, geïnstalleerd zonder installatiescripts. Die rolt twee Workers uit: de app (`.open-next/` uit de job
+   bouw) en de taken-Worker (`taken/`). De configuratie (`wrangler.jsonc`, `taken/wrangler.jsonc`) en de code van de
+   taken-Worker komen uit git, niet uit de job bouw: een aangepaste configuratie zou anders een build-commando naast
+   het token kunnen draaien (review PR12-05). `controle:poort` eist dat het artefact alleen `.open-next/` bevat, dat
+   geen configuratie een `build` heeft, en dat de taken-Worker geen pakketten importeert.
 5. Daarna wacht `scripts/controleer-online.ts` tot de site de nieuwe versie uitlevert (`/BUILD_ID`), en controleert
    de exacte beveiligingsheaders op `/` en op een vast bestand, of `/inloggen` antwoordt, en of `/mijn` een bezoeker
    zonder sessie doorstuurt naar `/inloggen`. Dat laatste lukt alleen als de Worker Supabase kan bereiken;
@@ -68,7 +71,7 @@ niet, maar `npm audit` blokkeert terecht. 10.5.0 is dezelfde hoofdversie met de 
 | Workers Logs (`observability`) | **Uit.** Het log bewaart de URL van elke aanvraag, en de inloglink en straks de agenda-feed hebben een token in de URL (bouwgids 7.4). Een tussenvorm (`invocation_logs: false`, alleen eigen meldingen) is een keuze vóór de pilot, want dan moet een mislukte verzending zichtbaar zijn |
 | Incrementele cache in R2 | Niet. Pagina's met ledengegevens worden niet bewaard. R2 vraagt ook een betaalmethode |
 | Beeldoptimalisatie (`images`) | Niet. Er zijn nog geen afbeeldingen |
-| Eigen Worker met `scheduled` (geplande taak) | Komt met proefroute 3; dan een typebestand voor `.open-next/worker.js` in plaats van `@ts-ignore` (Fase-0-plan 1.3) |
+| Geplande taken | **Een eigen Worker `ledenplatform-taken` (`taken/`) met een Cron Trigger, niet `pg_cron` en niet in de app** (proefroute 3, `Bouwbesluiten` 3.1). In één Worker met de app zou de hele app de geheime Supabase-sleutel via `process.env` kunnen lezen (review PR12-01). De taken-Worker heeft geen adres (`workers_dev: false`) en geen route, dus niets dat iemand van buiten kan starten. Hij gebruikt geen pakketten (gewone `fetch` naar Supabase en Resend), zodat de uitrolstap hem zonder installatie bundelt; `controle:poort` dwingt dat af. Logs staan voor deze Worker aan (geen tokens in URL's, wel de reden van een mislukte run) |
 | `middleware.ts` (edge-runtime), niet `proxy.ts` (Node-runtime) | **Besluit 28-10-2026** (`Bouwbesluiten` 3.1). Beide slaagden lokaal in workerd voor alle browsertests. `proxy.ts` is de standaard van Next.js 16, maar draait altijd in de Node-runtime, en die noemt OpenNext op Workers "experimental, not officially maintained": hij gebruikt interne uitvoer van Next.js die per versie kan veranderen. `middleware.ts` is het pad dat OpenNext ondersteunt, met een kleinere bundel (1198 tegen 1397 KiB gecomprimeerd). Prijs: Next.js 16 noemt het "deprecated" en waarschuwt bij elke build; die waarschuwing is verwacht en hoeft niet weg. Wat te doen bij een update: zie "Als een update de middleware breekt" hieronder |
 | Stijlen in de CSP | `style-src` houdt `'unsafe-inline'`: een nonce werkt niet voor style-attributen, en een stijl voert geen code uit. Scripts zijn wat telt |
 
@@ -153,6 +156,48 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       de Metrics van die minuut af.
     - **Token gelekt:** zet een nieuw token als geheim (het oude adres werkt dan meteen niet meer) en maak de
       abonnementen opnieuw. **Proef klaar:** verwijder het geheim; de feed geeft dan voor elk token een 404.
+12. **Geplande taak (proefroute 3).** De taak draait in een eigen Worker, `ledenplatform-taken` (`taken/`), niet
+    in de app: alleen die krijgt de geheime sleutel van Supabase. Cloudflare start hem elke minuut (`triggers` in
+    `taken/wrangler.jsonc`). Hij schrijft per minuut de uitkomst in `proef_taak` en verstuurt hooguit één keer een
+    testbericht. De Worker heeft geen adres; niemand kan hem van buiten aanroepen.
+    **Volgorde: eerst samenvoegen, dan A (migraties, vanaf `main`), dan B (geheimen), dan C.** Zonder geheimen doet
+    de taken-Worker niets en meldt hij alleen "niet ingesteld"; de tabellen zijn pas nodig na stap B.
+    - **A. De migraties online, met `supabase db push`** (nooit met de hand in de SQL Editor: dat komt niet in de
+      migratiegeschiedenis, en zonder de eerste migratie zijn de standaardrechten online niet dicht). In de
+      Ubuntu-terminal, in de repository, op een bijgewerkte `main` (`git switch main && git pull`):
+      1. `npx supabase login` (opent de browser; inloggen met je Supabase-account).
+      2. `npx supabase link --project-ref <ref>`: de *ref* is het stuk tussen `https://` en `.supabase.co` van je
+         project-URL. Hij vraagt het databasewachtwoord (in je wachtwoordmanager).
+      3. `npx supabase db push --dry-run`: toont welke migraties hij zou uitvoeren. Controleer dat het precies de
+         bestanden uit `supabase/migrations/` zijn die nog niet online staan, en niets anders.
+      4. `npx supabase db push`, en bevestig met `y`.
+      5. Controleer in Supabase: Table Editor (bij `proef_taak` en `proef_taak_bericht` staat het slotje: RLS aan),
+         en Advisors, Security Advisor. "RLS enabled, no policy" op deze twee tabellen is verwacht (niemand anders
+         mag erbij); andere meldingen niet.
+    - **B. Geheimen.** Na het samenvoegen staat de Worker `ledenplatform-taken` er. Zet, ná stap A, bij **die**
+      Worker (niet bij `ledenplatform`) de geheimen, type *Secret*:
+      - `SUPABASE_URL`: dezelfde project-URL als bij de app.
+      - `SUPABASE_SECRET_KEY`: maak in Supabase (Project Settings, API Keys) een **nieuwe, eigen** secret key voor
+        deze taak, met een herkenbare naam zoals `proef-taak`. Die gaat om alle rechten heen; gebruik hem nergens
+        anders, en zet hem nooit bij de app-Worker.
+      - Voor het testbericht (mag ook weg; dan draait de taak zonder bericht): `RESEND_API_KEY` (een eigen sleutel
+        met *Sending access*), `RESEND_AFZENDER` (zonder eigen domein het testadres van Resend, `onboarding` op
+        `resend.dev`, met een naam ervoor: `Ledenplatform <…>`), en `PROEF_TAAK_ONTVANGER` (het adres van je
+        Resend-account: zonder eigen domein kan Resend alleen daarheen sturen).
+    - **C. Controleren:** na tien minuten in Supabase, Table Editor, `proef_taak`: tien rijen, één per minuut, status
+      `gelukt`; in `proef_taak_bericht` één rij met status `verstuurd`, en het bericht in je mailbox. In Cloudflare:
+      Workers, `ledenplatform-taken`, Settings, Trigger Events, **View events** (de laatste 100 runs; bij een nieuwe
+      Worker kan het tot een half uur duren voor ze verschijnen). De reden van een mislukte run staat in de logs van
+      die Worker (Observability; hier staan geen tokens in). Lees ook de rekentijd van de runs af (Metrics).
+    - **Gedwongen fout:** zet bij `ledenplatform-taken` tijdelijk `PROEF_TAAK_FORCEER_FOUT` = `1` (type *Text*; een
+      volgende uitrol haalt dat weer weg). Binnen een minuut staat er een rij met status `mislukt`, en de run staat
+      in View events als mislukt. Haal de variabele daarna weg.
+    - **Testbericht mislukt** (status `mislukt` in `proef_taak_bericht`, met de fout): los de oorzaak op (meestal de
+      Resend-sleutel) en verwijder die ene rij in de Table Editor; de volgende run probeert het opnieuw, zonder dubbel
+      bericht (vaste Idempotency-Key bij Resend).
+    - **Proef klaar:** zet in `taken/wrangler.jsonc` `"crons": []` (pull request; het `triggers`-blok weghalen laat de
+      bestaande trigger staan). Verwijder de geheimen bij `ledenplatform-taken` en de secret key `proef-taak` in
+      Supabase. De tabellen mogen weg in fase 1 (met een migratie).
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
@@ -212,6 +257,11 @@ npm run build:worker && npm run preview:worker # de Worker in workerd op http://
 
 Lokaal werkt de agenda-feed met het testtoken uit `scripts/agenda-testtoken.ts` (`env:lokaal` zet het):
 `http://127.0.0.1:8787/proef/agenda/<testtoken>.ics`. Http mag alleen op de eigen computer.
+
+De geplande taak start je lokaal met de hand in de taken-Worker: `npx wrangler dev -c taken/wrangler.jsonc --port
+8788 --test-scheduled` (leest `taken/.dev.vars`, die `env:lokaal` schrijft) en dan
+`curl "http://127.0.0.1:8788/__scheduled?cron=*+*+*+*+*"`. Online bestaat `/__scheduled` niet, en de taken-Worker
+heeft geen adres.
 
 Een lokale build neemt waarden uit `.env.local` op in de bundel (`.open-next/cloudflare/next-env.mjs`). Daarom rolt
 alleen GitHub uit, en controleert de job **bouw** dat die bundel leeg is. Zet in `.env.local` nooit een sleutel die

@@ -3,6 +3,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ledenplatform",
+  // De geplande taken staan in een eigen Worker (taken/wrangler.jsonc), niet hier: die heeft de geheime sleutel
+  // van Supabase, en die hoort niet bij de app (review PR12-01).
   "main": ".open-next/worker.js",
   // Gelijk aan de workerd-versie die bij wrangler hoort; bij een update van wrangler bewust meeschuiven.
   "compatibility_date": "2026-10-23",
@@ -21,5 +23,6 @@
     "enabled": false,
   },
   // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SITE_URL en PROEF_AGENDA_TOKEN staan als geheim bij Cloudflare
-  // (docs/hosting.md stap 5 en 11), niet hier: deze repository is publiek en per omgeving verschillen ze.
+  // (docs/hosting.md stap 5 en 11), niet hier: deze repository is publiek en per omgeving verschillen ze. De
+  // geheime sleutel van Supabase hoort hier nooit bij: die staat alleen bij de taken-Worker.
 }
