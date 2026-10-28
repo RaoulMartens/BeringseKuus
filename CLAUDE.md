@@ -213,6 +213,12 @@ Is één punt niet waar, zeg dan dat het niet af is, en wat er nog ontbreekt.
   alle controles groen op een lege app, vóór het eerste scherm.
 - Database en rechten eerst, met uitleg, vóór er schermen komen.
 - Kleine, samenhangende commits met een Nederlands bericht dat zegt waarom.
+- **Eigen review vóór het samenvoegen** (review F0-08): een pull request die `supabase/migrations/`,
+  `src/middleware.ts`, het inloggen (`src/app/inloggen/`, `src/app/auth/`, `src/lib/supabase/`),
+  `.github/workflows/` of de poort (`scripts/controleer-*`, `eslint.config.mjs`, `tsconfig.json`, de
+  testinstellingen) raakt, krijgt een eigen review door een schone chat, met de bevindingen en wat ermee is gedaan
+  in de pull request. Het vakje "Review" mag dan niet leeg blijven. Andere pull requests vallen onder de review van
+  de fase.
 - Twijfel over wat het ontwerp bedoelt: kijk in de wireframes en `use-cases.md`, en vraag het als het
   daar niet staat. Neem geen ontwerpbeslissing zelf.
 
@@ -220,8 +226,9 @@ Is één punt niet waar, zeg dan dat het niet af is, en wat er nog ontbreekt.
 
 De actuele lijst met besluiten, deadlines en aannames staat in `Bouwbesluiten` punt 6; de ongestelde
 vragen aan de opdrachtgever staan in bouwgids 15.1 (met aannames). Bouw er niet omheen; vraag de stand.
+Wat uit fase 0 nog moet gebeuren, met wanneer en door wie: `docs/bouw/Afname-fase-0.md`, "Van fase 0 naar fase 1".
 
-- Hosting (OpenNext of vinext): beslist bij de fase-0-test.
+- Hosting: **besloten 28-10-2026, OpenNext** (alle drie proefroutes geslaagd; `Bouwbesluiten` 3.1 en 6).
 - Pilotmoment, BA-6 (aanname: tabel `roltypen`), foutcode en scherm voor een versieconflict en een
   doelgroepconflict, akkoord van de opdrachtgever op de kosten.
 - Komt oud papier dat het systeem aanmaakt binnen als concept of direct gepubliceerd?

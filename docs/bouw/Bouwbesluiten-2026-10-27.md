@@ -74,6 +74,8 @@ cookies en de geplande meldingen vragen serveruitvoering. V8 2.1 ("Cloudflare Pa
 - **De Next.js-versie staat vast** en wordt bijgewerkt zodra er een beveiligingsupdate is (14.4).
 - **Fase-0-test (afronding fase 0 hangt hieraan), op echte Workers, niet alleen lokaal:**
   1. een route die een `.ics`-bestand teruggeeft (zoals `/agenda/[token].ics`);
+     - **Uitkomst (28-10-2026):** geslaagd op de echte Worker; op een iPhone geabonneerd, de afspraak staat in de
+       agenda met de juiste tijden (`Fase-0-plan.md` punt 4).
   2. inloggen met een magic link, met de callback en sessiecookies via Supabase;
      - **Uitkomst (28-10-2026):** werkt op de echte Worker, ook op een telefoon (`docs/bouw/Inloggen.md`). Voor
        het verversen van de sessie en de CSP met nonce is een middleware nodig. **Besluit (de bouwer):
@@ -90,11 +92,20 @@ cookies en de geplande meldingen vragen serveruitvoering. V8 2.1 ("Cloudflare Pa
        fase 7 (de dagmelding) hetzelfde patroon. **Beperking:** de taken-Worker gebruikt geen pakketten (gewone
        `fetch`), omdat de uitrolstap niets installeert (review PR8-03); `controle:poort` dwingt dat af (review PR12-06).
        Vraagt fase 7 toch een pakket, dan bundelen in de bouwjob en uitrollen met `--no-bundle`. `pg_cron` blijft de
-       terugval. Lokaal bewezen; online te bevestigen (`docs/hosting.md` stap 12).
-     - **Migraties online (voorstel 28-10-2026, door de bouwer te bevestigen):** tot er een eigen job voor is, zet de beheerder ze met de hand
-       online met `supabase db push` (eerst `--dry-run`), alleen vanaf `main`, nooit los in de SQL Editor
-       (`docs/hosting.md` stap 12). Dat is een handeling buiten de poort; in fase 1 een job in GitHub Actions
-       overwegen, met een eigen omgeving en een eigen token.
+       terugval. **Online geslaagd (28-10-2026):** elke minuut één rij, geen dubbele, precies één testbericht, en een
+       gedwongen fout als `mislukt` zichtbaar; daarna stilgezet (`docs/hosting.md` stap 12).
+     - **Migraties online (open, besluit vóór de eerste migratie van fase 1; review F0-11).** In fase 0 zette de
+       beheerder ze met de hand online met `supabase db push` (eerst `--dry-run`), vanaf `main`, nooit los in de SQL
+       Editor (`docs/hosting.md` stap 12). Voor twee proeftabellen was dat genoeg. In fase 1 rolt de pijplijn code uit
+       die een nieuwe tabel of functie verwacht; staat de migratie dan nog niet online, dan geeft de app fouten tot
+       iemand `db push` doet. En een wijziging in het dashboard (14.2 verbiedt dat) valt nergens op. Twee opties:
+       (a) een job `migraties` in de workflow `uitrol`, met een eigen omgeving en een eigen Supabase-token, die vóór
+       `wrangler deploy` draait en `db push --dry-run` in de log zet; (b) minimaal een regel in het PR-sjabloon: "deze
+       pull request bevat een migratie: eerst `db push`, dan samenvoegen". De Auth-instellingen (redirect-URL's,
+       mailtekst, aanmelden uit) gaan dan met `supabase config push`, zodat het pilotproject (punt 10) ze niet met de
+       hand hoeft te krijgen.
+- **Uitkomst fase-0-test (28-10-2026): alle drie geslaagd op de echte Workers. OpenNext blijft; vinext is niet
+  nodig** (punt 6). Wat gekozen is en waarom: `docs/hosting.md`.
 - Leg in `docs/` vast: gekozen deploymentvorm, frameworkversie, adapter, hoe secrets staan en waar de
   geplande taak draait. Slaagt één van de drie niet, probeer dan vinext met dezelfde drie tests.
 - **Rekentijd.** Het gratis Workers-plan geeft 10 ms rekentijd per aanvraag (wachten op de database telt
@@ -102,7 +113,8 @@ cookies en de geplande meldingen vragen serveruitvoering. V8 2.1 ("Cloudflare Pa
   ($5 per maand).
   - **Gemeten (28-10-2026, na de eerste uitrol):** CPU-tijd P50 198 ms, P99 506 ms; ook warm (30 aanvragen achter
     elkaar) blijft het rond de 190 ms. Dat is ongeveer 20 keer de grens. Er was nog geen enkele fout ("Exceeded CPU
-    Time Limits": 0). Details: `docs/hosting.md`, Metingen.
+    Time Limits": 0). **Opnieuw gemeten** na de middleware en de agenda-feed: mediaan 218 ms per aanvraag, nog
+    steeds 0 fouten; de taken-Worker 0,24 ms per run. Details: `docs/hosting.md`, Metingen.
   - **Uitkomst:** te krap, dus het betaalde plan ($5 per maand) volgens deze regel.
   - **Besluit (de bouwer, 28-10-2026):** tijdens het bouwen gratis houden zolang er geen CPU-fouten zijn (alleen
     verzonnen gegevens, één gebruiker), direct overstappen bij de eerste fout, en in elk geval vóór de pilot.
@@ -305,7 +317,11 @@ Worker voor de Excel-import.
 
 | Besluit | Uiterlijk | Aanname tot dan |
 |---|---|---|
-| Hosting: OpenNext of vinext | afronding fase 0 | OpenNext; bewijs met de drie proefroutes (3.1) |
+| ~~Hosting: OpenNext of vinext~~ **Besloten 28-10-2026: OpenNext.** Alle drie proefroutes zijn op de echte Workers geslaagd; vinext is niet nodig (3.1) | — | — |
+| Migraties en Auth-instellingen online: een job in de workflow `uitrol`, of `db push` met de hand met een regel in het PR-sjabloon (3.1, review F0-11) | vóór de eerste migratie van fase 1 | Met de hand, zoals in fase 0 |
+| Testopzet voor twee gelijktijdige sessies (bouwgids 14.5): naar fase 1 (punt 11) | bevestigen bij de afronding van fase 0 | Voorstel: naar fase 1 |
+| Wie de tweede beheerder wordt, en de repository naar een organisatie (5.2 punt 5, review F0-12) | vóór fase 1 | Alles op naam van de bouwer |
+| Licentie van de code (8, review F0-13) | vóór fase 1 bekijken; besloten vóór de eerste bijdrage van iemand anders | Geen licentie: alle rechten voorbehouden |
 | Pilotmoment (V8 13.3): A rond 14–22 nov, of B op 3 jan 2027 | vóór fase 1 | B, tenzij fase 0 t/m 2 in de eerste week van november af zijn |
 | Versie van de activiteit en doelgroepconflict: welke foutcode, welk scherm (5.1) | vóór fase 2 | Zie 5.1 |
 | BA-6: roltypen als tabel | vóór fase 2 | Tabel `roltypen` |
@@ -381,4 +397,32 @@ uiterlijk vóór het begin van fase 1 bekeken.
 - **Standaardrechten staan dicht** (eerste migratie): nieuwe tabellen, reeksen en functies in `public` krijgen
   geen rechten voor `anon` of `authenticated`, en functies niet voor iedereen (`PUBLIC`). `npm run test:db`
   faalt op een tabel zonder RLS en op een nieuwe tabel of functie die toch vanzelf bereikbaar is.
+- **Ook los van wie iets maakte** (review F0-10, 28-10-2026): de standaardrechten hierboven gelden alleen voor
+  objecten van de rol `postgres` (de migraties). Een extensie of een wijziging in het dashboard maakt objecten als
+  `supabase_admin`, en die krijgen de ruime standaard van Supabase. Daarom toetst `test:db` ook het resultaat: geen
+  functie in `public` uit te voeren voor `anon` of `authenticated`, elke `security definer`-functie met een vaste
+  `search_path`, elke view met `security_invoker`, niets in `public` leesbaar zonder inloggen, en geen extensie in
+  `public` (extensies horen in het schema `extensions`). Krijgt een functie of tabel in fase 1 bewust een recht, dan
+  komt hij in die test op een lijst, met de reden.
+
+## 11. Gelijktijdigheid: de testopzet schuift naar fase 1 (voorstel 28-10-2026)
+
+**Voorstel, door de bouwer te bevestigen** (review F0-02). Het Fase-0-plan vroeg in fase 0 al "de testopzet voor twee
+gelijktijdige sessies" (bouwgids 14.5). Die is er niet, om twee redenen:
+
+- **Het kan niet in pgTAP alleen.** Een pgTAP-test draait in één databasesessie. Een tweede sessie openen vanuit de
+  database (`dblink`) lukt in Supabase niet als gewone rol: Supabase eist dan een wachtwoord dat lokaal niet wordt
+  gecontroleerd, en weigert de verbinding (uitgeprobeerd 28-10-2026). De rol `postgres` is geen superuser.
+- **Er is nog niets om tegen te testen.** De gelijktijdigheid gaat over de rij-lock op `activiteiten` in
+  `ruil_dienst`, `meld_af`, `activiteit_opslaan` en de andere schrijffuncties (bouwgids 4.4). Die bestaan nog niet;
+  een opzet tegen een proeftabel zou opnieuw moeten bij de eerste echte functie.
+
+**Plan:** bij de eerste schrijffunctie met een rij-lock (fase 1 of 2) een Vitest-test die twee aanroepen tegelijk via
+de Data API van de lokale Supabase doet (`supabase-js`, dat er al is), met een vertraging in de eerste, en controleert
+dat de tweede wacht of `slot_gewijzigd` krijgt. Is dat te grof, dan een eigen testhelper met twee directe
+databaseverbindingen; daarvoor is een pakket nodig (bijvoorbeeld `pg`), en dat wordt dan eerst voorgelegd.
+
+De **databasetypen** uit dezelfde stap C zijn er wel (28-10-2026): `npm run types:db` maakt
+`src/lib/supabase/database.types.ts`, en de poort keurt een bestand af dat niet bij de migraties past
+(`controle:dbtypen`).
 

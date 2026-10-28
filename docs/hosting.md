@@ -1,7 +1,7 @@
 # Hosting: Cloudflare Workers met OpenNext
 
-Stand 28-10-2026, fase 0 stap E, bijgewerkt na de review van PR 8. Hoort bij `Bouwbesluiten` punt 3 en bouwgids
-14.6 punt 5. Dit bestand beschrijft hoe de app online komt, met welke versies, wat je eenmalig instelt, en wat je
+Stand 28-10-2026, afronding van fase 0 (na de review van fase 0, `docs/bouw/Afname-fase-0.md`). Hoort bij
+`Bouwbesluiten` punt 3 en bouwgids 14.6 punt 5. Dit bestand beschrijft hoe de app online komt, met welke versies, wat je eenmalig instelt, en wat je
 doet als er iets misgaat.
 
 ## Hoe het werkt
@@ -20,18 +20,23 @@ doet als er iets misgaat.
    het token kunnen draaien (review PR12-05). `controle:poort` eist dat het artefact alleen `.open-next/` bevat, dat
    geen configuratie een `build` heeft, en dat de taken-Worker geen pakketten importeert.
 5. Daarna wacht `scripts/controleer-online.ts` tot de site de nieuwe versie uitlevert (`/BUILD_ID`), en controleert
-   de exacte beveiligingsheaders op `/` en op een vast bestand, of `/inloggen` antwoordt, en of `/mijn` een bezoeker
-   zonder sessie doorstuurt naar `/inloggen`. Dat laatste lukt alleen als de Worker Supabase kan bereiken;
-   `/inloggen` zelf toont het formulier ook zonder Supabase-gegevens. Ook: het publieke testtoken van de agenda-feed
-   geeft het kale "Niet gevonden" van de route. Dat de feed met het echte token werkt, bewijst alleen stap 11 (met de
-   hand): het echte token hoort niet in GitHub.
+   de exacte beveiligingsheaders op `/` en op een vast bestand, of `/inloggen` antwoordt, of `http://` doorstuurt
+   naar `https://`, en of `/mijn` een bezoeker zonder sessie doorstuurt naar `/inloggen`. Dat laatste bewijst alleen
+   dat `SUPABASE_URL` en `SUPABASE_PUBLISHABLE_KEY` bij de Worker staan, niet dat ze kloppen: zonder sessie belt de
+   Worker Supabase niet (review F0-14). Een typfout in het adres of een ingetrokken sleutel zie je pas bij het
+   inloggen (stap 8). Ook: het publieke testtoken van de agenda-feed geeft het kale "Niet gevonden" van de route. Dat
+   de feed met het echte token werkt, bewijst alleen stap 11 (met de hand): het echte token hoort niet in GitHub.
 
 De **browsertests** (`npm run test:e2e`) draaien tegen dezelfde build in workerd, de runtime van Cloudflare
 (`wrangler dev`), en niet tegen `next start`. Zo test de poort wat er online gaat. Alle browsertests slagen daar,
 ook het inloggen met de link per mail (stap D2).
 
 **De middleware** (`src/middleware.ts`) draait vóór alles wat bij de Worker komt: pagina's, 404's, het vooraf
-ophalen van links. Niet vóór bestaande vaste bestanden; die serveert Cloudflare zelf. Hij doet twee dingen:
+ophalen van links. Niet vóór bestaande vaste bestanden; die serveert Cloudflare zelf. Hij doet drie dingen:
+
+- **Http naar https** (308, review F0-05). Over http zou een e-mailadres onversleuteld reizen, en komt de sessiecookie
+  (`Secure`) nooit terug. Niet op de eigen computer, niet bij `npm run dev` (dan kan een telefoon op het eigen
+  netwerk meekijken), en niet bij de agenda-feed: die weigert http zelf.
 
 - **CSP met een nieuwe nonce per aanvraag.** Alleen scripts met die nonce mogen draaien, geen `'unsafe-inline'`.
   Omdat de nonce per aanvraag is, worden alle pagina's per aanvraag gemaakt (`connection()` in `layout.tsx`).
@@ -80,15 +85,21 @@ niet, maar `npm audit` blokkeert terecht. 10.5.0 is dezelfde hoofdversie met de 
 | Meting | Uitkomst | Drempel |
 |---|---|---|
 | Bundelgrootte (`wrangler deploy --dry-run`) | Stap E: gecomprimeerd 970 KiB. Met de middleware (proefroute 2): 5717 KiB, gecomprimeerd 1198 KiB | Gratis plan: 3 MiB gecomprimeerd volgens OpenNext |
-| Rekentijd per aanvraag (CPU) | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen). Gemeten **vóór** de middleware; daarna draait ook `/` via de Worker en krijgt elke pagina een nonce. Opnieuw meten na de uitrol van proefroute 1 en 2, ook voor `/proef/agenda/…` apart | Gratis plan: 10 ms |
+| Rekentijd per aanvraag (CPU), eerste meting | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen). Gemeten **vóór** de middleware | Gratis plan: 10 ms |
+| Rekentijd per aanvraag (CPU), met middleware en agenda-feed | **Mediaan 218 ms** voor de versie die na proefroute 1 tot en met 3 online stond (28-10-2026, dashboard, Metrics, per versie; 452 aanroepen in 24 uur, alle versies samen). De tegel bovenaan toonde 41 ms: die middelt over alle versies en over aanvragen die bijna niets doen (een 404, `/BUILD_ID`). **De mediaan per versie draagt de beslissing**, niet de tegel. De feed is niet apart te meten: Metrics geeft geen cijfers per route | Gratis plan: 10 ms |
 | Totale tijd per aanvraag (wall) | P50 209 ms. Van buiten, 30 aanvragen achter elkaar op `/inloggen`: mediaan 188 ms tot de eerste byte, dus niet alleen een koude start | — |
 | Geheugen | P50 18 MB | 128 MB |
-| Fouten, waaronder "Exceeded CPU Time Limits" | 0 | — |
+| Fouten, waaronder "Exceeded CPU Time Limits" | 0, bij beide metingen | — |
+| Taken-Worker, rekentijd per run | **0,24 ms** (28-10-2026, 12 runs; alleen wachten op Supabase en Resend, en dat telt niet mee) | Gratis plan: 10 ms |
 
 **Uitkomst rekentijd.** De app gebruikt ongeveer 20 keer de 10 ms van het gratis plan; Next.js met inloggen kost per
-aanvraag zoveel rekenwerk. Toch gaf Cloudflare nog geen enkele fout. Volgens `Bouwbesluiten` 3.1 is het betaalde
-Workers-plan ($5 per maand) dus nodig; zie daar het besluit. Houd tot dan in Metrics de grafiek *Errors by invocation
-status* in de gaten: verschijnt "Exceeded CPU Time Limits", dan direct overstappen.
+aanvraag zoveel rekenwerk, en de middleware voegt weinig toe (198 naar 218 ms). Toch gaf Cloudflare nog geen enkele
+fout. Volgens `Bouwbesluiten` 3.1 is het betaalde Workers-plan ($5 per maand) dus nodig; zie daar het besluit. Houd
+tot dan in Metrics de grafiek *Errors by invocation status* in de gaten: verschijnt "Exceeded CPU Time Limits", dan
+direct overstappen. De taken-Worker past ruim in het gratis plan.
+
+**Uitkomst hosting (28-10-2026).** Alle drie proefroutes zijn op de echte Workers geslaagd (`docs/bouw/Fase-0-plan.md`
+punt 4). OpenNext blijft; vinext is niet nodig (`Bouwbesluiten` 3.1 en 6).
 
 ## Eenmalig instellen
 
@@ -156,10 +167,14 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       minuut (`for i in $(seq 50); do curl -s -o /dev/null "https://<site>/proef/agenda/$TOKEN.ics"; done`) en lees
       de Metrics van die minuut af.
     - **Token gelekt:** zet een nieuw token als geheim (het oude adres werkt dan meteen niet meer) en maak de
-      abonnementen opnieuw. **Proef klaar:** verwijder het geheim; de feed geeft dan voor elk token een 404.
+      abonnementen opnieuw. **Proef klaar** (afronding fase 0, review F0-06): verwijder het geheim
+      `PROEF_AGENDA_TOKEN` bij `ledenplatform` en het abonnement op de telefoon; de feed geeft dan voor elk token een
+      404. De route zelf gaat weg in fase 1.
 12. **Geplande taak (proefroute 3).** **Gedaan 28-10-2026:** migraties met `db push`, eigen secret key, vijf
     geheimen bij de taken-Worker; elke minuut één rij `gelukt`, precies één testbericht, de gedwongen fout gaf een
-    rij `mislukt`. Daarna stilgezet met `"crons": []`; de geheimen staan er nog (voor fase 7 of een nieuwe proef).
+    rij `mislukt`. Daarna stilgezet met `"crons": []`. De geheimen gaan weg bij de afronding van fase 0 (zie
+    "Proef klaar" hieronder, review F0-06): een sleutel die om alle rechten heen gaat, hoort niet te blijven staan bij
+    een Worker die niets meer doet. Fase 7 maakt een nieuwe, met een eigen naam.
     De taak draait in een eigen Worker, `ledenplatform-taken` (`taken/`), niet
     in de app: alleen die krijgt de geheime sleutel van Supabase. Cloudflare start hem elke minuut (`triggers` in
     `taken/wrangler.jsonc`). Hij schrijft per minuut de uitkomst in `proef_taak` en verstuurt hooguit één keer een
@@ -201,12 +216,34 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       Resend-sleutel) en verwijder die ene rij in de Table Editor; de volgende run probeert het opnieuw, zonder dubbel
       bericht (vaste Idempotency-Key bij Resend).
     - **Proef klaar:** zet in `taken/wrangler.jsonc` `"crons": []` (pull request; het `triggers`-blok weghalen laat de
-      bestaande trigger staan). Verwijder de geheimen bij `ledenplatform-taken` en de secret key `proef_taak` in
-      Supabase. De tabellen mogen weg in fase 1 (met een migratie).
+      bestaande trigger staan; gedaan 28-10-2026). Verwijder alle geheimen en variabelen bij `ledenplatform-taken`
+      (ook `PROEF_TAAK_FORCEER_FOUT` als die er nog staat), de secret key `proef_taak` in Supabase (API Keys, bij de
+      sleutel: *Delete*), en de Resend-sleutel van de proef (Resend, API Keys). De tabellen en de code gaan weg in
+      fase 1, met een migratie (`docs/bouw/Afname-fase-0.md`, "Van fase 0 naar fase 1").
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
 URL.
+
+## Geheimen
+
+Alle geheimen en waar ze staan (review F0-12). Een sleutel die op twee plekken staat, vervang je op beide, en pas
+daarna trek je de oude in. Alle accounts (GitHub, Cloudflare, Supabase, Resend) staan nu op naam van de bouwer; een
+tweede beheerder komt er vóór de pilot (`Bouwbesluiten` 5.2), en wie dat wordt, wordt vóór fase 1 besloten.
+
+| Geheim | Waar het staat | Ontbreekt of klopt niet: wat gaat stuk | Vervangen | Verloopt |
+|---|---|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | GitHub, omgeving `ontwikkel` | De uitrol is rood bij "Uitrollen"; online verandert niets | "Token vervangen" hieronder | Op de einddatum uit stap 2 |
+| `VERBODEN_WOORDEN` (namen, geen sleutels) | GitHub: als Actions-geheim én als Dependabot-geheim; lokaal `.verboden-woorden` | `controle:repo` is rood: bij een gewone pull request zonder het Actions-geheim, bij een Dependabot-PR zonder het Dependabot-geheim | Beide geheimen tegelijk aanpassen (Settings, Secrets and variables, Actions en Dependabot) | Nee |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Worker `ledenplatform` (type *Secret*) | Ontbreken: `/mijn` geeft een serverfout en de controle na de uitrol is rood. Kloppen ze niet: inloggen werkt niet, maar de controle blijft groen (punt 5 van "Hoe het werkt") | Supabase, API Keys: nieuwe *publishable key* maken, als geheim zetten, oude verwijderen | Nee |
+| `SITE_URL` | GitHub (variabele, omgeving `ontwikkel`), Worker `ledenplatform` (geheim), Supabase (Site URL en Redirect URL) | De inloglink wijst naar een verkeerd adres, of Supabase weigert hem | Alle vier plekken, zie hierboven | Nee |
+| Resend-sleutel voor de inlogmail | Supabase, Authentication, Emails, SMTP Settings (als wachtwoord) | Er komen geen inlogmails meer; leden kunnen niet inloggen | Resend, API Keys: nieuwe sleutel met *Sending access*, eerst in Supabase zetten, dán de oude intrekken (`docs/bouw/Inloggen.md`) | Nee |
+| Databasewachtwoord van Supabase | Wachtwoordmanager van de beheerder; alleen nodig voor `supabase link` en `db push` | Migraties kunnen niet online | Supabase, Project Settings, Database, *Reset database password* | Nee |
+| `PROEF_AGENDA_TOKEN` | Worker `ledenplatform` | De proef-feed geeft voor elk token een 404 (zo hoort het na de proef) | Stap 11 | Weg bij de afronding van fase 0 |
+| `SUPABASE_SECRET_KEY` (sleutel `proef_taak`), `RESEND_API_KEY`, `RESEND_AFZENDER`, `PROEF_TAAK_ONTVANGER`, `SUPABASE_URL` | Worker `ledenplatform-taken` | De taak meldt "niet ingesteld" (zo hoort het na de proef) | Stap 12 | Weg bij de afronding van fase 0 |
+
+Lokaal schrijft `npm run env:lokaal` de sleutels van de lokale Supabase in `.env.local`, `.dev.vars` en
+`taken/.dev.vars` (niet in git). Dat zijn de vaste sleutels van de ontwikkelomgeving in Docker, geen online sleutels.
 
 ## Als er iets misgaat
 
@@ -233,6 +270,26 @@ alleen bij een storing, niets kopiëren of bewaren.
 door. `/mijn` vraagt Supabase zelf wie er is ingelogd; dat kan tot ±25 seconden duren en eindigt dan op
 `/inloggen`, alsof het lid is uitgelogd. Een eigen foutmelding voor een storing staat nog niet in het ontwerp
 (open punt voor fase 1).
+
+**Het Supabase-project is gepauzeerd** (review F0-20). Het gratis plan pauzeert een project na 7 dagen zonder
+activiteit (`Bouwbesluiten` 3.2). Inloggen werkt dan niet, en de controle na een uitrol kan rood worden. Terugrollen
+helpt hier niet. Supabase, het project: bovenaan staat dat het gepauzeerd is, met de knop **Restore project**. Dat
+duurt een paar minuten; daarna werkt alles weer. Op Pro (vanaf de pilot) pauzeert een project niet.
+
+**Er komen geen inlogmails meer** (review F0-20). Eerst kijken waar het stokt: Supabase, Authentication, Rate Limits
+(hoeveel mails per uur Supabase verstuurt), en Resend, Logs (komt de mail daar aan, en met welke fout). Resend gratis
+verstuurt 100 mails per dag (`Bouwbesluiten` 3.2). Iemand die het formulier steeds opnieuw invult met adressen van
+leden, kan die grens opmaken; er is nog geen CAPTCHA of eigen limiet. Voor 42 leden is dat nu acceptabel; vóór de
+pilot bekijken we Turnstile (Supabase ondersteunt het). Een ingetrokken of verlopen Resend-sleutel: zie Geheimen.
+
+**Een pull request van Dependabot** (review F0-04). Dependabot opent pull requests voor nieuwe versies. Die draaien
+dezelfde `check`, maar krijgen alleen Dependabot-geheimen: daarom staat `VERBODEN_WOORDEN` ook daar (Geheimen). Is
+`check` groen, lees dan de release notes van het pakket, en voeg samen zoals elke pull request. Bij een update van
+het pakket `supabase` (de CLI) kan `controle:dbtypen` rood worden, omdat de gegenereerde typen er anders uitzien;
+Dependabot kan dat bestand niet zelf bijwerken. Haal dan de branch op, draai `npm run test:db && npm run types:db`,
+en push het bijgewerkte `src/lib/supabase/database.types.ts` naar die branch (review PR14-06). Gaat het om Next.js,
+`@opennextjs/cloudflare` of wrangler: zie hieronder en "Versies". Grote versies van TypeScript en ESLint komen niet
+via Dependabot (`Bouwbesluiten` 9).
 
 **Als een update de middleware breekt** (Next.js of OpenNext bijgewerkt en de browsertests worden rood):
 
