@@ -12,7 +12,7 @@
 // Gebruik:   node scripts/controleer-poort.ts [--root pad]
 // Uitkomst:  "0 problemen" en exitcode 0, of een lijst en exitcode 1.
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -37,6 +37,7 @@ const VERPLICHTE_STAPPEN = [
   'npm run controle:omwegen',
   'npm run test',
   'npm run test:db',
+  'npm run controle:dbtypen',
   'npm run build:worker',
   'npm run test:e2e',
   'npm run controle:overgeslagen',
@@ -125,7 +126,13 @@ function controleerShas(bestand: string, tekst: string): string[] {
 /** De workflow: alle stappen, de namenlijst alleen als geheim in de stap die hem nodig heeft, actions op een SHA. */
 export function controleerWorkflow(tekst: string): string[] {
   const problemen: string[] = [];
-  for (const nodig of ['npm run check:basis', 'npm run controle:repo']) {
+  // controle:repo draait het script uit de basis, niet uit de pull request (review F0-21).
+  for (const nodig of [
+    'npm run check:basis',
+    'BASIS: ${{ github.event.pull_request.base.sha || github.sha }}',
+    'git show "$BASIS:scripts/controleer-repo.ts"',
+    'node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .',
+  ]) {
     if (!tekst.includes(nodig)) problemen.push(`workflow check.yml: stap "${nodig}" ontbreekt`);
   }
   // Per hele regel: de audit van uitrol/ bevat de audit van de root als stuk tekst.
@@ -195,21 +202,72 @@ export function controleerUitrol(tekst: string): string[] {
   return problemen;
 }
 
+/** Wat de uitroljob zelf draait: de taken-Worker (bundelt wrangler) en de controle na afloop (draait node). */
+export const UITROL_STARTBESTANDEN = [
+  { pad: 'taken/worker.ts', nodeToegestaan: false },
+  { pad: 'scripts/controleer-online.ts', nodeToegestaan: true },
+] as const;
+
+/** De paden uit de sparse checkout van de job "uitrol". */
+export function sparsePaden(uitrol: string): string[] {
+  const blok = /sparse-checkout:\s*\|\s*\n((?:[ \t]+\S.*\n)+)/.exec(uitrol)?.[1] ?? '';
+  return blok
+    .split('\n')
+    .map((regel) => regel.trim())
+    .filter((regel) => regel !== '' && !regel.startsWith('#'));
+}
+
 /**
- * De taken-Worker (taken/ en src/taken/) importeert alleen eigen bestanden, geen pakketten (review PR12-06). De
- * uitrolstap bundelt hem zonder node_modules; een pakketimport zou pas na het samenvoegen falen.
+ * De uitroljob heeft alleen een sparse checkout en geen node_modules (review PR12-06 en F0-19). Een import van een
+ * pakket of van een eigen bestand buiten die checkout faalt dus pas bij het uitrollen, ná het samenvoegen: de
+ * browsertests draaien met alles erbij en zien het niet. Daarom volgt deze controle vanaf elk startbestand alle
+ * eigen imports, ook die van die bestanden zelf, en eist: geen pakketten (in scripts alleen node:), en elk bereikt
+ * bestand staat in de sparse checkout.
  */
-export function controleerTakenZonderPakketten(bestanden: { pad: string; tekst: string }[]): string[] {
+export function controleerUitrolBestanden(
+  starts: readonly { pad: string; nodeToegestaan: boolean }[],
+  lees: (pad: string) => string | undefined,
+  sparse: string[],
+): string[] {
   const problemen: string[] = [];
   const importen = /(?:\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+)['"]([^'"]+)['"]/gm;
-  for (const { pad, tekst } of bestanden) {
-    for (const m of tekst.matchAll(importen)) {
-      const bron = m[1] ?? '';
-      if (!bron.startsWith('./') && !bron.startsWith('../'))
-        problemen.push(`${pad}: importeert "${bron}"; de taken-Worker mag geen pakketten gebruiken`);
+  const inSparse = (pad: string): boolean => sparse.some((p) => pad === p || pad.startsWith(`${p}/`));
+  for (const start of starts) {
+    const gezien = new Set<string>();
+    const teDoen = [start.pad];
+    while (teDoen.length > 0) {
+      const pad = teDoen.pop() ?? '';
+      if (gezien.has(pad)) continue;
+      gezien.add(pad);
+      const tekst = lees(pad);
+      if (tekst === undefined) {
+        problemen.push(`${pad}: bestaat niet (geïmporteerd vanuit ${start.pad})`);
+        continue;
+      }
+      if (!inSparse(pad))
+        problemen.push(`${pad}: staat niet in de sparse checkout van de job "uitrol" (uitrol.yml)`);
+      for (const m of tekst.matchAll(importen)) {
+        const bron = m[1] ?? '';
+        if (bron.startsWith('./') || bron.startsWith('../')) {
+          teDoen.push(path.posix.join(path.posix.dirname(pad), bron));
+        } else if (!(start.nodeToegestaan && bron.startsWith('node:'))) {
+          problemen.push(
+            `${pad}: importeert "${bron}"; de uitroljob installeert geen pakketten (bereikt vanuit ${start.pad})`,
+          );
+        }
+      }
     }
   }
   return problemen;
+}
+
+/** Beide Workers draaien op dezelfde versie van het platform (review F0-19). */
+export function controleerCompatibiliteitsdatum(app: string, taken: string): string[] {
+  const datum = (tekst: string): string | undefined =>
+    /"compatibility_date"\s*:\s*"([^"]+)"/.exec(tekst)?.[1];
+  return datum(app) !== undefined && datum(app) === datum(taken)
+    ? []
+    : ['wrangler.jsonc en taken/wrangler.jsonc: compatibility_date moet in beide gelijk zijn'];
 }
 
 /** Een build-commando in een wrangler-configuratie draait bij het uitrollen, naast het token (review PR12-05). */
@@ -244,6 +302,9 @@ export function controleerTestinstellingen(vitest: string, playwright: string): 
   const hergebruik = [...playwright.matchAll(/reuseExistingServer:\s*([^,\s}]+)/g)].map((m) => m[1]);
   if (hergebruik.length === 0 || hergebruik.some((waarde) => waarde !== 'false'))
     problemen.push('playwright.config.ts: reuseExistingServer moet bij elke server false zijn');
+  // Een filter in de instellingen maakt de run stilletjes kleiner (review F0-09).
+  if (/\bgrep(?:Invert)?\s*:/.test(playwright))
+    problemen.push('playwright.config.ts: grep en grepInvert zijn niet toegestaan');
   return problemen;
 }
 
@@ -288,6 +349,8 @@ export async function controleerEslint(root: string): Promise<string[]> {
 
 export async function controleerPoort(root: string): Promise<string[]> {
   const lees = (pad: string): string => readFileSync(path.join(root, pad), 'utf8');
+  const leesAls = (pad: string): string | undefined =>
+    existsSync(path.join(root, pad)) ? lees(pad) : undefined;
   return [
     ...controleerTsconfig(JSON.parse(lees('tsconfig.json')) as unknown),
     ...controleerScripts(JSON.parse(lees('package.json')) as unknown),
@@ -298,9 +361,12 @@ export async function controleerPoort(root: string): Promise<string[]> {
       JSON.parse(lees('uitrol/package.json')) as unknown,
     ),
     ...controleerTestinstellingen(lees('vitest.config.ts'), lees('playwright.config.ts')),
-    ...controleerTakenZonderPakketten(
-      ['taken/worker.ts', 'src/taken/proef-taak.ts'].map((pad) => ({ pad, tekst: lees(pad) })),
+    ...controleerUitrolBestanden(
+      UITROL_STARTBESTANDEN,
+      leesAls,
+      sparsePaden(lees('.github/workflows/uitrol.yml')),
     ),
+    ...controleerCompatibiliteitsdatum(lees('wrangler.jsonc'), lees('taken/wrangler.jsonc')),
     ...['wrangler.jsonc', 'taken/wrangler.jsonc'].flatMap((pad) =>
       controleerWranglerZonderBuild(pad, lees(pad)),
     ),

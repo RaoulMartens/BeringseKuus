@@ -6,6 +6,10 @@
 //   eslint-disable              een lintregel uitzetten met commentaar
 //   ts-ignore en verwanten      een typefout negeren (ook ts-expect-error en ts-nocheck, met een @ ervoor)
 //   .only / .skip               een test die alle andere uitzet, of zelf wordt overgeslagen (ook .fixme, .todo)
+//   .fail / .fails              een test die groen is als hij faalt (Playwright telt hem dan als "verwacht")
+//
+// En in de databasetests (supabase/tests/, pgTAP): skip() en todo() (review F0-09). Een te lage of te hoge plan()
+// hoeft hier niet: pg_prove keurt een run af als het aantal tests niet klopt.
 //
 // Dit is een extra vangnet, geen bewijs: een test kan ook op andere manieren worden overgeslagen (een optie,
 // een andere naam, t.skip()). Daarom kijkt scripts/controleer-overgeslagen.ts naar de uitkomsten van de
@@ -35,20 +39,28 @@ const OMWEGEN: readonly (readonly [RegExp, string])[] = [
   [/eslint-disable/, 'eslint-disable zet een lintregel uit; los de oorzaak op'],
   [/@ts-(?:ignore|expect-error|nocheck)/, 'een typefout negeren; los de oorzaak op'],
   [
-    /\b(?:describe|it|test|suite)(?:\.\w+)*\.(?:only|skip|fixme|todo)\b/,
-    'een overgeslagen test, of een test die de andere uitzet (.only, .skip, .fixme, .todo)',
+    /\b(?:describe|it|test|suite)(?:\.\w+)*\.(?:only|skip|fixme|todo|fails?)\b/,
+    'een overgeslagen test, een test die de andere uitzet, of een die groen is als hij faalt (.only, .skip, .fixme, .todo, .fail)',
   ],
+];
+
+const DATABASETEST = /^supabase\/tests\/.*\.sql$/;
+
+const OMWEGEN_DATABASE: readonly (readonly [RegExp, string])[] = [
+  [/\b(?:skip|todo|todo_start)\s*\(/i, 'een overgeslagen of uitgestelde databasetest (skip, todo)'],
 ];
 
 /** Controleert alle code in root. Geeft een lijst problemen terug; leeg = goed. */
 export function controleerOmwegen(root: string): Omweg[] {
   const problemen: Omweg[] = [];
   for (const pad of lijstBestanden(root)) {
-    if (!CODE.test(pad) || EIGEN_BESTANDEN.has(pad)) continue;
+    if (EIGEN_BESTANDEN.has(pad)) continue;
+    const patronen = CODE.test(pad) ? OMWEGEN : DATABASETEST.test(pad) ? OMWEGEN_DATABASE : [];
+    if (patronen.length === 0) continue;
     readFileSync(path.join(root, pad), 'utf8')
       .split(/\r?\n/)
       .forEach((lijn, i) => {
-        for (const [regex, melding] of OMWEGEN) {
+        for (const [regex, melding] of patronen) {
           if (regex.test(lijn)) problemen.push({ pad, regelnummer: i + 1, melding });
         }
       });

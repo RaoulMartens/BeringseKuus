@@ -133,3 +133,24 @@ describe('middleware: sessie verversen', () => {
     expect(antwoord.headers.get('content-security-policy')).toContain("'nonce-");
   });
 });
+
+describe('middleware: alleen https (review F0-05)', () => {
+  it('stuurt http door naar hetzelfde adres over https, met 308', async () => {
+    const aanroepen = supabaseDieAntwoordt();
+    const antwoord = await middleware(new NextRequest('http://site.test/inloggen?fout=verlopen'));
+    expect(antwoord.status).toBe(308);
+    expect(antwoord.headers.get('location')).toBe('https://site.test/inloggen?fout=verlopen');
+    expect(aanroepen).toEqual([]);
+  });
+
+  it('stuurt de eigen computer niet door: daar lopen de tests over http', async () => {
+    for (const adres of ['http://127.0.0.1:3100/', 'http://localhost:3000/']) {
+      expect((await middleware(new NextRequest(adres))).status).toBe(200);
+    }
+  });
+
+  it('stuurt de agenda-feed niet door: die weigert http zelf (review PR11-01)', async () => {
+    const feed = new NextRequest(`http://site.test/proef/agenda/${'c'.repeat(64)}.ics`);
+    expect((await middleware(feed)).headers.get('location')).toBeNull();
+  });
+});
