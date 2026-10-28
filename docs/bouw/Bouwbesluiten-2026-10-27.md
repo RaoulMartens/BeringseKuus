@@ -75,6 +75,12 @@ cookies en de geplande meldingen vragen serveruitvoering. V8 2.1 ("Cloudflare Pa
 - **Fase-0-test (afronding fase 0 hangt hieraan), op echte Workers, niet alleen lokaal:**
   1. een route die een `.ics`-bestand teruggeeft (zoals `/agenda/[token].ics`);
   2. inloggen met een magic link, met de callback en sessiecookies via Supabase;
+     - **Uitkomst (28-10-2026):** werkt op de echte Worker, ook op een telefoon (`docs/bouw/Inloggen.md`). Voor
+       het verversen van de sessie en de CSP met nonce is een middleware nodig. **Besluit (de bouwer):
+       `middleware.ts` met de edge-runtime**, niet `proxy.ts`. Beide slaagden lokaal in workerd voor alle
+       browsertests; `proxy.ts` (de standaard van Next.js 16) draait altijd in de Node-runtime, en die noemt
+       OpenNext op Workers experimenteel en niet onderhouden. `middleware.ts` is wat OpenNext ondersteunt, met een
+       kleinere bundel; Next.js 16 noemt het "deprecated". Reden en wat te doen bij een update: `docs/hosting.md`.
   3. een geplande taak die één bericht verstuurt (Workers Cron Trigger, of `pg_cron` in Supabase die een
      route aanroept: kies wat werkt en leg het vast).
 - Leg in `docs/` vast: gekozen deploymentvorm, frameworkversie, adapter, hoe secrets staan en waar de

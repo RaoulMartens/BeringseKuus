@@ -3,29 +3,57 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { beveiligingsheaders } from '../src/lib/beveiligingsheaders.ts';
-import { controleerOnline, type Ophalen, vergelijkHeaders, vindVastBestand } from './controleer-online.ts';
+import {
+  contentSecurityPolicy,
+  type Header,
+  headersVasteBestanden,
+  vasteHeaders,
+} from '../src/lib/beveiligingsheaders.ts';
+import {
+  controleerOnline,
+  controleerScriptsInHtml,
+  type Ophalen,
+  verwachtePaginaHeaders,
+  vergelijkHeaders,
+  vindVastBestand,
+} from './controleer-online.ts';
 
 const SITE = 'https://voorbeeld.invalid';
-const GOED = Object.fromEntries(beveiligingsheaders('production').map(({ key, value }) => [key, value]));
-const HTML = '<script src="/_next/static/chunks/main-abc.js"></script>';
+const alsObject = (headers: Header[]): Record<string, string> =>
+  Object.fromEntries(headers.map(({ key, value }) => [key, value]));
+const paginaHeaders = (nonce: string): Record<string, string> =>
+  alsObject([
+    { key: 'Content-Security-Policy', value: contentSecurityPolicy('production', nonce) },
+    ...vasteHeaders(),
+  ]);
+const VAST = alsObject(headersVasteBestanden());
+const html = (nonce: string): string =>
+  `<script src="/_next/static/chunks/main-abc.js" nonce="${nonce}"></script><script nonce="${nonce}">1</script>`;
 
-/** Een nep-site: per pad een antwoord. Het BUILD_ID kan per aanroep verschillen (oude en nieuwe versie). */
+/** Een nep-site: per pad een antwoord, per pagina een nieuwe nonce. Het BUILD_ID kan per aanroep verschillen. */
 function site(
-  opties: { buildIds?: string[]; vastHeaders?: Record<string, string>; mijn?: () => Response } = {},
+  opties: {
+    buildIds?: string[];
+    pagina?: (nonce: string) => Response;
+    vastHeaders?: Record<string, string>;
+    mijn?: () => Response;
+  } = {},
 ): Ophalen {
   const buildIds = [...(opties.buildIds ?? ['nieuw'])];
+  let teller = 0;
+  const pagina =
+    opties.pagina ?? ((nonce: string) => new Response(html(nonce), { headers: paginaHeaders(nonce) }));
   return (url: string) => {
     const pad = url.slice(SITE.length);
     if (pad === '/BUILD_ID') return Promise.resolve(new Response(buildIds.shift() ?? 'nieuw'));
-    if (pad === '/') return Promise.resolve(new Response(HTML, { headers: GOED }));
-    if (pad === '/inloggen') return Promise.resolve(new Response('', { headers: GOED }));
+    teller += 1;
+    if (pad === '/' || pad === '/inloggen') return Promise.resolve(pagina(`nonce${teller}`));
     if (pad === '/mijn')
       return Promise.resolve(
         opties.mijn?.() ?? new Response('', { status: 307, headers: { Location: '/inloggen' } }),
       );
     if (pad.startsWith('/_next/static/'))
-      return Promise.resolve(new Response('', { headers: opties.vastHeaders ?? GOED }));
+      return Promise.resolve(new Response('', { headers: opties.vastHeaders ?? VAST }));
     return Promise.resolve(new Response('', { status: 404 }));
   };
 }
@@ -51,6 +79,32 @@ describe('controleer-online', () => {
     assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ vastHeaders: {} }), 0), []);
   });
 
+  it("faalt als een pagina weer 'unsafe-inline' of geen nonce heeft (proefroute 2)", async () => {
+    const oud = (nonce: string) =>
+      new Response(html(nonce), {
+        headers: {
+          ...paginaHeaders(nonce),
+          'Content-Security-Policy': contentSecurityPolicy('production', 'x').replace(
+            "'nonce-x' 'strict-dynamic'",
+            "'unsafe-inline'",
+          ),
+        },
+      });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ pagina: oud }), 0), []);
+  });
+
+  it('faalt als de nonce niet per aanvraag verschilt, bijvoorbeeld door een cache (review PR10-07)', async () => {
+    const vast = () => new Response(html('altijd'), { headers: paginaHeaders('altijd') });
+    const problemen = await controleerOnline(SITE, 'nieuw', site({ pagina: vast }), 0);
+    assert.ok(problemen.some((p) => p.includes('dezelfde')));
+  });
+
+  it('faalt als een script in de HTML de nonce uit de header mist (review PR10-07)', async () => {
+    const anders = (nonce: string) => new Response(html('anders'), { headers: paginaHeaders(nonce) });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ pagina: anders }), 0), []);
+    assert.deepEqual(controleerScriptsInHtml('/', html('n'), new Headers(paginaHeaders('n'))), []);
+  });
+
   // /inloggen werkt ook zonder Supabase-gegevens; /mijn niet (gezien bij de eerste uitrol, 28-10-2026).
   it('faalt als /mijn niet doorstuurt naar /inloggen, bijvoorbeeld zonder Supabase-gegevens', async () => {
     const zonderSupabase = site({ mijn: () => new Response('', { status: 500 }) });
@@ -62,14 +116,14 @@ describe('controleer-online', () => {
   });
 
   it('keurt een header af die er wel is maar een andere waarde heeft', () => {
-    const zwak = new Headers({ ...GOED, 'Content-Security-Policy': 'default-src *' });
-    assert.deepEqual(vergelijkHeaders('/', beveiligingsheaders('production'), zwak), [
+    const zwak = new Headers({ ...paginaHeaders('n'), 'Content-Security-Policy': 'default-src *' });
+    assert.deepEqual(vergelijkHeaders('/', verwachtePaginaHeaders(zwak), zwak), [
       '/: header Content-Security-Policy ontbreekt of wijkt af',
     ]);
   });
 
   it('vindt het eerste script onder /_next/static/', () => {
-    assert.equal(vindVastBestand(HTML), '/_next/static/chunks/main-abc.js');
+    assert.equal(vindVastBestand(html('n')), '/_next/static/chunks/main-abc.js');
     assert.equal(vindVastBestand('<p>geen script</p>'), undefined);
   });
 });

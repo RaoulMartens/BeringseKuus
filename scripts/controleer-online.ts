@@ -15,15 +15,44 @@ import path from 'node:path';
 import { setTimeout as wacht } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 
-import { beveiligingsheaders, type Header } from '../src/lib/beveiligingsheaders.ts';
+import {
+  contentSecurityPolicy,
+  type Header,
+  headersVasteBestanden,
+  vasteHeaders,
+} from '../src/lib/beveiligingsheaders.ts';
 
 export type Ophalen = (url: string) => Promise<Response>;
+
+/**
+ * Wat een pagina hoort mee te sturen. De nonce verschilt per aanvraag, dus die nemen we over uit het antwoord;
+ * de rest van de CSP moet precies kloppen. Zonder nonce in het antwoord klopt de CSP dus nooit.
+ */
+export function verwachtePaginaHeaders(ontvangen: Headers): Header[] {
+  const nonce = nonceUit(ontvangen) ?? 'ontbreekt';
+  return [
+    { key: 'Content-Security-Policy', value: contentSecurityPolicy('production', nonce) },
+    ...vasteHeaders(),
+  ];
+}
 
 /** Vergelijkt de ontvangen headers met de verwachte waarden; een header die ontbreekt of afwijkt is een probleem. */
 export function vergelijkHeaders(waar: string, verwacht: Header[], ontvangen: Headers): string[] {
   return verwacht
     .filter(({ key, value }) => ontvangen.get(key) !== value)
     .map(({ key }) => `${waar}: header ${key} ontbreekt of wijkt af`);
+}
+
+const nonceUit = (headers: Headers): string | undefined =>
+  /'nonce-([^']+)'/.exec(headers.get('content-security-policy') ?? '')?.[1];
+
+/** Elke <script> in de HTML draagt de nonce uit de header; anders blokkeert de browser hem (of klopt de nonce niet). */
+export function controleerScriptsInHtml(waar: string, html: string, headers: Headers): string[] {
+  const nonce = nonceUit(headers);
+  const scripts = html.match(/<script\b[^>]*>/g) ?? [];
+  if (nonce === undefined || scripts.length === 0) return [`${waar}: geen nonce in de CSP of geen scripts`];
+  const zonder = scripts.filter((tag) => !tag.includes(`nonce="${nonce}"`)).length;
+  return zonder === 0 ? [] : [`${waar}: ${zonder} script(s) zonder de nonce uit de header`];
 }
 
 /** Het eerste script onder /_next/static/ dat de pagina laadt. */
@@ -55,15 +84,24 @@ export async function controleerOnline(
 ): Promise<string[]> {
   if (!(await wachtOpVersie(site, buildId, ophalen, 12, pauzeMs)))
     return ['de site levert na een minuut nog niet de nieuwe versie uit (BUILD_ID wijkt af)'];
-  const verwacht = beveiligingsheaders('production');
   const problemen: string[] = [];
 
   const start = await ophalen(`${site}/`);
+  const startHtml = await start.text();
   if (start.status !== 200) problemen.push(`/: status ${start.status}`);
-  problemen.push(...vergelijkHeaders('/', verwacht, start.headers));
+  problemen.push(...vergelijkHeaders('/', verwachtePaginaHeaders(start.headers), start.headers));
+  problemen.push(...controleerScriptsInHtml('/', startHtml, start.headers));
+
+  // Een nonce die niet per aanvraag verschilt (bijvoorbeeld door een cache) beschermt niets (review PR10-07).
+  const nogEens = await ophalen(`${site}/`);
+  if (nonceUit(nogEens.headers) === nonceUit(start.headers))
+    problemen.push('/: de nonce is bij een tweede aanvraag dezelfde');
 
   const inloggen = await ophalen(`${site}/inloggen`);
   if (inloggen.status !== 200) problemen.push(`/inloggen: status ${inloggen.status}`);
+  problemen.push(
+    ...vergelijkHeaders('/inloggen', verwachtePaginaHeaders(inloggen.headers), inloggen.headers),
+  );
 
   // /inloggen toont het formulier ook zonder Supabase. /mijn vraagt Supabase wie er is ingelogd en stuurt een
   // bezoeker zonder sessie door: alleen dan weten we dat de Worker zijn Supabase-gegevens heeft.
@@ -75,13 +113,13 @@ export async function controleerOnline(
       `/mijn: stuurt niet door naar /inloggen (status ${mijn.status}); kloppen de Supabase-gegevens?`,
     );
 
-  const vast = vindVastBestand(await start.text());
+  const vast = vindVastBestand(startHtml);
   if (vast === undefined) {
     problemen.push('/: geen vast bestand onder /_next/static/ gevonden');
   } else {
     const bestand = await ophalen(`${site}${vast}`);
     if (bestand.status !== 200) problemen.push(`vast bestand: status ${bestand.status}`);
-    problemen.push(...vergelijkHeaders('vast bestand', verwacht, bestand.headers));
+    problemen.push(...vergelijkHeaders('vast bestand', headersVasteBestanden(), bestand.headers));
   }
   return problemen;
 }

@@ -2,6 +2,7 @@ import './globals.css';
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
   description: 'Ledenplatform voor een carnavalsvereniging (in aanbouw).',
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  // Elke pagina wordt per aanvraag gemaakt: alleen dan krijgen de scripts de nonce uit de CSP (src/middleware.ts).
+  await connection();
   return (
     <html lang="nl">
       <body>

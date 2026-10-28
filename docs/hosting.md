@@ -25,8 +25,23 @@ De **browsertests** (`npm run test:e2e`) draaien tegen dezelfde build in workerd
 (`wrangler dev`), en niet tegen `next start`. Zo test de poort wat er online gaat. Alle browsertests slagen daar,
 ook het inloggen met de link per mail (stap D2).
 
+**De middleware** (`src/middleware.ts`) draait vóór alles wat bij de Worker komt: pagina's, 404's, het vooraf
+ophalen van links. Niet vóór bestaande vaste bestanden; die serveert Cloudflare zelf. Hij doet twee dingen:
+
+- **CSP met een nieuwe nonce per aanvraag.** Alleen scripts met die nonce mogen draaien, geen `'unsafe-inline'`.
+  Omdat de nonce per aanvraag is, worden alle pagina's per aanvraag gemaakt (`connection()` in `layout.tsx`).
+- **Een verlopen sessie verversen**, zodat een lid niet na een uur uitgelogd raakt. Niet zonder sessiecookie (dan
+  geen aanroep naar Supabase), niet bij een serveractie (die regelt zijn eigen cookies; anders bleef bij uitloggen
+  een nieuwe sessie staan), en hooguit 3 seconden: antwoordt Supabase niet, dan gaat de pagina zonder verversen door.
+
+De sessiecookie is `HttpOnly`, `Secure` en `SameSite=Lax` (`src/lib/supabase/cookies.ts`): JavaScript in de
+pagina kan hem niet lezen.
+
 **Vaste bestanden** (alles onder `/_next/static/` en uit `public/`) serveert Cloudflare zonder de Worker. Ze
-krijgen hun headers uit `public/_headers`; een unittest bewaakt dat die gelijk zijn aan `beveiligingsheaders.ts`.
+krijgen hun headers uit `public/_headers`, met een CSP die niets toestaat; een unittest bewaakt dat het bestand
+gelijk is aan `headersVasteBestanden()` in `beveiligingsheaders.ts`. Let op: een SVG of PDF die later in `public/`
+komt en rechtstreeks wordt geopend, mag daardoor zelf ook geen stijlen of scripts laden; pas de CSP voor dat ene
+pad aan als dat nodig is.
 
 ## Versies
 
@@ -52,14 +67,15 @@ niet, maar `npm audit` blokkeert terecht. 10.5.0 is dezelfde hoofdversie met de 
 | Incrementele cache in R2 | Niet. Pagina's met ledengegevens worden niet bewaard. R2 vraagt ook een betaalmethode |
 | Beeldoptimalisatie (`images`) | Niet. Er zijn nog geen afbeeldingen |
 | Eigen Worker met `scheduled` (geplande taak) | Komt met proefroute 3; dan een typebestand voor `.open-next/worker.js` in plaats van `@ts-ignore` (Fase-0-plan 1.3) |
-| Proxy (middleware) die de sessie ververst, en een CSP met nonce | Proefroute 2. Tot dan staat `script-src 'unsafe-inline'` in de CSP (`src/lib/beveiligingsheaders.ts`) |
+| `middleware.ts` (edge-runtime), niet `proxy.ts` (Node-runtime) | **Besluit 28-10-2026** (`Bouwbesluiten` 3.1). Beide slaagden lokaal in workerd voor alle browsertests. `proxy.ts` is de standaard van Next.js 16, maar draait altijd in de Node-runtime, en die noemt OpenNext op Workers "experimental, not officially maintained": hij gebruikt interne uitvoer van Next.js die per versie kan veranderen. `middleware.ts` is het pad dat OpenNext ondersteunt, met een kleinere bundel (1198 tegen 1397 KiB gecomprimeerd). Prijs: Next.js 16 noemt het "deprecated" en waarschuwt bij elke build; die waarschuwing is verwacht en hoeft niet weg. Wat te doen bij een update: zie "Als een update de middleware breekt" hieronder |
+| Stijlen in de CSP | `style-src` houdt `'unsafe-inline'`: een nonce werkt niet voor style-attributen, en een stijl voert geen code uit. Scripts zijn wat telt |
 
 ## Metingen
 
 | Meting | Uitkomst | Drempel |
 |---|---|---|
-| Bundelgrootte (`wrangler deploy --dry-run`) | 4668 KiB, gecomprimeerd 970 KiB | Gratis plan: 3 MiB gecomprimeerd volgens OpenNext |
-| Rekentijd per aanvraag (CPU) | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen) | Gratis plan: 10 ms |
+| Bundelgrootte (`wrangler deploy --dry-run`) | Stap E: gecomprimeerd 970 KiB. Met de middleware (proefroute 2): 5717 KiB, gecomprimeerd 1198 KiB | Gratis plan: 3 MiB gecomprimeerd volgens OpenNext |
+| Rekentijd per aanvraag (CPU) | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen). Gemeten **vóór** de middleware; daarna draait ook `/` via de Worker en krijgt elke pagina een nonce. Opnieuw meten na de uitrol van proefroute 2 | Gratis plan: 10 ms |
 | Totale tijd per aanvraag (wall) | P50 209 ms. Van buiten, 30 aanvragen achter elkaar op `/inloggen`: mediaan 188 ms tot de eerste byte, dus niet alleen een koude start | — |
 | Geheugen | P50 18 MB | 128 MB |
 | Fouten, waaronder "Exceeded CPU Time Limits" | 0 | — |
@@ -102,6 +118,13 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
    met de headers en `/inloggen` werkt.
 8. **Met de hand:** inloggen met een verzonnen testlid, met de link geopend op een telefoon (proefroute 2 en
    bouwgids 14.6), en de rekentijd aflezen voor de tabel hierboven.
+9. **Na een uur** (de sessie verloopt na een uur): de pagina "Mijn account" opnieuw openen; je hoort ingelogd te
+   blijven. Daarna uitloggen, en in de ontwikkelhulpmiddelen van de browser (Application, Cookies) controleren dat er
+   geen cookie `sb-…-auth-token` meer staat. Zo is het verversen ook online bewezen, niet alleen in de tests.
+10. **Type JWT-sleutel** in Supabase (Project Settings, JWT Keys): noteer hier of het online project een gedeeld
+    geheim (HS256) of een asymmetrische sleutel gebruikt. Bij HS256 vraagt de middleware Supabase bij elke pagina van
+    een ingelogd lid om het token te controleren; met een asymmetrische sleutel gebeurt dat in de Worker zelf.
+    **Nog niet nagekeken.**
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
@@ -127,6 +150,24 @@ de nieuwste main".
 `ledenplatform`, **Live logs** (of `npx wrangler tail ledenplatform` met je eigen login), en de fout opnieuw
 uitlokken. **Let op:** daar komen URL's met een token voorbij, ook inloglinks van leden. Alleen kort aanzetten,
 alleen bij een storing, niets kopiëren of bewaren.
+
+**Supabase heeft een storing.** De middleware wacht hooguit 3 seconden en laat de pagina dan zonder verversen
+door. `/mijn` vraagt Supabase zelf wie er is ingelogd; dat kan tot ±25 seconden duren en eindigt dan op
+`/inloggen`, alsof het lid is uitgelogd. Een eigen foutmelding voor een storing staat nog niet in het ontwerp
+(open punt voor fase 1).
+
+**Als een update de middleware breekt** (Next.js of OpenNext bijgewerkt en de browsertests worden rood):
+
+1. Zoek in de changelog van Next.js en van `@opennextjs/cloudflare` op "middleware" en "proxy".
+2. Draai lokaal `npm run build:worker` en `npx playwright test e2e/sessie-en-csp.spec.ts e2e/inloggen.spec.ts`, en
+   `npx vitest run src/middleware.test.ts`.
+3. Werkt `middleware.ts` niet meer, probeer `proxy.ts`: hernoem `src/middleware.ts` naar `src/proxy.ts`, hernoem de
+   functie `middleware` naar `proxy`, bouw opnieuw. Die draait in de Node-runtime; OpenNext waarschuwt dan dat dat
+   experimenteel is.
+4. Slagen alle tests uit stap 2 met één van beide, neem die en leg het vast in `Bouwbesluiten` 3.1. Slaagt geen van
+   beide, zet de update terug (niet samenvoegen) en meld het in het pull request.
+5. De waarschuwing "The middleware file convention is deprecated" bij de build is verwacht zolang `middleware.ts` in
+   gebruik is; die hoeft niet weg.
 
 **Token vervangen** (verlopen, of misschien gelekt): maak een nieuw token zoals in stap 2, zet het in GitHub
 (omgeving `ontwikkel`, geheim `CLOUDFLARE_API_TOKEN`), en trek het oude in (My Profile, API Tokens, *Roll* of

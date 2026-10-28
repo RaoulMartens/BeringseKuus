@@ -12,6 +12,8 @@ Dit bestand legt vast hoe dat werkt, waarom zo, en wat online nog moet worden in
 3. De link in de mail gaat naar `/auth/bevestigen?token_hash=…`. Die pagina toont een knop **Inloggen**; pas de
    klik logt in (`verifyOtp`) en stuurt naar `/mijn`.
 4. Uitloggen geldt alleen voor dit apparaat (`scope: 'local'`).
+5. Bij elke pagina ververst `src/middleware.ts` een verlopen sessie (proefroute 2). Een lid blijft zo ingelogd,
+   ook na een uur zonder actie, zolang de sessie bij Supabase geldig is.
 
 ## Waarom zo
 
@@ -26,9 +28,6 @@ Dit bestand legt vast hoe dat werkt, waarom zo, en wat online nog moet worden in
 
 ## Nog niet (bewust)
 
-- **Sessie verversen bij elke aanvraag.** Dat hoort in een proxy (middleware). Of die op Cloudflare Workers werkt,
-  bewijst proefroute 2. Tot dan ververst de sessie bij een serveractie; na een uur zonder actie kan een lid opnieuw
-  moeten inloggen.
 - **Uitnodigen.** Leden aanmaken en uitnodigen is fase 1. In de tests maakt de beheer-API het lid aan.
 - **MFA voor beheerders** (bouwgids 14.4): fase 1, met de rollen.
 

@@ -3,7 +3,8 @@
 import { redirect } from 'next/navigation';
 
 import { normaliseerEmailadres } from '@/lib/inloggen/email';
-import { maakSupabase, verplicht } from '@/lib/supabase/server';
+import { verplicht } from '@/lib/omgeving';
+import { maakSupabase } from '@/lib/supabase/server';
 
 export async function stuurInloglink(formulier: FormData): Promise<void> {
   const email = normaliseerEmailadres(formulier.get('email'));

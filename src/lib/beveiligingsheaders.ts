@@ -1,8 +1,10 @@
-// Beveiligingsheaders voor elke pagina (bouwgids 14.4). De vaste bestanden krijgen dezelfde via public/_headers.
+// Beveiligingsheaders (bouwgids 14.4), op drie plekken gebruikt:
 //
-// 'unsafe-inline' bij scripts is een bewuste, tijdelijke keuze: de App Router van Next.js zet inline scripts in
-// de pagina, en die zonder 'unsafe-inline' toestaan vraagt een nonce per aanvraag via een proxy. Of zo'n proxy
-// op Cloudflare Workers werkt, moet fase 0 proefroute 2 bewijzen. Daarna wordt dit strakker.
+// - src/middleware.ts zet bij elke pagina de CSP met een nieuwe nonce (contentSecurityPolicy). Alleen scripts met die
+//   nonce mogen draaien; Next.js geeft zijn eigen scripts de nonce mee (proefroute 2, docs/hosting.md).
+// - next.config.ts zet de overige headers op alles wat de Worker antwoordt (vasteHeaders).
+// - public/_headers geeft de vaste bestanden, die Cloudflare zonder de Worker serveert, dezelfde overige headers
+//   plus een CSP die niets toestaat (headersVasteBestanden). Een unittest houdt dat bestand gelijk aan deze code.
 
 export type Omgeving = 'development' | 'production';
 
@@ -11,12 +13,16 @@ export interface Header {
   value: string;
 }
 
-export function contentSecurityPolicy(omgeving: Omgeving): string {
+export function contentSecurityPolicy(omgeving: Omgeving, nonce: string): string {
   const ontwikkeling = omgeving === 'development';
   const bronnen = [
     "default-src 'self'",
-    // Next.js in ontwikkeling gebruikt eval voor snel herladen; in productie niet.
-    ontwikkeling ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
+    // 'strict-dynamic': een script met de nonce mag de scripts laden die het zelf nodig heeft. Next.js in
+    // ontwikkeling gebruikt eval voor snel herladen; in productie niet.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${ontwikkeling ? " 'unsafe-eval'" : ''}`,
+    // Stijlen houden 'unsafe-inline': een nonce werkt niet voor style-attributen. Een stijl voert geen code uit, maar
+    // CSS kan wel gegevens lekken via url() of lettertypen; dat kan hier niet omdat img-src, font-src en connect-src
+    // alleen de eigen site toestaan. Verruim die dus niet zonder dit opnieuw te bekijken (review PR10-11).
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
@@ -30,9 +36,14 @@ export function contentSecurityPolicy(omgeving: Omgeving): string {
   return bronnen.join('; ');
 }
 
-export function beveiligingsheaders(omgeving: Omgeving): Header[] {
+/** Een nonce per aanvraag: 16 willekeurige bytes (128 bits, de ondergrens uit de CSP-specificatie), base64. */
+export function nieuweNonce(): string {
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+}
+
+/** Alle headers behalve de CSP; die verschilt per aanvraag. */
+export function vasteHeaders(): Header[] {
   return [
-    { key: 'Content-Security-Policy', value: contentSecurityPolicy(omgeving) },
     { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -40,4 +51,12 @@ export function beveiligingsheaders(omgeving: Omgeving): Header[] {
     { key: 'X-Frame-Options', value: 'DENY' },
     { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   ];
+}
+
+/** Voor de vaste bestanden: die voeren nooit zelf code uit, dus de CSP staat niets toe. */
+export const CSP_VASTE_BESTANDEN =
+  "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+
+export function headersVasteBestanden(): Header[] {
+  return [{ key: 'Content-Security-Policy', value: CSP_VASTE_BESTANDEN }, ...vasteHeaders()];
 }
