@@ -35,7 +35,8 @@ ook het inloggen met de link per mail (stap D2).
 ophalen van links. Niet vóór bestaande vaste bestanden; die serveert Cloudflare zelf. Hij doet drie dingen:
 
 - **Http naar https** (308, review F0-05). Over http zou een e-mailadres onversleuteld reizen, en komt de sessiecookie
-  (`Secure`) nooit terug. Niet op de eigen computer, en niet bij de agenda-feed: die weigert http zelf.
+  (`Secure`) nooit terug. Niet op de eigen computer, niet bij `npm run dev` (dan kan een telefoon op het eigen
+  netwerk meekijken), en niet bij de agenda-feed: die weigert http zelf.
 
 - **CSP met een nieuwe nonce per aanvraag.** Alleen scripts met die nonce mogen draaien, geen `'unsafe-inline'`.
   Omdat de nonce per aanvraag is, worden alle pagina's per aanvraag gemaakt (`connection()` in `layout.tsx`).
@@ -283,7 +284,10 @@ pilot bekijken we Turnstile (Supabase ondersteunt het). Een ingetrokken of verlo
 
 **Een pull request van Dependabot** (review F0-04). Dependabot opent pull requests voor nieuwe versies. Die draaien
 dezelfde `check`, maar krijgen alleen Dependabot-geheimen: daarom staat `VERBODEN_WOORDEN` ook daar (Geheimen). Is
-`check` groen, lees dan de release notes van het pakket, en voeg samen zoals elke pull request. Gaat het om Next.js,
+`check` groen, lees dan de release notes van het pakket, en voeg samen zoals elke pull request. Bij een update van
+het pakket `supabase` (de CLI) kan `controle:dbtypen` rood worden, omdat de gegenereerde typen er anders uitzien;
+Dependabot kan dat bestand niet zelf bijwerken. Haal dan de branch op, draai `npm run test:db && npm run types:db`,
+en push het bijgewerkte `src/lib/supabase/database.types.ts` naar die branch (review PR14-06). Gaat het om Next.js,
 `@opennextjs/cloudflare` of wrangler: zie hieronder en "Versies". Grote versies van TypeScript en ESLint komen niet
 via Dependabot (`Bouwbesluiten` 9).
 

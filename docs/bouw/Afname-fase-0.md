@@ -14,7 +14,7 @@ discussie stelt.
 |---|---|---|---|
 | 1 | Alle controles uit stap C groen in GitHub, niet alleen lokaal | Workflow `check` groen op `main` (commit `75ae5f9`, run 40718577763) en op elke pull request; `main` is beschermd (pull request verplicht, ook voor de beheerder; verplichte controle `check`, gebonden aan de GitHub Actions-app). Databasetypen met controle erbij in PR 14 (review F0-02). De testopzet voor gelijktijdigheid schuift naar fase 1, met reden (`Bouwbesluiten` 11, voorstel) | Gehaald na PR 14 en de bevestiging van `Bouwbesluiten` 11 |
 | 2 | Drie proefroutes geslaagd en gemeten; hostingkeuze in `Bouwbesluiten` | Route 1 (agenda-feed op een iPhone), route 2 (inloggen op een telefoon, na een uur nog ingelogd, uitloggen zonder cookie), route 3 (elke minuut één rij, één testbericht, gedwongen fout zichtbaar): `Fase-0-plan.md` punt 4. Metingen: `docs/hosting.md`, Metingen (mediaan 218 ms CPU per aanvraag, 0 fouten; taken-Worker 0,24 ms). Besluit: `Bouwbesluiten` 3.1 en 6 (OpenNext) | Gehaald |
-| 3 | Een schone chat heeft de fase gereviewd tegen hoofdstuk 14, bevindingen in de pull request | Review van fase 0 als geheel (28-10-2026, een nieuwe Claude-subagent zonder het bouwgesprek): 21 bevindingen, oordeel "af na kleine punten". De afhandeling per bevinding staat in punt 3 hieronder en in de pull request van deze afronding. Daarnaast een eigen review per pull request: PR 1, 8, 10, 11, 12 en 14 | Gehaald |
+| 3 | Een schone chat heeft de fase gereviewd tegen hoofdstuk 14, bevindingen in de pull request | Review van fase 0 als geheel (28-10-2026, een nieuwe Claude-subagent zonder het bouwgesprek): 21 bevindingen, oordeel "af na kleine punten". De afhandeling per bevinding staat in punt 3 hieronder en in de pull request van deze afronding. Daarnaast een eigen review per pull request: PR 1, 8, 10, 11, 12 en 14 (PR 14: 9 bevindingen, verwerkt in die pull request of hieronder op de lijst) | Gehaald |
 | 4 | Het lege scherm met toetsenbord en op 375 px doorlopen | Geautomatiseerd: axe (WCAG 2.2 AA) op `/`, `/inloggen` (vier toestanden), `/auth/bevestigen` en `/mijn`, op 1200 en 375 px, zonder opzij scrollen; zichtbare focus op de eerste link. Met de hand: punt 2 hieronder | **Open:** de doorloop met de hand |
 | 5 | `docs/hosting.md` en de README beschrijven vorm, versies, adapter, geheimen, plek van de taak, lokaal draaien en uitrollen | `docs/hosting.md` (Hoe het werkt, Versies, Keuzes, Metingen, Eenmalig instellen, Geheimen, Als er iets misgaat, Lokaal); README (Lokaal draaien in de juiste volgorde, met een testlid; Uitrollen) | Gehaald na PR 14 en deze afronding |
 
@@ -88,7 +88,7 @@ Ernst volgens de reviewer. "PR 14" is de technische afronding; "afronding" is de
 | F0-18 | klein | Inloggen heeft geen wireframe of use case | Gemeld als ontwerpgat; fase-1-lijst |
 | F0-19 | klein | De poortcontrole op de taken-Worker is niet transitief | PR 14 |
 | F0-20 | klein | Het draaiboek mist twee storingen | `hosting.md`: project gepauzeerd, geen inlogmails meer |
-| F0-21 | klein | De stap met de namenlijst draait code uit de pull request | PR 14: het script komt uit de basis |
+| F0-21 | klein | De stap met de namenlijst draait code uit de pull request | PR 14: het script komt uit `main` en draait vóór alle code uit de pull request |
 
 ## 4. Van fase 0 naar fase 1
 
@@ -130,6 +130,14 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 | De testopzet voor twee gelijktijdige sessies | `Bouwbesluiten` 11 (F0-02) |
 | Functies of tabellen die bewust een recht krijgen, op de lijst in `rechten.test.sql` | `Bouwbesluiten` 10 (F0-10) |
 
+**Vóór de eerste tabel van fase 1** (uit de review van PR 14)
+
+| Wat | Bron |
+|---|---|
+| Leesrechten van `authenticated` per tabel toetsen, met een lijst van bewust toegestane tabellen, en de tests per rol uit 14.4 (een beleid `using (true)` valt nu nergens op) | Review PR14-02 |
+| De rechtentests lopen alleen over `public`: in `controle:poort` eisen dat `[api] schemas` in `supabase/config.toml` niet verandert, of de tests over die lijst laten lopen | Review PR14-02 |
+| Eén fabriek per soort Supabase-client in `src/lib/supabase/`, en een ESLint-regel die `createClient` en `createServerClient` daarbuiten verbiedt, zodat elke client de databasetypen gebruikt | Review PR14-08 |
+
 **Vóór de pilot (echte leden)**
 
 | Wat | Bron |
@@ -147,6 +155,7 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 | Wat | Bron |
 |---|---|
 | De override van `glob` weghalen zodra de adapter het zelf goed heeft | `hosting.md`, Versies |
+| Een droge bundel van de taken-Worker in de poort (`wrangler deploy --dry-run` vanuit alleen de sparse paden), als de importcontrole te krap blijkt | Review F0-19 en PR14-04 |
 | Bij een update van Next.js of OpenNext: "Als een update de middleware breekt" | `hosting.md` |
 | De echte agenda-feed (fase 7) en de dagmelding (fase 7): de lessen uit de proef | `Fase-0-plan.md` 4, route 1 en 3; `Bouwbesluiten` 5.4 |
 | Bouwgids V9, bij voorkeur na fase 1 | `Bouwbesluiten` 7 |
