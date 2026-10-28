@@ -10,10 +10,11 @@
   // de triggers.
   "workers_dev": false,
   "preview_urls": false,
-  // Elke minuut: de geplande proeftaak (src/taken/proef-taak.ts). Na de proef: "crons": [] (een uitrol zonder
-  // triggers laat de bestaande staan, review PR12-12), zie docs/hosting.md stap 12.
+  // Geen geplande runs: de proef is geslaagd (28-10-2026, docs/hosting.md stap 12) en elke run kost rekentijd en
+  // schrijft een rij. Bewust een lege lijst en niet het blok weghalen: een uitrol zonder triggers laat de bestaande
+  // staan (review PR12-12). Opnieuw proberen of in fase 7: hier weer een schema zetten, bijvoorbeeld "* * * * *".
   "triggers": {
-    "crons": ["* * * * *"],
+    "crons": [],
   },
   // Logs aan, anders dan bij de app-Worker: hier staan geen URL's met tokens in, alleen de eigen meldingen van de
   // taak (zonder persoonsgegevens). Zonder logs is de reden van een mislukte run nergens te zien (review PR12-03).

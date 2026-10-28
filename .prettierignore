@@ -10,3 +10,5 @@ playwright-report/
 test-results/
 next-env.d.ts
 testuitkomsten/
+# Lokaal bestand van supabase link (welk project gekoppeld is); staat via supabase/.gitignore niet in git.
+supabase/.temp/
