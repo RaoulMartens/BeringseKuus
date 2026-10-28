@@ -26,9 +26,11 @@ export default defineConfig({
   webServer: {
     // Een Worker leest zijn omgeving niet uit process.env maar uit zijn eigen variabelen: vandaar --var.
     command: [
-      `npm run preview:worker -- --port ${POORT} --ip 127.0.0.1`,
+      // --test-scheduled: /__scheduled start de geplande taak met de hand (alleen in wrangler dev).
+      `npm run preview:worker -- --port ${POORT} --ip 127.0.0.1 --test-scheduled`,
       `--var SUPABASE_URL:${lokaal.apiUrl}`,
       `--var SUPABASE_PUBLISHABLE_KEY:${lokaal.publishableKey}`,
+      `--var SUPABASE_SECRET_KEY:${lokaal.secretKey}`,
       `--var SITE_URL:${SITE}`,
       `--var PROEF_AGENDA_TOKEN:${TEST_AGENDA_TOKEN}`,
     ].join(' '),

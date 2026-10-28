@@ -219,6 +219,12 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
 - Beveiliging: de route accepteert alleen een geheime header, nooit een openbare aanroep.
 - **Klaar als:** na tien minuten staan er tien rijen, zonder dubbele, en een geforceerde fout laat een
   zichtbare mislukte status achter.
+- **Uitkomst (28-10-2026, lokaal):** gekozen is de **Workers Cron Trigger**, zonder route: `worker.ts` met
+  `scheduled`, de taak in `src/taken/proef-taak.ts`. Geen route betekent geen geheime header nodig en niets dat van
+  buiten te starten is (de controle na de uitrol eist een 404 op `/__scheduled`). De minuut is de sleutel in
+  `proef_taak`; het testbericht wordt eerst geclaimd (één rij in `proef_taak_bericht`) en dan verstuurd. Lokaal
+  bewezen in workerd (`/__scheduled` twee keer: één rij) en met databasetests; de gedwongen fout met een unittest.
+  Online te bevestigen: `docs/hosting.md` stap 12.
 
 ### Metingen en beslissing
 

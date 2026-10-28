@@ -39,6 +39,7 @@ function site(
     vastHeaders?: Record<string, string>;
     mijn?: () => Response;
     agenda?: (pad: string) => Response;
+    taak?: () => Response;
   } = {},
 ): Ophalen {
   const buildIds = [...(opties.buildIds ?? ['nieuw'])];
@@ -64,6 +65,7 @@ function site(
             headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
           }),
       );
+    if (pad.startsWith('/__scheduled') && opties.taak) return Promise.resolve(opties.taak());
     return Promise.resolve(new Response('', { status: 404 }));
   };
 }
@@ -156,6 +158,11 @@ describe('controleer-online', () => {
             headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
           });
     assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ agenda: testtokenWerkt }), 0), []);
+  });
+
+  it('faalt als de geplande taak online van buiten te starten is (proefroute 3)', async () => {
+    const open = () => new Response('Ran scheduled event');
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ taak: open }), 0), []);
   });
 
   it('keurt een header af die er wel is maar een andere waarde heeft', () => {

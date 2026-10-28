@@ -3,7 +3,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ledenplatform",
-  "main": ".open-next/worker.js",
+  // Eigen worker rond .open-next/worker.js, voor de geplande taak (proefroute 3).
+  "main": "worker.ts",
+  // Elke minuut: de geplande proeftaak (src/taken/proef-taak.ts). Na de proef terug naar een lagere frequentie of weg
+  // (docs/hosting.md stap 12): elke run telt mee in de rekentijd en schrijft een rij.
+  "triggers": {
+    "crons": ["* * * * *"],
+  },
   // Gelijk aan de workerd-versie die bij wrangler hoort; bij een update van wrangler bewust meeschuiven.
   "compatibility_date": "2026-10-23",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -20,6 +26,7 @@
   "observability": {
     "enabled": false,
   },
-  // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SITE_URL en PROEF_AGENDA_TOKEN staan als geheim bij Cloudflare
-  // (docs/hosting.md stap 5 en 11), niet hier: deze repository is publiek en per omgeving verschillen ze.
+  // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SITE_URL, PROEF_AGENDA_TOKEN en die van de geplande taak
+  // (SUPABASE_SECRET_KEY, RESEND_API_KEY, RESEND_AFZENDER, PROEF_TAAK_ONTVANGER) staan als geheim bij Cloudflare
+  // (docs/hosting.md stap 5, 11 en 12), niet hier: deze repository is publiek en per omgeving verschillen ze.
 }

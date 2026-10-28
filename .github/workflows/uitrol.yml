@@ -77,9 +77,12 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: worker
+          # worker.ts en de taak bundelt wrangler in de uitrolstap; ze hebben bewust geen pakketten nodig.
           path: |
             .open-next/
             wrangler.jsonc
+            worker.ts
+            src/taken/proef-taak.ts
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7

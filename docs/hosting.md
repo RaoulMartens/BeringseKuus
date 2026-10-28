@@ -68,7 +68,7 @@ niet, maar `npm audit` blokkeert terecht. 10.5.0 is dezelfde hoofdversie met de 
 | Workers Logs (`observability`) | **Uit.** Het log bewaart de URL van elke aanvraag, en de inloglink en straks de agenda-feed hebben een token in de URL (bouwgids 7.4). Een tussenvorm (`invocation_logs: false`, alleen eigen meldingen) is een keuze vóór de pilot, want dan moet een mislukte verzending zichtbaar zijn |
 | Incrementele cache in R2 | Niet. Pagina's met ledengegevens worden niet bewaard. R2 vraagt ook een betaalmethode |
 | Beeldoptimalisatie (`images`) | Niet. Er zijn nog geen afbeeldingen |
-| Eigen Worker met `scheduled` (geplande taak) | Komt met proefroute 3; dan een typebestand voor `.open-next/worker.js` in plaats van `@ts-ignore` (Fase-0-plan 1.3) |
+| Eigen Worker met `scheduled` (geplande taak) | **Workers Cron Trigger, niet `pg_cron`** (proefroute 3). `worker.ts` is de Worker die online draait: `fetch` gaat naar de OpenNext-build, `scheduled` start `src/taken/proef-taak.ts`. Geen route, dus niets dat iemand van buiten kan starten. Het type van `.open-next/worker.js` staat in `open-next-worker.d.ts`, zonder `@ts-ignore` (Fase-0-plan 1.3). De taak gebruikt geen pakketten (gewone `fetch` naar Supabase en Resend), zodat de uitrolstap hem zonder installatie bundelt (review PR8-03) |
 | `middleware.ts` (edge-runtime), niet `proxy.ts` (Node-runtime) | **Besluit 28-10-2026** (`Bouwbesluiten` 3.1). Beide slaagden lokaal in workerd voor alle browsertests. `proxy.ts` is de standaard van Next.js 16, maar draait altijd in de Node-runtime, en die noemt OpenNext op Workers "experimental, not officially maintained": hij gebruikt interne uitvoer van Next.js die per versie kan veranderen. `middleware.ts` is het pad dat OpenNext ondersteunt, met een kleinere bundel (1198 tegen 1397 KiB gecomprimeerd). Prijs: Next.js 16 noemt het "deprecated" en waarschuwt bij elke build; die waarschuwing is verwacht en hoeft niet weg. Wat te doen bij een update: zie "Als een update de middleware breekt" hieronder |
 | Stijlen in de CSP | `style-src` houdt `'unsafe-inline'`: een nonce werkt niet voor style-attributen, en een stijl voert geen code uit. Scripts zijn wat telt |
 
@@ -153,6 +153,25 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       de Metrics van die minuut af.
     - **Token gelekt:** zet een nieuw token als geheim (het oude adres werkt dan meteen niet meer) en maak de
       abonnementen opnieuw. **Proef klaar:** verwijder het geheim; de feed geeft dan voor elk token een 404.
+12. **Geplande taak (proefroute 3).** Cloudflare start de taak elke minuut (`triggers` in `wrangler.jsonc`). Hij
+    schrijft per minuut één rij in de tabel `proef_taak` en verstuurt hooguit één keer een testbericht.
+    - **Geheimen bij de Worker** (type *Secret*, zoals in stap 5):
+      - `SUPABASE_SECRET_KEY`: Supabase, Project Settings, API Keys, de **secret key** (`sb_secret_…`). Die mag
+        alles in de database; daarom alleen hier, nooit in de browser of de repository.
+      - Voor het testbericht (mag ook weg; dan draait de taak zonder bericht): `RESEND_API_KEY` (een eigen sleutel
+        met *Sending access*), `RESEND_AFZENDER` (zonder eigen domein het testadres van Resend, met een naam ervoor,
+        zoals `Ledenplatform <…>`), en `PROEF_TAAK_ONTVANGER` (het adres van je Resend-account).
+    - **Database:** de tabellen komen uit de migratie `supabase/migrations/20261028140000_proef_taak.sql`. Online:
+      Supabase, SQL Editor, de inhoud van dat bestand plakken en uitvoeren (of `npx supabase db push` met je eigen
+      login). Pas daarna de geheimen zetten; anders faalt elke run.
+    - **Controleren:** na tien minuten in Supabase, Table Editor, `proef_taak`: tien rijen, één per minuut, status
+      `gelukt`. In Cloudflare, Workers, `ledenplatform`, Settings, Trigger Events: de runs. Het testbericht komt één
+      keer binnen.
+    - **Gedwongen fout:** zet tijdelijk `PROEF_TAAK_FORCEER_FOUT` = `1` (type *Text* mag hier). Binnen een minuut
+      staat er een rij met status `mislukt`, en de run staat in Trigger Events als mislukt. Haal de variabele
+      daarna weg.
+    - **Proef klaar:** zet de trigger in `wrangler.jsonc` op een lagere frequentie of haal hem weg (pull request);
+      elke run kost rekentijd en schrijft een rij. Daarna mogen de tabellen weg (fase 1).
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
@@ -212,6 +231,9 @@ npm run build:worker && npm run preview:worker # de Worker in workerd op http://
 
 Lokaal werkt de agenda-feed met het testtoken uit `scripts/agenda-testtoken.ts` (`env:lokaal` zet het):
 `http://127.0.0.1:8787/proef/agenda/<testtoken>.ics`. Http mag alleen op de eigen computer.
+
+De geplande taak start je lokaal met de hand: `npm run preview:worker -- --test-scheduled` en dan
+`curl "http://127.0.0.1:8787/__scheduled?cron=*+*+*+*+*"`. Online bestaat `/__scheduled` niet.
 
 Een lokale build neemt waarden uit `.env.local` op in de bundel (`.open-next/cloudflare/next-env.mjs`). Daarom rolt
 alleen GitHub uit, en controleert de job **bouw** dat die bundel leeg is. Zet in `.env.local` nooit een sleutel die

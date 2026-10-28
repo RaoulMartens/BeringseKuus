@@ -83,6 +83,11 @@ cookies en de geplande meldingen vragen serveruitvoering. V8 2.1 ("Cloudflare Pa
        kleinere bundel; Next.js 16 noemt het "deprecated". Reden en wat te doen bij een update: `docs/hosting.md`.
   3. een geplande taak die één bericht verstuurt (Workers Cron Trigger, of `pg_cron` in Supabase die een
      route aanroept: kies wat werkt en leg het vast).
+     - **Keuze (28-10-2026): Workers Cron Trigger**, met de taak in de Worker zelf (`worker.ts`, `scheduled`), zonder
+       route. Reden: geen openbaar adres en dus geen geheime header nodig; de code kan dezelfde bibliotheken gebruiken
+       als de app; voor fase 7 (de dagmelding) hetzelfde patroon. De taak schrijft met de geheime sleutel van
+       Supabase, die alleen als geheim bij de Worker staat. `pg_cron` blijft de terugval als Cron Triggers
+       tekortschieten. Lokaal bewezen; online te bevestigen (`docs/hosting.md` stap 12).
 - Leg in `docs/` vast: gekozen deploymentvorm, frameworkversie, adapter, hoe secrets staan en waar de
   geplande taak draait. Slaagt één van de drie niet, probeer dan vinext met dezelfde drie tests.
 - **Rekentijd.** Het gratis Workers-plan geeft 10 ms rekentijd per aanvraag (wachten op de database telt
