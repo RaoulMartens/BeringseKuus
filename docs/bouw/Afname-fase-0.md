@@ -3,8 +3,8 @@
 Stand 28-10-2026. Bewijs per afrondingscriterium (bouwgids 14.6, `Fase-0-plan.md` punt 5), de review van fase 0 als
 geheel met wat ermee is gedaan, en de lijst "Van fase 0 naar fase 1". Wie fase 1 begint, leest dit bestand eerst.
 
-**Stand:** fase 0 is af zodra de open vakjes in "Nog door de bouwer" zijn afgevinkt (de Supabase-adviseur en het
-opruimen van de proefgeheimen; de handmatige doorloop is gedaan) en de bouwer het voorstel in `Bouwbesluiten` 11 heeft
+**Stand:** fase 0 is af zodra de open vakjes in "Nog door de bouwer" zijn afgevinkt (het opruimen van de
+proefgeheimen en het Dependabot-geheim; de handmatige doorloop en de adviseur zijn gedaan) en de bouwer het voorstel in `Bouwbesluiten` 11 heeft
 bevestigd of afgewezen. De techniek zelf staat: de review van fase 0 vond niets dat de hostingkeuze of de opzet ter
 discussie stelt.
 
@@ -42,19 +42,26 @@ orde, niets gevonden.
 
 ### 2.2 Supabase-adviseur (bouwgids 14.4)
 
-In te vullen door de bouwer: Supabase, het project `ledenplatform-ontwikkel`, Advisors, **Security Advisor** en
-**Performance Advisor**, de knop *Rerun linter*. Verwacht: alleen "RLS enabled, no policy" op `proef_taak` en
-`proef_taak_bericht` (bewust: niemand anders dan de taak mag erbij).
+Door de bouwer: Supabase, het project `ledenplatform-ontwikkel`, Advisors, **Security Advisor** en **Performance
+Advisor**, de knop *Rerun linter*. Verwacht: alleen "RLS enabled, no policy" op `proef_taak` en `proef_taak_bericht`
+(bewust: niemand anders dan de taak mag erbij).
 
 | Adviseur | Datum | Meldingen | Verwacht? |
 |---|---|---|---|
-| Security | … | … | |
-| Performance | … | … | |
+| Security | 28-10-2026 | 0 errors. 1 warning: *Leaked Password Protection Disabled* (Auth). 2 info: *RLS Enabled No Policy* op `public.proef_taak` en `public.proef_taak_bericht` | Info: ja. Warning: bekend, zie hieronder |
+| Performance | 28-10-2026 | 0 errors, 0 warnings, 0 info | Ja |
+
+**De warning over gelekte wachtwoorden.** Supabase kan nieuwe wachtwoorden toetsen aan lijsten met gelekte
+wachtwoorden (HaveIBeenPwned). Het platform gebruikt geen wachtwoorden: leden loggen in met een link per mail,
+aanmelden staat uit, en een lid krijgt geen wachtwoord (`Inloggen.md`). De controle beschermt hier dus niets. Volgens
+de documentatie van Supabase kan hij bovendien pas aan vanaf het Pro-plan. Besluit: tot de pilot een bekende warning;
+bij de overstap naar Pro zetten we hem aan (Authentication, Attack Protection), zodat de adviseur 0 waarschuwingen geeft
+(bouwgids 14.4). Staat op de lijst "Vóór de pilot" hieronder.
 
 ### 2.3 Nog door de bouwer (online, niet in de code)
 
 - [x] Doorloop 2.1 ingevuld (28-10-2026).
-- [ ] Adviseur 2.2 ingevuld.
+- [x] Adviseur 2.2 ingevuld (28-10-2026).
 - [ ] `Bouwbesluiten` 11 (gelijktijdigheid naar fase 1) bevestigd of afgewezen.
 - [ ] `VERBODEN_WOORDEN` ook als **Dependabot-geheim** (GitHub, Settings, Secrets and variables, Dependabot), zodat een
       Dependabot-PR groen kan worden (review F0-04).
@@ -145,6 +152,7 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 |---|---|
 | De pilotcheck: veilig inloggen, MFA voor beheer, berichten binnen de mailgrens, een teruggezette back-up, twee beheerders | `Bouwbesluiten` 5.2 |
 | Workers betaald ($5), en Supabase Pro in Frankfurt | `Bouwbesluiten` 3.1, 3.2, 10 |
+| Op Pro: bescherming tegen gelekte wachtwoorden aanzetten, zodat de Security Advisor 0 waarschuwingen geeft | Punt 2.2 |
 | Looptijd van de sessiecookie: nu blijft een lid tot ±400 dagen ingelogd, ook op een gedeelde computer. Ontwerpkeuze | Review PR10-02 |
 | Logs: een tussenvorm (alleen eigen meldingen), zodat een mislukte verzending zichtbaar is | `hosting.md`, Keuzes |
 | De mailgrens beschermen (Turnstile of een eigen limiet) | `hosting.md` (F0-20) |
