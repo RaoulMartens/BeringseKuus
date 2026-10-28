@@ -2,7 +2,7 @@
 // Supabase-client in de browser: alle aanroepen gaan via de server, met de sessie in een cookie.
 //
 // Nog niet: de sessie verversen bij elke aanvraag via een proxy (middleware). Of dat op Cloudflare Workers werkt,
-// bewijst fase 0 stap E. Tot dan ververst de sessie bij een serveractie of de callback; een Server Component kan
+// bewijst fase 0 proefroute 2. Tot dan ververst de sessie bij een serveractie of de callback; een Server Component kan
 // zelf geen cookies zetten (vandaar de lege catch hieronder).
 
 import { createServerClient } from '@supabase/ssr';

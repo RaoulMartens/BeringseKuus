@@ -1,0 +1,11 @@
+# Beveiligingsheaders voor de vaste bestanden (review PR8-04). Cloudflare serveert alles uit public/ en
+# /_next/static/ zonder de Worker aan te roepen; de headers uit next.config.ts komen daar dus niet mee.
+# Dit bestand geldt alleen voor die vaste bestanden. Precies gelijk aan beveiligingsheaders('production') in
+# src/lib/beveiligingsheaders.ts; src/lib/beveiligingsheaders.test.ts bewaakt dat.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

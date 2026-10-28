@@ -1,8 +1,8 @@
-// Beveiligingsheaders voor elke pagina (bouwgids 14.4).
+// Beveiligingsheaders voor elke pagina (bouwgids 14.4). De vaste bestanden krijgen dezelfde via public/_headers.
 //
 // 'unsafe-inline' bij scripts is een bewuste, tijdelijke keuze: de App Router van Next.js zet inline scripts in
 // de pagina, en die zonder 'unsafe-inline' toestaan vraagt een nonce per aanvraag via een proxy. Of zo'n proxy
-// op Cloudflare Workers werkt, is precies wat fase 0 stap E moet bewijzen. Daarna wordt dit strakker.
+// op Cloudflare Workers werkt, moet fase 0 proefroute 2 bewijzen. Daarna wordt dit strakker.
 
 export type Omgeving = 'development' | 'production';
 

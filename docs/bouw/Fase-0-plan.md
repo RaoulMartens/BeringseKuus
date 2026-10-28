@@ -163,7 +163,9 @@ Eén workflow die ook lokaal met `npm run check` hetzelfde doet.
 1. `@opennextjs/cloudflare` en `wrangler`; `wrangler.jsonc` met `nodejs_compat` en `compatibility_date`
    van de dag van opzetten; `open-next.config.ts`.
 2. Eigen worker met een `scheduled`-methode, zodat route 3 kan draaien. Typebestand in plaats van
-   `@ts-ignore` (punt 1.3).
+   `@ts-ignore` (punt 1.3). **Verschoven naar proefroute 3** (28-10-2026, PR 8): zonder geplande taak zou het
+   dode code zijn, en `Bouwbesluiten` 3.1 laat `pg_cron` als alternatief open. Uitvoering van stap E:
+   `docs/hosting.md`.
 3. Deploy via GitHub Actions op Linux, alleen vanaf `main` na groene controles. Secrets in GitHub en
    `wrangler secret`, niet in de repository.
 4. Controle: de lege app staat op een `workers.dev`-adres, met de headers van stap B.

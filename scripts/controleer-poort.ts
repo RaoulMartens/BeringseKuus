@@ -94,18 +94,47 @@ export function controleerScripts(pakket: unknown): string[] {
   }
   if (tekst('test:e2e').trim() !== 'playwright test')
     problemen.push('package.json: test:e2e moet "playwright test" zijn');
-  // De browsertests draaien tegen deze build; een andere build hier zou iets anders testen dan wat online gaat.
-  if (tekst('build:worker').trim() !== 'opennextjs-cloudflare build')
-    problemen.push('package.json: build:worker moet "opennextjs-cloudflare build" zijn');
+  // De browsertests draaien tegen de Worker zoals hij online gaat (review PR8-06): build:worker maakt hem (en
+  // roept daarvoor zelf `npm run build` aan), preview:worker start hem in workerd.
+  const precies: Record<string, string> = {
+    build: 'next build',
+    'build:worker': 'opennextjs-cloudflare build',
+    'preview:worker': 'opennextjs-cloudflare preview',
+  };
+  for (const [naam, inhoud] of Object.entries(precies)) {
+    if (tekst(naam).trim() !== inhoud) problemen.push(`package.json: ${naam} moet "${inhoud}" zijn`);
+  }
+  // Uitrollen gebeurt alleen in de workflow uitrol, na de poort (review PR8-11).
+  for (const [naam, inhoud] of Object.entries(scripts)) {
+    if (typeof inhoud === 'string' && /\bdeploy\b/.test(inhoud))
+      problemen.push(`package.json: script ${naam} rolt uit; dat mag alleen de workflow uitrol`);
+  }
+  return problemen;
+}
+
+/** Elke action staat vast op een volledige commit-SHA, niet op een tag die kan verschuiven. */
+function controleerShas(bestand: string, tekst: string): string[] {
+  const problemen: string[] = [];
+  for (const m of tekst.matchAll(/uses:\s*([^\s#]+)/g)) {
+    if (!/@[0-9a-f]{40}$/.test(m[1] ?? ''))
+      problemen.push(`workflow ${bestand}: ${m[1] ?? '?'} staat niet vast op een volledige commit-SHA`);
+  }
   return problemen;
 }
 
 /** De workflow: alle stappen, de namenlijst alleen als geheim in de stap die hem nodig heeft, actions op een SHA. */
 export function controleerWorkflow(tekst: string): string[] {
   const problemen: string[] = [];
-  for (const nodig of ['npm run check:basis', 'npm run controle:repo', 'npm audit --audit-level=high']) {
+  for (const nodig of ['npm run check:basis', 'npm run controle:repo']) {
     if (!tekst.includes(nodig)) problemen.push(`workflow check.yml: stap "${nodig}" ontbreekt`);
   }
+  // Per hele regel: de audit van uitrol/ bevat de audit van de root als stuk tekst.
+  for (const nodig of ['npm audit --audit-level=high', 'npm audit --audit-level=high --prefix uitrol']) {
+    if (!tekst.split('\n').some((regel) => regel.trim() === `run: ${nodig}`))
+      problemen.push(`workflow check.yml: stap "${nodig}" ontbreekt`);
+  }
+  if (!/^name: check$/m.test(tekst))
+    problemen.push('workflow check.yml: de naam moet "check" zijn (de uitrol wacht op die naam)');
   if (/continue-on-error/.test(tekst))
     problemen.push('workflow check.yml: continue-on-error is niet toegestaan');
   if (/vars\.VERBODEN_WOORDEN/.test(tekst))
@@ -117,19 +146,69 @@ export function controleerWorkflow(tekst: string): string[] {
       'workflow check.yml: de namenlijst hoort precies één keer, als geheim, in de stap van controle:repo',
     );
   }
-  for (const m of tekst.matchAll(/uses:\s*([^\s#]+)/g)) {
-    if (!/@[0-9a-f]{40}$/.test(m[1] ?? ''))
-      problemen.push(`workflow check.yml: ${m[1] ?? '?'} staat niet vast op een volledige commit-SHA`);
-  }
+  problemen.push(...controleerShas('check.yml', tekst));
   return problemen;
 }
 
-/** Vitest en Playwright: .only maakt de run niet stilletjes kleiner. */
+/**
+ * De uitrol (review PR8-01 t/m PR8-03): alleen na een groene check op een push naar main van deze repository,
+ * geen handmatige start, het Cloudflare-token alleen in de job "uitrol", en die job draait geen installatiescripts.
+ */
+export function controleerUitrol(tekst: string): string[] {
+  const problemen: string[] = [];
+  const fout = (melding: string): void => {
+    problemen.push(`workflow uitrol.yml: ${melding}`);
+  };
+  for (const verboden of ['pull_request_target', 'workflow_dispatch', 'continue-on-error']) {
+    if (tekst.includes(verboden)) fout(`${verboden} is niet toegestaan`);
+  }
+  for (const nodig of [
+    'workflows: [check]',
+    "github.event.workflow_run.conclusion == 'success'",
+    "github.event.workflow_run.event == 'push'",
+    'github.event.workflow_run.head_repository.full_name == github.repository',
+    "github.event.workflow_run.head_branch == 'main'",
+    'npm ci --ignore-scripts',
+    'scripts/controleer-online.ts',
+  ]) {
+    if (!tekst.includes(nodig)) fout(`"${nodig}" ontbreekt`);
+  }
+  if (/:\s*write\b/.test(tekst)) fout('het workflowtoken mag nergens schrijfrechten krijgen');
+  const jobUitrol = tekst.indexOf('\n  uitrol:\n');
+  const geheimen = [...tekst.matchAll(/secrets\.([A-Z_]+)/g)];
+  if (geheimen.length !== 1 || geheimen[0]?.[1] !== 'CLOUDFLARE_API_TOKEN')
+    fout('alleen het geheim CLOUDFLARE_API_TOKEN, precies één keer');
+  if (jobUitrol < 0 || geheimen.some((m) => (m.index ?? 0) < jobUitrol))
+    fout('het Cloudflare-token hoort alleen in de job "uitrol", na de job "bouw"');
+  if (jobUitrol >= 0 && /npm (ci|install)(?! --ignore-scripts)|npm run/.test(tekst.slice(jobUitrol)))
+    fout('de job "uitrol" mag geen code van de app of installatiescripts draaien');
+  problemen.push(...controleerShas('uitrol.yml', tekst));
+  return problemen;
+}
+
+/** uitrol/package.json heeft alleen wrangler, in dezelfde versie als waarmee de poort test. */
+export function controleerUitrolPakket(pakket: unknown, uitrolPakket: unknown): string[] {
+  const versie = (p: unknown): unknown =>
+    ((p as { devDependencies?: Record<string, unknown> }).devDependencies ?? {}).wrangler;
+  const u = uitrolPakket as { dependencies?: unknown; devDependencies?: Record<string, unknown> };
+  const problemen: string[] = [];
+  if (versie(pakket) === undefined || versie(pakket) !== versie(uitrolPakket))
+    problemen.push('uitrol/package.json: wrangler moet dezelfde versie hebben als in package.json');
+  if (u.dependencies !== undefined || Object.keys(u.devDependencies ?? {}).join() !== 'wrangler')
+    problemen.push('uitrol/package.json: alleen wrangler, niets anders');
+  return problemen;
+}
+
+/** Vitest en Playwright: .only maakt de run niet stilletjes kleiner; de browsertests draaien tegen de Worker. */
 export function controleerTestinstellingen(vitest: string, playwright: string): string[] {
   const problemen: string[] = [];
   if (!/allowOnly:\s*false/.test(vitest)) problemen.push('vitest.config.ts: allowOnly moet false zijn');
   if (!/forbidOnly:\s*true/.test(playwright))
     problemen.push('playwright.config.ts: forbidOnly moet true zijn');
+  if (!playwright.includes('`npm run preview:worker'))
+    problemen.push('playwright.config.ts: de browsertests moeten de Worker starten (npm run preview:worker)');
+  if (!/reuseExistingServer:\s*false/.test(playwright))
+    problemen.push('playwright.config.ts: reuseExistingServer moet false zijn');
   return problemen;
 }
 
@@ -178,6 +257,11 @@ export async function controleerPoort(root: string): Promise<string[]> {
     ...controleerTsconfig(JSON.parse(lees('tsconfig.json')) as unknown),
     ...controleerScripts(JSON.parse(lees('package.json')) as unknown),
     ...controleerWorkflow(lees('.github/workflows/check.yml')),
+    ...controleerUitrol(lees('.github/workflows/uitrol.yml')),
+    ...controleerUitrolPakket(
+      JSON.parse(lees('package.json')) as unknown,
+      JSON.parse(lees('uitrol/package.json')) as unknown,
+    ),
     ...controleerTestinstellingen(lees('vitest.config.ts'), lees('playwright.config.ts')),
     ...(await controleerEslint(root)),
   ];
