@@ -160,10 +160,11 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
     in de app: alleen die krijgt de geheime sleutel van Supabase. Cloudflare start hem elke minuut (`triggers` in
     `taken/wrangler.jsonc`). Hij schrijft per minuut de uitkomst in `proef_taak` en verstuurt hooguit één keer een
     testbericht. De Worker heeft geen adres; niemand kan hem van buiten aanroepen.
-    **Volgorde: stap A vóór het samenvoegen, B en C erna.**
+    **Volgorde: eerst samenvoegen, dan A (migraties, vanaf `main`), dan B (geheimen), dan C.** Zonder geheimen doet
+    de taken-Worker niets en meldt hij alleen "niet ingesteld"; de tabellen zijn pas nodig na stap B.
     - **A. De migraties online, met `supabase db push`** (nooit met de hand in de SQL Editor: dat komt niet in de
       migratiegeschiedenis, en zonder de eerste migratie zijn de standaardrechten online niet dicht). In de
-      Ubuntu-terminal, op `main`, in de repository:
+      Ubuntu-terminal, in de repository, op een bijgewerkte `main` (`git switch main && git pull`):
       1. `npx supabase login` (opent de browser; inloggen met je Supabase-account).
       2. `npx supabase link --project-ref <ref>`: de *ref* is het stuk tussen `https://` en `.supabase.co` van je
          project-URL. Hij vraagt het databasewachtwoord (in je wachtwoordmanager).
@@ -173,9 +174,8 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       5. Controleer in Supabase: Table Editor (bij `proef_taak` en `proef_taak_bericht` staat het slotje: RLS aan),
          en Advisors, Security Advisor. "RLS enabled, no policy" op deze twee tabellen is verwacht (niemand anders
          mag erbij); andere meldingen niet.
-    - **B. Na het samenvoegen staat de Worker `ledenplatform-taken` er.** Zonder geheimen doet hij niets en meldt hij
-      in zijn logs "niet ingesteld" (geen fout elke minuut). Zet dan bij **die** Worker (niet bij `ledenplatform`)
-      de geheimen, type *Secret*:
+    - **B. Geheimen.** Na het samenvoegen staat de Worker `ledenplatform-taken` er. Zet, ná stap A, bij **die**
+      Worker (niet bij `ledenplatform`) de geheimen, type *Secret*:
       - `SUPABASE_URL`: dezelfde project-URL als bij de app.
       - `SUPABASE_SECRET_KEY`: maak in Supabase (Project Settings, API Keys) een **nieuwe, eigen** secret key voor
         deze taak, met een herkenbare naam zoals `proef-taak`. Die gaat om alle rechten heen; gebruik hem nergens
