@@ -98,6 +98,17 @@ describe('middleware: sessie verversen', () => {
     expect(antwoord.headers.get('content-security-policy')).toContain("'nonce-");
   });
 
+  // Review PR11-09: een agenda-app kent geen sessie; een feed hoort geen Set-Cookie te krijgen.
+  it('ververst niet bij de agenda-feed, ook niet met een sessiecookie', async () => {
+    const aanroepen = supabaseDieAntwoordt();
+    const feed = new NextRequest(`https://site.test/proef/agenda/${'c'.repeat(64)}.ics`, {
+      headers: { cookie: `${NAAM}=${cookieWaarde(sessie('oud', nu() - 60))}` },
+    });
+    const antwoord = await middleware(feed);
+    expect(aanroepen).toEqual([]);
+    expect(antwoord.cookies.get(NAAM)).toBeUndefined();
+  });
+
   it('roept Supabase niet aan zonder sessiecookie', async () => {
     const aanroepen = supabaseDieAntwoordt();
     await middleware(aanvraag({}, ''));

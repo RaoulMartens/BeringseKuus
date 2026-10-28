@@ -9,6 +9,7 @@ import {
   headersVasteBestanden,
   vasteHeaders,
 } from '../src/lib/beveiligingsheaders.ts';
+import { TEST_AGENDA_TOKEN } from './agenda-testtoken.ts';
 import {
   controleerOnline,
   controleerScriptsInHtml,
@@ -37,6 +38,7 @@ function site(
     pagina?: (nonce: string) => Response;
     vastHeaders?: Record<string, string>;
     mijn?: () => Response;
+    agenda?: (pad: string) => Response;
   } = {},
 ): Ophalen {
   const buildIds = [...(opties.buildIds ?? ['nieuw'])];
@@ -54,6 +56,14 @@ function site(
       );
     if (pad.startsWith('/_next/static/'))
       return Promise.resolve(new Response('', { headers: opties.vastHeaders ?? VAST }));
+    if (pad.startsWith('/proef/agenda/'))
+      return Promise.resolve(
+        opties.agenda?.(pad) ??
+          new Response('Niet gevonden', {
+            status: 404,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
+          }),
+      );
     return Promise.resolve(new Response('', { status: 404 }));
   };
 }
@@ -113,6 +123,39 @@ describe('controleer-online', () => {
       mijn: () => new Response('', { status: 307, headers: { Location: 'https://elders.invalid/' } }),
     });
     assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', elders, 0), []);
+  });
+
+  it('faalt als de agenda-feed een onbekend token toch bedient of laat bewaren (proefroute 1)', async () => {
+    const bedient = () => new Response('BEGIN:VCALENDAR', { headers: { 'Cache-Control': 'no-store' } });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ agenda: bedient }), 0), []);
+    const bewaarbaar = () =>
+      new Response('Niet gevonden', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ agenda: bewaarbaar }), 0), []);
+  });
+
+  // Review PR11-06: de 404-pagina van Next.js (de route ontbreekt) mag niet voor het eigen antwoord doorgaan.
+  it('faalt als de route ontbreekt en Next.js zijn eigen 404-pagina geeft', async () => {
+    const nextPagina = () =>
+      new Response('<!DOCTYPE html>…', {
+        status: 404,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'private, no-store' },
+      });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ agenda: nextPagina }), 0), []);
+  });
+
+  // Review PR11-03: het testtoken staat in de publieke repository en mag online nooit werken.
+  it('faalt als het publieke testtoken online de agenda geeft', async () => {
+    const testtokenWerkt = (pad: string) =>
+      pad.includes(TEST_AGENDA_TOKEN)
+        ? new Response('BEGIN:VCALENDAR', { headers: { 'Cache-Control': 'private, no-store' } })
+        : new Response('Niet gevonden', {
+            status: 404,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
+          });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ agenda: testtokenWerkt }), 0), []);
   });
 
   it('keurt een header af die er wel is maar een andere waarde heeft', () => {

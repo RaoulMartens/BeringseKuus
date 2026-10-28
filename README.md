@@ -3,7 +3,9 @@
 Een ledenplatform voor een carnavalsvereniging: leden zien het programma, dragen hun dienst over en melden
 zich af; het bestuur maakt activiteiten aan, deelt mensen in en publiceert.
 
-**Status:** fase 0 (project opzetten). Er is een lege app met de kwaliteitspoort; er zijn nog geen functies.
+**Status:** fase 0 (project opzetten). Er is een app met de kwaliteitspoort, inloggen met een link per mail en de
+uitrol naar Cloudflare Workers, plus proefroutes onder `/proef/` (wegwerpcode die de techniek bewijst, zie
+`docs/bouw/Fase-0-plan.md`). De functies voor leden en bestuur komen vanaf fase 1.
 
 Deze repository is **publiek**. Er staan geen ledengegevens, sleutels, foto's of gelicentieerde iconen in;
 zie `CLAUDE.md` en `docs/licenties.md`. De bronnen staan in `docs/`, te beginnen bij

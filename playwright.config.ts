@@ -6,6 +6,7 @@
 // (wrangler dev). Niet tegen `next start`, want dat is Node.js en draait online nergens (fase 0 stap E).
 import { defineConfig, devices } from '@playwright/test';
 
+import { TEST_AGENDA_TOKEN } from './scripts/agenda-testtoken.ts';
 import { leesLokaleSupabase } from './scripts/lokale-supabase.ts';
 
 const POORT = 3100;
@@ -29,6 +30,7 @@ export default defineConfig({
       `--var SUPABASE_URL:${lokaal.apiUrl}`,
       `--var SUPABASE_PUBLISHABLE_KEY:${lokaal.publishableKey}`,
       `--var SITE_URL:${SITE}`,
+      `--var PROEF_AGENDA_TOKEN:${TEST_AGENDA_TOKEN}`,
     ].join(' '),
     url: SITE,
     reuseExistingServer: false,
