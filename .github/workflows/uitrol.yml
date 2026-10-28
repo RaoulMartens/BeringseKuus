@@ -77,12 +77,10 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: worker
-          # worker.ts en de taak bundelt wrangler in de uitrolstap; ze hebben bewust geen pakketten nodig.
+          # Alleen de gebouwde app. Configuratie en de taken-Worker komen in de uitrolstap uit git, niet uit deze job:
+          # een aangepaste wrangler.jsonc zou daar een build-commando naast het token kunnen draaien (review PR12-05).
           path: |
             .open-next/
-            wrangler.jsonc
-            worker.ts
-            src/taken/proef-taak.ts
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -97,13 +95,17 @@ jobs:
       name: ontwikkel
       url: ${{ vars.SITE_URL }}
     steps:
-      # Alleen wat de uitrol nodig heeft: wrangler (uitrol/) en de controle na afloop. Geen code van de app.
+      # Alleen wat de uitrol nodig heeft, uit de commit waarop check groen was: wrangler (uitrol/), de configuratie,
+      # de taken-Worker (zonder pakketten, scripts/controleer-poort.ts) en de controle na afloop. Geen code van de app.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
           sparse-checkout: |
             uitrol
+            wrangler.jsonc
+            taken
+            src/taken/proef-taak.ts
             scripts/controleer-online.ts
             scripts/agenda-testtoken.ts
             src/lib/beveiligingsheaders.ts
@@ -122,13 +124,17 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: worker
+          path: .open-next
 
+      # Twee Workers: de app, en de taken-Worker met de geplande taken (Bouwbesluiten 3.1, review PR12-01).
       - name: Uitrollen
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: 'false'
-        run: uitrol/node_modules/.bin/wrangler deploy
+        run: |
+          uitrol/node_modules/.bin/wrangler deploy
+          uitrol/node_modules/.bin/wrangler deploy -c taken/wrangler.jsonc
 
       # Rood = de nieuwe versie staat online maar klopt niet: terugrollen (docs/hosting.md).
       - name: Controle op de uitgerolde Worker

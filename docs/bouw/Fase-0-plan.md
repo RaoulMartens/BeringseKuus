@@ -219,12 +219,17 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
 - Beveiliging: de route accepteert alleen een geheime header, nooit een openbare aanroep.
 - **Klaar als:** na tien minuten staan er tien rijen, zonder dubbele, en een geforceerde fout laat een
   zichtbare mislukte status achter.
-- **Uitkomst (28-10-2026, lokaal):** gekozen is de **Workers Cron Trigger**, zonder route: `worker.ts` met
-  `scheduled`, de taak in `src/taken/proef-taak.ts`. Geen route betekent geen geheime header nodig en niets dat van
-  buiten te starten is (de controle na de uitrol eist een 404 op `/__scheduled`). De minuut is de sleutel in
-  `proef_taak`; het testbericht wordt eerst geclaimd (één rij in `proef_taak_bericht`) en dan verstuurd. Lokaal
-  bewezen in workerd (`/__scheduled` twee keer: één rij) en met databasetests; de gedwongen fout met een unittest.
-  Online te bevestigen: `docs/hosting.md` stap 12.
+- **Uitkomst (28-10-2026, lokaal):** gekozen is een **Workers Cron Trigger in een eigen taken-Worker**
+  (`taken/`, `ledenplatform-taken`), zonder route en zonder adres; de taak in `src/taken/proef-taak.ts`. Alleen die
+  Worker krijgt de geheime sleutel (review PR12-01). De minuut is de sleutel in `proef_taak`, met de uitkomst van de
+  laatste poging; het testbericht wordt eerst geclaimd, dan verstuurd, en krijgt een status. Lokaal bewezen in workerd
+  (`/__scheduled` twee keer: één rij), met databasetests en unittests (ook de gedwongen fout en de aanroepen naar
+  Supabase en Resend). Review: `docs/bouw/Review-PR12` in de stage-map. Online te bevestigen: `docs/hosting.md`
+  stap 12.
+- **Voor fase 7** (uit de review van PR 12): een dagmelding rekent met een dag in `Europe/Amsterdam`, met een sleutel
+  per lid per dag; per bericht een rij met status, poging en fout, en de claim en statuswissel in een
+  databasefunctie; een Idempotency-Key per bericht bij Resend. Cloudflare belooft geen "precies één keer": ontwerp op
+  "minstens één keer".
 
 ### Metingen en beslissing
 

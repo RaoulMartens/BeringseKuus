@@ -3,22 +3,22 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(31);
 
 select has_table('public', 'proef_taak', 'de tabel proef_taak bestaat');
 select has_table('public', 'proef_taak_bericht', 'de tabel proef_taak_bericht bestaat');
 
--- Alleen de taak (met de geheime sleutel, rol service_role) schrijft; leden en bezoekers zien niets.
-select ok(not has_table_privilege('anon', 'public.proef_taak', 'select'),
-  'niet ingelogd: proef_taak is niet leesbaar');
-select ok(not has_table_privilege('authenticated', 'public.proef_taak', 'select'),
-  'ingelogd: proef_taak is niet leesbaar');
-select ok(not has_table_privilege('authenticated', 'public.proef_taak', 'insert'),
-  'ingelogd: in proef_taak schrijven kan niet');
-select ok(not has_table_privilege('authenticated', 'public.proef_taak_bericht', 'insert'),
-  'ingelogd: in proef_taak_bericht schrijven kan niet');
+-- Alleen de taak (met de geheime sleutel, rol service_role) schrijft; leden en bezoekers kunnen niets, op geen van
+-- beide tabellen en met geen enkele handeling (review PR12-08).
+select ok(not has_table_privilege(rol, tabel, handeling), format('%s: geen %s op %s', rol, handeling, tabel))
+from unnest(array['anon', 'authenticated']) as rol,
+     unnest(array['public.proef_taak', 'public.proef_taak_bericht']) as tabel,
+     unnest(array['select', 'insert', 'update', 'delete', 'truncate']) as handeling;
+
 select ok(has_table_privilege('service_role', 'public.proef_taak', 'insert'),
   'de taak (service_role) mag in proef_taak schrijven');
+select ok(has_table_privilege('service_role', 'public.proef_taak_bericht', 'update'),
+  'de taak (service_role) mag de status van het testbericht bijwerken');
 
 -- Een dubbele start in dezelfde minuut telt niet dubbel: de minuut is de sleutel.
 insert into public.proef_taak (minuut, status) values ('2026-10-28T14:00Z', 'gelukt');
@@ -35,8 +35,9 @@ select throws_ok(
   '23514', null, 'de minuut heeft een vaste vorm'
 );
 
--- Het testbericht gaat hooguit één keer: er kan maar één rij in proef_taak_bericht.
+-- Het testbericht gaat hooguit één keer: er kan maar één rij in proef_taak_bericht, met een status.
 insert into public.proef_taak_bericht (id) values (1);
+select is((select status from public.proef_taak_bericht where id = 1), 'geclaimd', 'een nieuwe claim heeft status geclaimd');
 select throws_ok(
   $$ insert into public.proef_taak_bericht (id) values (1) $$,
   '23505', null, 'het testbericht kan maar één keer worden geclaimd'
@@ -44,6 +45,10 @@ select throws_ok(
 select throws_ok(
   $$ insert into public.proef_taak_bericht (id) values (2) $$,
   '23514', null, 'er is maar één testbericht (id 1)'
+);
+select throws_ok(
+  $$ update public.proef_taak_bericht set status = 'onbekend' where id = 1 $$,
+  '23514', null, 'alleen de statussen geclaimd, verstuurd en mislukt'
 );
 
 select * from finish();
