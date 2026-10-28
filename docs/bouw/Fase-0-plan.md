@@ -1,7 +1,8 @@
 # Fase 0: plan
 
-Stand 27-10-2026. **Er is nog niets aangemaakt of uitgevoerd.** Dit plan wacht op het akkoord van de bouwer
-(punt 1). Bron: bouwgids V8 hoofdstuk 10 en 14, `Bouwbesluiten-2026-10-27.md` punt 3 en 4.
+Stand 28-10-2026. **Uitgevoerd.** Het bewijs per afrondingscriterium, de review van fase 0 als geheel en de lijst
+"Van fase 0 naar fase 1" staan in `Afname-fase-0.md`. Dit plan beschrijft wat vooraf is afgesproken; waar het
+anders liep, staat dat erbij. Bron: bouwgids V8 hoofdstuk 10 en 14, `Bouwbesluiten-2026-10-27.md` punt 3 en 4.
 
 **Doel (V8 10, fase 0):** project opzetten (GitHub, Supabase, Cloudflare, Next.js), inloggen werkt, en de
 poort uit hoofdstuk 14 is op een **lege app al groen**. Daarbovenop de drie proefroutes uit
@@ -135,15 +136,15 @@ Controle: op de lege app is alles groen, lokaal én in GitHub.
 |---|---|
 | 14.1 Beschermde `main`, pull request, alle controles groen, review | Branch protection of ruleset; verplichte controles; PR-sjabloon met een kopje "Review" en een regel dat de bouwgids (V4 t/m V8) niet door een developer is beoordeeld, alleen door een AI-review (zonder namen: de repo is publiek) |
 | 14.1 Geen omwegen | Een eigen controle die faalt op `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `.skip` en `.only` |
-| 14.2 Strak | `tsc`, ESLint met `--max-warnings 0`, Prettier `--check`; databasetypen gegenereerd met `supabase gen types` en gecontroleerd op wijzigingen |
+| 14.2 Strak | `tsc`, ESLint met `--max-warnings 0`, Prettier `--check`; databasetypen gegenereerd met `supabase gen types` en gecontroleerd op wijzigingen (`npm run types:db` en `controle:dbtypen`, toegevoegd bij de afronding, review F0-02) |
 | 14.3 Toegankelijk | Playwright met axe op elk scherm, 1200 en 375 px, nul overtredingen; handmatig toetsenbord en telefoon per fase |
 | 14.4 RLS overal | Een databasetest die faalt zodra een tabel zonder RLS bestaat (bestaat nog niet: de test wordt eerst geschreven en moet slagen op de lege database) |
 | 14.4 Geheimen | Secret scanning en push protection aan (gratis, publieke repo); `.env*` in `.gitignore`; sleutels alleen in GitHub Secrets; controle op `.env`-bestanden in de repo |
-| 14.7 Licenties, publieke repo | `scripts/controleer-repo.mjs` (geschreven, met tests): faalt op afbeeldingen, svg-iconen, lettertypen, pdf, media en spreadsheets die niet volledig in `docs/licenties.md` staan, op `.env`-bestanden en sleutels, op de bestanden uit punt 1.4 (iconenset, foto's, communicatie, archieven, ledenbestanden), en op echte e-mailadressen, mobiele nummers en woorden uit de lijst `VERBODEN_WOORDEN`. Draait in `npm run check` zodra fase 0 stap C er is |
+| 14.7 Licenties, publieke repo | `scripts/controleer-repo.ts` (geschreven, met tests): faalt op afbeeldingen, svg-iconen, lettertypen, pdf, media en spreadsheets die niet volledig in `docs/licenties.md` staan, op `.env`-bestanden en sleutels, op de bestanden uit punt 1.4 (iconenset, foto's, communicatie, archieven, ledenbestanden), en op echte e-mailadressen, mobiele nummers en woorden uit de lijst `VERBODEN_WOORDEN`. Draait in `npm run check` zodra fase 0 stap C er is |
 | 14.4 Afhankelijkheden | `npm audit --audit-level=high` in CI; Dependabot aan |
 | 14.4 Supabase | De beveiligingsadviseur geeft nul waarschuwingen; handmatige controle in fase 0 |
 | 14.4 Headers | Een test die de headers van stap B controleert |
-| 14.5 Gelijktijdigheid | Pas relevant vanaf fase 2; in fase 0 alleen de testopzet voor twee gelijktijdige sessies |
+| 14.5 Gelijktijdigheid | Pas relevant vanaf fase 2; in fase 0 alleen de testopzet voor twee gelijktijdige sessies. **Voorstel bij de afronding: naar fase 1** (`Bouwbesluiten` 11): in pgTAP kan het niet, en er is nog geen functie met een rij-lock om tegen te testen |
 
 Workflow `check`: typecheck, lint, format, unit, `test:db` (lokale Supabase in Docker), `test:e2e`, audit.
 Eén workflow die ook lokaal met `npm run check` hetzelfde doet.
@@ -152,7 +153,8 @@ Eén workflow die ook lokaal met `npm run check` hetzelfde doet.
 
 1. `supabase init`, map `supabase/migrations/`. **Alleen migraties, nooit met de hand in het dashboard.**
 2. Auth: magic link aan; wachtwoordinlog uit; MFA (TOTP) aan voor het project; omleidings-URL's
-   (lokaal, `workers.dev`) toevoegen.
+   (lokaal, `workers.dev`) toevoegen. **Anders gelopen:** MFA is naar fase 1 geschoven, samen met de beheerrol
+   die het vereist (`Inloggen.md`, "Nog niet"; `Bouwbesluiten` 5.2 punt 2).
 3. Nog **geen** tabellen met ledengegevens: die komen in fase 1 volgens `Bouwbesluiten` 4. Wel één
    migratie voor de proeftabel van route 3.
 4. Een inlogpagina (e-mailadres, "stuur link"), een beschermde pagina "Ingelogd als …" en uitloggen.
@@ -189,7 +191,8 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
   `private, no-store` zoals gezet; alleen de 404 maakt Next.js strenger (`private, no-cache, no-store, …`). Alleen
   over https (behalve op de eigen computer). Review: `docs/bouw/Review-PR11` in de stage-map, 10 punten verwerkt.
   **Online geslaagd (28-10-2026):** op een iPhone geabonneerd; de afspraak staat in de agenda, met de juiste
-  tijden. Nog te meten: de rekentijd.
+  tijden. Rekentijd: de app als geheel mediaan 218 ms per aanvraag; de feed is niet apart te meten (Metrics geeft
+  geen cijfers per route; `docs/hosting.md`, Metingen).
 - **Voor de echte feed in fase 1** (uit de review van PR 11):
   - de UID afleiden van `activiteiten.id` (uuid), zonder naam of datum: anders staat een verschoven activiteit
     dubbel in de agenda; `SEQUENCE` en `LAST-MODIFIED` toevoegen (Bouwbesluiten 5.4);
@@ -210,14 +213,16 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
 - **Uitkomst (28-10-2026):** beide werken lokaal in workerd; gekozen is `middleware.ts` met de edge-runtime
   (`Bouwbesluiten` 3.1, `docs/hosting.md`). **Online bevestigd (28-10-2026):** inloggen met de link op een telefoon,
   na herladen en na ruim een uur nog ingelogd, een gebruikte link geweigerd, uitloggen (ook met een verlopen
-  sessie) laat geen sessiecookie achter, CSP met nonce op elke pagina. Route 2 is geslaagd.
+  sessie) laat geen sessiecookie achter, CSP met nonce op elke pagina. Route 2 is geslaagd. Bij de afronding kwam
+  er een doorverwijzing van http naar https bij (review F0-05).
 
 ### Route 3: een geplande taak
 
 - Een Worker-cron (`scheduled`) of Supabase `pg_cron` die elke minuut een route aanroept; de route
   schrijft een rij in `proef_taak` met een vaste sleutel per minuut, zodat een dubbele start niet dubbel
   telt, en verstuurt hooguit één testbericht naar de bouwer.
-- Beveiliging: de route accepteert alleen een geheime header, nooit een openbare aanroep.
+- Beveiliging: de route accepteert alleen een geheime header, nooit een openbare aanroep. **Anders gelopen:** er
+  is geen route gekomen; de taak draait in een eigen Worker zonder adres (zie de uitkomst hieronder).
 - **Klaar als:** na tien minuten staan er tien rijen, zonder dubbele, en een geforceerde fout laat een
   zichtbare mislukte status achter.
 - **Uitkomst (28-10-2026, lokaal):** gekozen is een **Workers Cron Trigger in een eigen taken-Worker**
@@ -244,6 +249,10 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
 Slaagt een route niet, dan dezelfde drie tests met **vinext**, en daarna beslissen. Leg de uitkomst met reden
 vast in `Bouwbesluiten`.
 
+**Uitkomst (28-10-2026):** alle drie geslaagd op de echte Workers; bundel 1198 KiB gecomprimeerd; rekentijd ±200 ms
+per aanvraag (boven de 10 ms van het gratis plan, nog 0 fouten; het besluit daarover staat in `Bouwbesluiten` 3.1).
+**OpenNext blijft**, vinext is niet nodig (`Bouwbesluiten` 6).
+
 ## 5. Afronding (V8 14.6)
 
 Fase 0 is af als:
@@ -254,6 +263,8 @@ Fase 0 is af als:
 4. het lege scherm met toetsenbord en op 375 px is doorlopen;
 5. `docs/hosting.md` beschrijft deploymentvorm, versies, adapter, secrets en de plek van de geplande taak,
    en de README beschrijft hoe je het lokaal draait en deployt.
+
+Het bewijs per punt: `Afname-fase-0.md`.
 
 ## 6. Risico's en onbekenden
 
