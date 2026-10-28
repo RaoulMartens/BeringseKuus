@@ -14,12 +14,21 @@ const NIET_GEVONDEN = (): Response =>
     headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' },
   });
 
+/**
+ * Alleen over https; anders reist het token onversleuteld (review PR11-01). Een weigering verraadt niets, maar laat
+ * een verkeerd ingesteld abonnement wel meteen falen. Uitzondering: de eigen computer, waar de tests over http lopen.
+ */
+function veiligeVerbinding(aanvraag: Request): boolean {
+  const { protocol, hostname } = new URL(aanvraag.url);
+  return protocol === 'https:' || hostname === '127.0.0.1' || hostname === 'localhost';
+}
+
 export async function GET(
-  _aanvraag: Request,
+  aanvraag: Request,
   { params }: { params: Promise<{ bestand: string }> },
 ): Promise<Response> {
   const { bestand } = await params;
-  if (!bestand.endsWith('.ics')) return NIET_GEVONDEN();
+  if (!veiligeVerbinding(aanvraag) || !bestand.endsWith('.ics')) return NIET_GEVONDEN();
   if (!(await tokenKlopt(bestand.slice(0, -'.ics'.length), process.env.PROEF_AGENDA_TOKEN)))
     return NIET_GEVONDEN();
 

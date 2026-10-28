@@ -21,4 +21,11 @@ describe('agenda-token', () => {
       expect(await tokenKlopt(vreemd, vreemd)).toBe(false);
     }
   });
+
+  it('accepteert 32 tot en met 128 tekens, niet 31 of 129', async () => {
+    for (const lengte of [32, 128])
+      expect(await tokenKlopt('b'.repeat(lengte), 'b'.repeat(lengte))).toBe(true);
+    for (const lengte of [31, 129])
+      expect(await tokenKlopt('b'.repeat(lengte), 'b'.repeat(lengte))).toBe(false);
+  });
 });

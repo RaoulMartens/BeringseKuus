@@ -185,9 +185,17 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
   Worker; de rekentijd per aanvraag is gemeten.
 - **Uitkomst (28-10-2026, lokaal):** `src/app/proef/agenda/[bestand]/route.ts`, geschreven bestand in
   `src/lib/agenda/ics.ts`. ical.js (Mozilla, alleen in de tests) leest het goed terug, ook de tijdzone en de eindtijd na
-  middernacht; de browsertests op de Worker in workerd slagen. `Cache-Control` maakt Next.js zelf nog strenger
-  (`private, no-cache, no-store, …`). Online te bevestigen: `docs/hosting.md` stap 11 (abonneren op een telefoon) en
-  de rekentijd.
+  middernacht; de browsertests op de Worker in workerd slagen. `Cache-Control`: de agenda (200) houdt
+  `private, no-store` zoals gezet; alleen de 404 maakt Next.js strenger (`private, no-cache, no-store, …`). Alleen
+  over https (behalve op de eigen computer). Review: `docs/bouw/Review-PR11` in de stage-map, 10 punten verwerkt.
+  Online te bevestigen: `docs/hosting.md` stap 11 (abonneren op een telefoon) en de rekentijd.
+- **Voor de echte feed in fase 1** (uit de review van PR 11):
+  - de UID afleiden van `activiteiten.id` (uuid), zonder naam of datum: anders staat een verschoven activiteit
+    dubbel in de agenda; `SEQUENCE` en `LAST-MODIFIED` toevoegen (Bouwbesluiten 5.4);
+  - het token opzoeken via een RPC met POST, nooit in de query-string van de API (dan staat het in de logs van
+    Supabase), en in de database een hash van het token bewaren, niet het token zelf;
+  - bij een storing van de database 503 geven, niet dezelfde 404 (anders gooit een agenda-app de afspraken weg);
+  - de middleware slaat de feed al over (geen sessie); het pad in `src/middleware.ts` meenemen als het verandert.
 
 ### Route 2: inloggen met een magic link
 

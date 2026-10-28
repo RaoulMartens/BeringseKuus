@@ -19,7 +19,9 @@ doet als er iets misgaat.
 5. Daarna wacht `scripts/controleer-online.ts` tot de site de nieuwe versie uitlevert (`/BUILD_ID`), en controleert
    de exacte beveiligingsheaders op `/` en op een vast bestand, of `/inloggen` antwoordt, en of `/mijn` een bezoeker
    zonder sessie doorstuurt naar `/inloggen`. Dat laatste lukt alleen als de Worker Supabase kan bereiken;
-   `/inloggen` zelf toont het formulier ook zonder Supabase-gegevens.
+   `/inloggen` zelf toont het formulier ook zonder Supabase-gegevens. Ook: het publieke testtoken van de agenda-feed
+   geeft het kale "Niet gevonden" van de route. Dat de feed met het echte token werkt, bewijst alleen stap 11 (met de
+   hand): het echte token hoort niet in GitHub.
 
 De **browsertests** (`npm run test:e2e`) draaien tegen dezelfde build in workerd, de runtime van Cloudflare
 (`wrangler dev`), en niet tegen `next start`. Zo test de poort wat er online gaat. Alle browsertests slagen daar,
@@ -129,12 +131,28 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
     *previous* is het oude gedeelde geheim (HS256), dat alleen nog oudere tokens controleert. Lokaal is het nog
     HS256, dus de tests doen per pagina één aanroep meer dan online. Later bekijken: lokaal ook ECC, en of de oude
     sleutel kan worden ingetrokken (eerst nagaan dat niets hem nog gebruikt).
-11. **Agenda-feed (proefroute 1):** maak een token (`openssl rand -hex 32`, of 64 willekeurige letters en cijfers)
-    en zet het als geheim `PROEF_AGENDA_TOKEN` bij de Worker, type *Secret*, zoals in stap 5. Abonneer je daarna op
-    je telefoon op `https://<site>/proef/agenda/<token>.ics` (iPhone: Instellingen, Agenda, Accounts, Voeg account
-    toe, Andere, Voeg agenda-abonnement toe; Google Agenda: op de computer, Andere agenda's, Via URL). Je hoort de
-    afspraak "Bonte Avond (proef)" te zien op vrijdag 15 januari 2027, van 20:11 tot 01:11. Bewaar het token in je
-    wachtwoordmanager en zet het nergens anders neer: wie het token kent, ziet de agenda.
+11. **Agenda-feed (proefroute 1).**
+    - **Token maken:** `openssl rand -hex 32` in de Ubuntu-terminal (64 tekens). Gebruik nooit het testtoken uit
+      `scripts/agenda-testtoken.ts`: dat staat in de publieke repository, en de controle na de uitrol wordt rood als
+      het online werkt. Zet het als geheim `PROEF_AGENDA_TOKEN` bij de Worker, type *Secret*, zoals in stap 5, en
+      bewaar het in je wachtwoordmanager. Wie het token kent, ziet de agenda.
+    - **Adres:** `https://<site>/proef/agenda/<token>.ics`, altijd met `https://`. Over `http://` of `webcal://`
+      (dat sommige apps als http ophalen) geeft de feed bewust een 404: dan reist het token onversleuteld.
+    - **Zonder telefoon controleren:** in de Ubuntu-terminal, met het token in een variabele (dan staat het niet
+      letterlijk in de geschiedenis): `read -rs TOKEN`, token plakken, Enter, en dan
+      `curl -s "https://<site>/proef/agenda/$TOKEN.ics" | head -5`. Je hoort `BEGIN:VCALENDAR` te zien.
+    - **iPhone** (iOS 18 en nieuwer): Instellingen, Apps, Agenda, Agenda-accounts, Voeg account toe, Andere, Voeg
+      agenda-abonnement toe. Oudere iOS: Instellingen, Agenda, Accounts, en verder hetzelfde.
+    - **Google Agenda:** op de computer (calendar.google.com), Andere agenda's, +, Via URL. Op een Android-telefoon
+      verschijnt de agenda vaak pas als je in de Google Agenda-app bij die agenda **Synchroniseren** aanzet. Google
+      haalt de feed zelf op, soms pas na uren, en bewaart het adres (dus het token) op zijn servers.
+    - **Outlook** (outlook.com of Outlook-app): Agenda toevoegen, Abonneren vanaf internet.
+    - **Wat je hoort te zien:** "Bonte Avond (proef)" op vrijdag 15 januari 2027, van 20:11 tot 01:11.
+    - **Rekentijd van de feed:** de Metrics tonen geen cijfers per route. Doe op een rustig moment 50 aanvragen in één
+      minuut (`for i in $(seq 50); do curl -s -o /dev/null "https://<site>/proef/agenda/$TOKEN.ics"; done`) en lees
+      de Metrics van die minuut af.
+    - **Token gelekt:** zet een nieuw token als geheim (het oude adres werkt dan meteen niet meer) en maak de
+      abonnementen opnieuw. **Proef klaar:** verwijder het geheim; de feed geeft dan voor elk token een 404.
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
@@ -191,6 +209,9 @@ npm run supabase:start                        # lokale Supabase in Docker
 npm run env:lokaal                            # schrijft .env.local en .dev.vars (niet in git)
 npm run build:worker && npm run preview:worker # de Worker in workerd op http://127.0.0.1:8787
 ```
+
+Lokaal werkt de agenda-feed met het testtoken uit `scripts/agenda-testtoken.ts` (`env:lokaal` zet het):
+`http://127.0.0.1:8787/proef/agenda/<testtoken>.ics`. Http mag alleen op de eigen computer.
 
 Een lokale build neemt waarden uit `.env.local` op in de bundel (`.open-next/cloudflare/next-env.mjs`). Daarom rolt
 alleen GitHub uit, en controleert de job **bouw** dat die bundel leeg is. Zet in `.env.local` nooit een sleutel die

@@ -50,6 +50,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // Een serveractie (bijvoorbeeld uitloggen) regelt zijn eigen cookies. Ververst de middleware eerst, dan komt
   // die nieuwe sessie ná het wissen in het antwoord en blijft hij staan (review PR10-01).
   if (request.headers.has('next-action')) return antwoord;
+  // De agenda-feed kent geen sessie: een agenda-app logt niet in, en een .ics hoort geen cookie te krijgen
+  // (review PR11-09).
+  if (request.nextUrl.pathname.startsWith('/proef/agenda/')) return antwoord;
   // Zonder sessiecookie valt er niets te verversen; dan ook geen aanroep naar Supabase.
   if (!request.cookies.getAll().some(({ name }) => name.startsWith('sb-'))) return antwoord;
   // Ontbreken de gegevens, dan geen fout op elke pagina: de pagina's die Supabase nodig hebben, melden het zelf.

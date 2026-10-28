@@ -6,7 +6,7 @@
 // (wrangler dev). Niet tegen `next start`, want dat is Node.js en draait online nergens (fase 0 stap E).
 import { defineConfig, devices } from '@playwright/test';
 
-import { TEST_AGENDA_TOKEN } from './e2e/agenda-token.ts';
+import { TEST_AGENDA_TOKEN } from './scripts/agenda-testtoken.ts';
 import { leesLokaleSupabase } from './scripts/lokale-supabase.ts';
 
 const POORT = 3100;

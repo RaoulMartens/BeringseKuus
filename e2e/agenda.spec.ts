@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test';
 import ICAL from 'ical.js';
 
-import { TEST_AGENDA_TOKEN } from './agenda-token.ts';
+import { TEST_AGENDA_TOKEN } from '../scripts/agenda-testtoken.ts';
 
 const pad = (token: string): string => `/proef/agenda/${token}.ics`;
 

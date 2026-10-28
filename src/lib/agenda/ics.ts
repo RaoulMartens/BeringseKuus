@@ -39,12 +39,17 @@ const VTIMEZONE = [
   'END:VTIMEZONE',
 ];
 
+// Stuurtekens horen niet in tekst (RFC 5545 3.3.11), behalve de tab. Een losse CR kon in sommige apps een tweede,
+// ingevoegde afspraak opleveren (review PR11-02); in fase 1 komt de tekst uit invoer van het bestuur.
+const STUURTEKENS = /[\u0000-\u0008\u000b-\u001f\u007f]/g;
+
 export function escapeTekst(tekst: string): string {
   return tekst
     .replaceAll('\\', '\\\\')
     .replaceAll(';', '\\;')
     .replaceAll(',', '\\,')
-    .replaceAll(/\r?\n/g, '\\n');
+    .replaceAll(/\r\n|\r|\n/g, '\\n')
+    .replaceAll(STUURTEKENS, '');
 }
 
 /** Vouwt een regel op 75 bytes; een vervolgregel begint met een spatie. Knipt nooit midden in een letter. */
@@ -65,10 +70,12 @@ export function vouwRegel(regel: string): string {
   return delen.join('\r\n ');
 }
 
-/** "2027-01-15T20:11" wordt "20270115T201100". */
+/** "2027-01-15T20:11" wordt "20270115T201100". Een andere vorm is een fout, geen stil kapot bestand. */
 function lokaleTijd(tijd: string): string {
-  const [datum = '', klok = ''] = tijd.split('T');
-  return `${datum.replaceAll('-', '')}T${klok.replaceAll(':', '').padEnd(6, '0')}`;
+  const delen = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(tijd);
+  if (!delen) throw new Error(`Tijd in een onbekende vorm (verwacht JJJJ-MM-DDTUU:MM): ${tijd}`);
+  const [, jaar, maand, dag, uur, minuut] = delen;
+  return `${jaar}${maand}${dag}T${uur}${minuut}00`;
 }
 
 /** Een moment in UTC, zoals DTSTAMP het vraagt: "20261028T120000Z". */
@@ -85,6 +92,10 @@ export function maakAgenda(naam: string, afspraken: Afspraak[], gemaakt: Date): 
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeTekst(naam)}`,
     `X-WR-TIMEZONE:${TIJDZONE}`,
+    // Vraag agenda-apps elk uur te verversen (RFC 7986, en de oudere naam die Outlook leest). Zonder deze regel kiest
+    // elke app zelf, soms pas na uren.
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+    'X-PUBLISHED-TTL:PT1H',
     ...VTIMEZONE,
     ...afspraken.flatMap((afspraak) => [
       'BEGIN:VEVENT',

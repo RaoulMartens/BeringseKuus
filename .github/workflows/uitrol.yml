@@ -102,6 +102,7 @@ jobs:
           sparse-checkout: |
             uitrol
             scripts/controleer-online.ts
+            scripts/agenda-testtoken.ts
             src/lib/beveiligingsheaders.ts
           sparse-checkout-cone-mode: false
 
