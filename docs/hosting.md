@@ -17,7 +17,9 @@ doet als er iets misgaat.
    geïnstalleerd zonder installatiescripts, rolt die bundel uit. Zo draait de code van de app en van haar
    afhankelijkheden nooit naast het token.
 5. Daarna wacht `scripts/controleer-online.ts` tot de site de nieuwe versie uitlevert (`/BUILD_ID`), en controleert
-   de exacte beveiligingsheaders op `/` en op een vast bestand, en of `/inloggen` antwoordt.
+   de exacte beveiligingsheaders op `/` en op een vast bestand, of `/inloggen` antwoordt, en of `/mijn` een bezoeker
+   zonder sessie doorstuurt naar `/inloggen`. Dat laatste lukt alleen als de Worker Supabase kan bereiken;
+   `/inloggen` zelf toont het formulier ook zonder Supabase-gegevens.
 
 De **browsertests** (`npm run test:e2e`) draaien tegen dezelfde build in workerd, de runtime van Cloudflare
 (`wrangler dev`), en niet tegen `next start`. Zo test de poort wat er online gaat. Alle browsertests slagen daar,
@@ -57,7 +59,15 @@ niet, maar `npm audit` blokkeert terecht. 10.5.0 is dezelfde hoofdversie met de 
 | Meting | Uitkomst | Drempel |
 |---|---|---|
 | Bundelgrootte (`wrangler deploy --dry-run`) | 4668 KiB, gecomprimeerd 970 KiB | Gratis plan: 3 MiB gecomprimeerd volgens OpenNext |
-| Rekentijd per aanvraag | Nog te meten na de eerste uitrol (dashboard, Workers, `ledenplatform`, Metrics, CPU time) | Gratis plan: 10 ms |
+| Rekentijd per aanvraag (CPU) | **P50 198 ms, P90 472 ms, P99 506 ms** (28-10-2026, dashboard, Metrics, 24 uur, ±53 aanroepen) | Gratis plan: 10 ms |
+| Totale tijd per aanvraag (wall) | P50 209 ms. Van buiten, 30 aanvragen achter elkaar op `/inloggen`: mediaan 188 ms tot de eerste byte, dus niet alleen een koude start | — |
+| Geheugen | P50 18 MB | 128 MB |
+| Fouten, waaronder "Exceeded CPU Time Limits" | 0 | — |
+
+**Uitkomst rekentijd.** De app gebruikt ongeveer 20 keer de 10 ms van het gratis plan; Next.js met inloggen kost per
+aanvraag zoveel rekenwerk. Toch gaf Cloudflare nog geen enkele fout. Volgens `Bouwbesluiten` 3.1 is het betaalde
+Workers-plan ($5 per maand) dus nodig; zie daar het besluit. Houd tot dan in Metrics de grafiek *Errors by invocation
+status* in de gaten: verschijnt "Exceeded CPU Time Limits", dan direct overstappen.
 
 ## Eenmalig instellen
 
@@ -70,20 +80,24 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
    - Permissions: **Account, Workers Scripts, Edit**. Meer niet.
    - Account Resources: alleen dit account. Geen zones.
    - TTL: een einddatum, bijvoorbeeld het einde van de stage.
-   - Faalt de eerste uitrol met een fout over rechten (code 10000 of "Authentication error"), voeg dan
-     **Account, Account Settings, Read** toe en niets anders. Leg vast wat nodig bleek.
+   - Dit was genoeg voor de eerste uitrol (28-10-2026). Faalt een uitrol later toch met een fout over rechten
+     (code 10000 of "Authentication error"), voeg dan alleen **Account, Account Settings, Read** toe.
 3. **GitHub, omgeving `ontwikkel`** (Settings, Environments), bij *Deployment branches* alleen `main`:
    - geheim `CLOUDFLARE_API_TOKEN`: het token uit stap 2;
    - variabele `CLOUDFLARE_ACCOUNT_ID`: het account-ID (staat in de adresbalk van het dashboard);
    - variabele `SITE_URL`: het adres uit stap 1, zonder `/` aan het eind.
 4. **Samenvoegen** van de pull request. De workflow `uitrol` zet de Worker online. De eerste keer is de controle
-   op `/inloggen` rood, want de Worker heeft nog geen Supabase-gegevens: ga door met stap 5.
+   op `/mijn` rood, want de Worker heeft nog geen Supabase-gegevens: ga door met stap 5.
 5. **Geheimen van de Worker** (dashboard, Workers, `ledenplatform`, Settings, Variables and Secrets): `SUPABASE_URL`,
    `SUPABASE_PUBLISHABLE_KEY` (van het project `ledenplatform-ontwikkel`) en `SITE_URL` (zelfde als in stap 3).
    **Kies het type *Secret*, niet *Text*.** Een uitrol haalt waarden van het type *Text* die alleen in het
    dashboard staan weer weg; geheimen blijven staan. Met *Text* breekt de volgende uitrol het inloggen.
-6. **Supabase online** zoals in `docs/bouw/Inloggen.md`: aanmelden uit, Site URL en Redirect URL op het adres van
-   stap 1, de mailtekst met `token_hash`.
+   Waar vind je de waarden: Supabase, het project, knop **Connect**, tabblad *.env.local*. Neem alleen de waarden
+   over; de namen daar beginnen met `NEXT_PUBLIC_`, en die gebruikt deze app bewust niet (alles met `NEXT_PUBLIC_`
+   gaat mee naar de browser). Neem de *publishable key* (`sb_publishable_…`), nooit de *secret key*.
+6. **Supabase online**, met de mailserver (Resend) eerst: zie `docs/bouw/Inloggen.md`, "Online instellen". Zonder
+   eigen mailserver laat Supabase de mailtekst niet aanpassen, en zonder de eigen tekst (met `token_hash`) werkt
+   inloggen niet.
 7. **Opnieuw uitrollen:** Actions, `uitrol`, de laatste run, **Re-run all jobs**. Groen = de nieuwe versie antwoordt
    met de headers en `/inloggen` werkt.
 8. **Met de hand:** inloggen met een verzonnen testlid, met de link geopend op een telefoon (proefroute 2 en

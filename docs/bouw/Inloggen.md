@@ -34,14 +34,26 @@ Dit bestand legt vast hoe dat werkt, waarom zo, en wat online nog moet worden in
 
 ## Online instellen (na stap E, in het Supabase-dashboard of met `supabase config push`; zie `docs/hosting.md`)
 
-`supabase/config.toml` geldt alleen lokaal. In het online project moet hetzelfde staan:
+`supabase/config.toml` geldt alleen lokaal. In het online project moet hetzelfde staan. Zo ingesteld op
+28-10-2026; inloggen werkte daarna online.
 
-- Authentication → Sign In / Providers: **nieuwe aanmeldingen uit** (`enable_signup = false`).
-- URL Configuration: Site URL = het adres op Workers; Redirect URLs = precies `<site>/auth/bevestigen`.
-- Email Templates → Magic Link: de tekst uit `supabase/templates/inloglink.html` (de link met `token_hash`).
-- SMTP: Resend (bouwgids 2). Zonder eigen SMTP stuurt Supabase maar een paar mails per uur.
-- De standaardgrenzen voor aantallen (rate limits) laten staan; de hoge waarden in `config.toml` zijn voor de
-  browsertests.
+1. **Authentication → Sign In / Providers:** *Allow new users to sign up* **uit** (`enable_signup = false` onder
+   `[auth]`). De provider **Email** zelf blijft aan, anders werkt inloggen per mail niet.
+2. **URL Configuration:** Site URL = het adres op Workers; Redirect URLs = precies `<site>/auth/bevestigen`.
+3. **Mailserver (SMTP), vóór de mailtekst.** Zonder eigen SMTP laat Supabase de mailtekst niet aanpassen (gezien
+   28-10-2026: "Set up custom SMTP to edit templates"), en de standaardmail gebruikt een link via Supabase die
+   `/auth/bevestigen` niet kent en die een linkscanner opmaakt. Dus eerst Resend (bouwgids 2):
+   - Resend: een API-sleutel met alleen *Sending access*.
+   - Supabase, Authentication → Emails → *Set up SMTP*: host `smtp.resend.com`, poort `465`, gebruiker `resend`,
+     wachtwoord = die sleutel, afzendernaam `Ledenplatform`.
+   - **Zonder eigen domein** is de afzender het testadres dat Resend zelf aanbiedt (`onboarding` op het domein
+     `resend.dev`), en stuurt Resend alleen naar het adres van het Resend-account. Genoeg voor de proef (de bouwer logt in als zichzelf), niet voor de pilot: dan een domein van
+     de vereniging, geverifieerd in Resend, en een afzender op dat domein.
+4. **Emails → Templates → Magic Link:** onderwerp `Je inloglink voor het ledenplatform`, tekst uit
+   `supabase/templates/inloglink.html` (de link met `token_hash`).
+5. **Users:** één testaccount, het eigen adres van de bouwer (zie 3). Er staan geen gegevens van leden in.
+6. De standaardgrenzen voor aantallen (rate limits) laten staan; de hoge waarden in `config.toml` zijn voor de
+   browsertests.
 
 ## Lokaal proberen
 
