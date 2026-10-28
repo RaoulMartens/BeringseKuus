@@ -37,7 +37,7 @@ const VERPLICHTE_STAPPEN = [
   'npm run controle:omwegen',
   'npm run test',
   'npm run test:db',
-  'npm run build',
+  'npm run build:worker',
   'npm run test:e2e',
   'npm run controle:overgeslagen',
 ];
@@ -94,6 +94,9 @@ export function controleerScripts(pakket: unknown): string[] {
   }
   if (tekst('test:e2e').trim() !== 'playwright test')
     problemen.push('package.json: test:e2e moet "playwright test" zijn');
+  // De browsertests draaien tegen deze build; een andere build hier zou iets anders testen dan wat online gaat.
+  if (tekst('build:worker').trim() !== 'opennextjs-cloudflare build')
+    problemen.push('package.json: build:worker moet "opennextjs-cloudflare build" zijn');
   return problemen;
 }
 

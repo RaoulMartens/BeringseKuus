@@ -34,8 +34,9 @@ npm run check   # alles: de poort en de controle op de publieke repository
 
 Wat erin zit: types (strict, alle code is TypeScript), ESLint met typebewuste regels (0 waarschuwingen, uitzetten
 met commentaar kan niet), Prettier, een controle dat de poort zelf niet is verzwakt, een controle op omwegen
-(`eslint-disable`, `@ts-ignore`, `.only`, `.skip`), unittests, de productiebuild, browsertests op 1200 en 375 px
-met axe, zichtbare focus en de beveiligingsheaders, een controle dat geen enkele test is overgeslagen, en de
+(`eslint-disable`, `@ts-ignore`, `.only`, `.skip`), unittests, de productiebuild voor Cloudflare Workers,
+browsertests op 1200 en 375 px tegen die build in workerd (axe, zichtbare focus, de beveiligingsheaders, inloggen),
+een controle dat geen enkele test is overgeslagen, en de
 controle op wat niet in een publieke repository hoort. In GitHub komt daar `npm audit` (hoog of kritiek
 blokkeert) bij.
 
@@ -45,4 +46,15 @@ is, is openbaar.
 `main` is beschermd: elke wijziging gaat via een branch en een pull request, ook voor de beheerder.
 
 De database (Supabase) draait lokaal in Docker; `npm run test:db` zet hem schoon op uit de migraties en draait
-de databasetests. Inloggen (stap D2) en uitrollen naar Cloudflare Workers (stap E) volgen.
+de databasetests. Inloggen werkt met een link per mail (`docs/bouw/Inloggen.md`).
+
+## Uitrollen
+
+De app draait op Cloudflare Workers met de OpenNext-adapter. Uitrollen gebeurt alleen door GitHub Actions
+(workflow `uitrol`), vanaf `main` en pas nadat `check` op die commit groen is. Lokaal de Worker proberen:
+
+```bash
+npm run env:lokaal && npm run build:worker && npm run preview:worker   # http://127.0.0.1:8787
+```
+
+Versies, keuzes, metingen en wat je eenmalig instelt bij Cloudflare en GitHub: `docs/hosting.md`.

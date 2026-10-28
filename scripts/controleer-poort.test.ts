@@ -73,6 +73,11 @@ describe('package.json', () => {
     assert.notDeepEqual(controleerScripts(met({ 'check:basis': zacht })), []);
   });
 
+  it('faalt als build:worker niet de OpenNext-build is', () => {
+    assert.notDeepEqual(controleerScripts(met({ 'build:worker': 'next build' })), []);
+    assert.notDeepEqual(controleerScripts(met({ 'build:worker': 'true' })), []);
+  });
+
   it('faalt als lint waarschuwingen toelaat of controle:repo uit check verdwijnt', () => {
     assert.notDeepEqual(controleerScripts(met({ lint: 'eslint .' })), []);
     assert.notDeepEqual(controleerScripts(met({ check: 'npm run check:basis' })), []);

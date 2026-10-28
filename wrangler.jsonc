@@ -1,0 +1,21 @@
+// De Worker op Cloudflare (fase 0 stap E, Bouwbesluiten 3.1). OpenNext zet de Next-build om naar .open-next/;
+// wrangler rolt die uit. Uitleg per keuze: docs/hosting.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ledenplatform",
+  "main": ".open-next/worker.js",
+  // Gelijk aan de workerd-versie die bij wrangler hoort; bij een update van wrangler bewust meeschuiven.
+  "compatibility_date": "2026-10-23",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  // Geen Workers Logs: het log bewaart de volledige URL van elke aanvraag, en de inloglink en straks de
+  // agenda-feed hebben een token in de URL (bouwgids 7.4). De rekentijd staat ook zonder logs in de metrics.
+  "observability": {
+    "enabled": false,
+  },
+  // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY en SITE_URL staan als geheim bij Cloudflare (wrangler secret put),
+  // niet hier: deze repository is publiek en per omgeving verschillen ze.
+}
