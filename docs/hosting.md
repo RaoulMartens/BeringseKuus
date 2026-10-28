@@ -134,7 +134,8 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
     *previous* is het oude gedeelde geheim (HS256), dat alleen nog oudere tokens controleert. Lokaal is het nog
     HS256, dus de tests doen per pagina één aanroep meer dan online. Later bekijken: lokaal ook ECC, en of de oude
     sleutel kan worden ingetrokken (eerst nagaan dat niets hem nog gebruikt).
-11. **Agenda-feed (proefroute 1).**
+11. **Agenda-feed (proefroute 1).** **Gedaan 28-10-2026:** eigen token gezet, op een iPhone geabonneerd via "Voeg
+    agenda-abonnement toe" (niet CalDAV); de afspraak staat in de agenda.
     - **Token maken:** `openssl rand -hex 32` in de Ubuntu-terminal (64 tekens). Gebruik nooit het testtoken uit
       `scripts/agenda-testtoken.ts`: dat staat in de publieke repository, en de controle na de uitrol wordt rood als
       het online werkt. Zet het als geheim `PROEF_AGENDA_TOKEN` bij de Worker, type *Secret*, zoals in stap 5, en
@@ -156,7 +157,10 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       de Metrics van die minuut af.
     - **Token gelekt:** zet een nieuw token als geheim (het oude adres werkt dan meteen niet meer) en maak de
       abonnementen opnieuw. **Proef klaar:** verwijder het geheim; de feed geeft dan voor elk token een 404.
-12. **Geplande taak (proefroute 3).** De taak draait in een eigen Worker, `ledenplatform-taken` (`taken/`), niet
+12. **Geplande taak (proefroute 3).** **Gedaan 28-10-2026:** migraties met `db push`, eigen secret key, vijf
+    geheimen bij de taken-Worker; elke minuut één rij `gelukt`, precies één testbericht, de gedwongen fout gaf een
+    rij `mislukt`. Daarna stilgezet met `"crons": []`; de geheimen staan er nog (voor fase 7 of een nieuwe proef).
+    De taak draait in een eigen Worker, `ledenplatform-taken` (`taken/`), niet
     in de app: alleen die krijgt de geheime sleutel van Supabase. Cloudflare start hem elke minuut (`triggers` in
     `taken/wrangler.jsonc`). Hij schrijft per minuut de uitkomst in `proef_taak` en verstuurt hooguit één keer een
     testbericht. De Worker heeft geen adres; niemand kan hem van buiten aanroepen.
@@ -168,9 +172,10 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       1. `npx supabase login` (opent de browser; inloggen met je Supabase-account).
       2. `npx supabase link --project-ref <ref>`: de *ref* is het stuk tussen `https://` en `.supabase.co` van je
          project-URL. Hij vraagt het databasewachtwoord (in je wachtwoordmanager).
-      3. `npx supabase db push --dry-run`: toont welke migraties hij zou uitvoeren. Controleer dat het precies de
+      3. `npx supabase db push --linked --dry-run`: toont welke migraties hij zou uitvoeren. Controleer dat het precies de
          bestanden uit `supabase/migrations/` zijn die nog niet online staan, en niets anders.
-      4. `npx supabase db push`, en bevestig met `y`.
+      4. `npx supabase db push --linked`, en bevestig met `y`. (Zonder `--linked` kiest een volgende versie van de
+         CLI de lokale database.)
       5. Controleer in Supabase: Table Editor (bij `proef_taak` en `proef_taak_bericht` staat het slotje: RLS aan),
          en Advisors, Security Advisor. "RLS enabled, no policy" op deze twee tabellen is verwacht (niemand anders
          mag erbij); andere meldingen niet.
@@ -178,7 +183,7 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       Worker (niet bij `ledenplatform`) de geheimen, type *Secret*:
       - `SUPABASE_URL`: dezelfde project-URL als bij de app.
       - `SUPABASE_SECRET_KEY`: maak in Supabase (Project Settings, API Keys) een **nieuwe, eigen** secret key voor
-        deze taak, met een herkenbare naam zoals `proef-taak`. Die gaat om alle rechten heen; gebruik hem nergens
+        deze taak, met een herkenbare naam zoals `proef_taak` (alleen kleine letters, cijfers en `_`). Die gaat om alle rechten heen; gebruik hem nergens
         anders, en zet hem nooit bij de app-Worker.
       - Voor het testbericht (mag ook weg; dan draait de taak zonder bericht): `RESEND_API_KEY` (een eigen sleutel
         met *Sending access*), `RESEND_AFZENDER` (zonder eigen domein het testadres van Resend, `onboarding` op
@@ -196,7 +201,7 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       Resend-sleutel) en verwijder die ene rij in de Table Editor; de volgende run probeert het opnieuw, zonder dubbel
       bericht (vaste Idempotency-Key bij Resend).
     - **Proef klaar:** zet in `taken/wrangler.jsonc` `"crons": []` (pull request; het `triggers`-blok weghalen laat de
-      bestaande trigger staan). Verwijder de geheimen bij `ledenplatform-taken` en de secret key `proef-taak` in
+      bestaande trigger staan). Verwijder de geheimen bij `ledenplatform-taken` en de secret key `proef_taak` in
       Supabase. De tabellen mogen weg in fase 1 (met een migratie).
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier

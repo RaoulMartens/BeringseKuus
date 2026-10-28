@@ -188,7 +188,8 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
   middernacht; de browsertests op de Worker in workerd slagen. `Cache-Control`: de agenda (200) houdt
   `private, no-store` zoals gezet; alleen de 404 maakt Next.js strenger (`private, no-cache, no-store, …`). Alleen
   over https (behalve op de eigen computer). Review: `docs/bouw/Review-PR11` in de stage-map, 10 punten verwerkt.
-  Online te bevestigen: `docs/hosting.md` stap 11 (abonneren op een telefoon) en de rekentijd.
+  **Online geslaagd (28-10-2026):** op een iPhone geabonneerd; de afspraak staat in de agenda, met de juiste
+  tijden. Nog te meten: de rekentijd.
 - **Voor de echte feed in fase 1** (uit de review van PR 11):
   - de UID afleiden van `activiteiten.id` (uuid), zonder naam of datum: anders staat een verschoven activiteit
     dubbel in de agenda; `SEQUENCE` en `LAST-MODIFIED` toevoegen (Bouwbesluiten 5.4);
@@ -224,8 +225,9 @@ Elke route is wegwerpcode onder `/proef/`, met een test, en wordt na de beslissi
   Worker krijgt de geheime sleutel (review PR12-01). De minuut is de sleutel in `proef_taak`, met de uitkomst van de
   laatste poging; het testbericht wordt eerst geclaimd, dan verstuurd, en krijgt een status. Lokaal bewezen in workerd
   (`/__scheduled` twee keer: één rij), met databasetests en unittests (ook de gedwongen fout en de aanroepen naar
-  Supabase en Resend). Review: `docs/bouw/Review-PR12` in de stage-map. Online te bevestigen: `docs/hosting.md`
-  stap 12.
+  Supabase en Resend). Review: `docs/bouw/Review-PR12` in de stage-map. **Online geslaagd (28-10-2026):** elke minuut één
+  rij, geen dubbele; precies één testbericht; de gedwongen fout liet een rij `mislukt` achter. Daarna stilgezet
+  (`"crons": []`).
 - **Voor fase 7** (uit de review van PR 12): een dagmelding rekent met een dag in `Europe/Amsterdam`, met een sleutel
   per lid per dag; per bericht een rij met status, poging en fout, en de claim en statuswissel in een
   databasefunctie; een Idempotency-Key per bericht bij Resend. Cloudflare belooft geen "precies één keer": ontwerp op
