@@ -1,5 +1,5 @@
 // Controle na de uitrol (workflow uitrol, review PR8-07): antwoordt de nieuwe versie, met precies de
-// beveiligingsheaders, ook bij een vast bestand?
+// beveiligingsheaders, ook bij een vast bestand, en kan de Worker Supabase bereiken?
 //
 // Eerst wachten tot /BUILD_ID gelijk is aan de build die net is uitgerold; anders zou de controle nog de vorige
 // versie kunnen keuren. Let op: de nieuwe versie staat dan al online. Rood betekent "online en niet in orde":
@@ -64,6 +64,16 @@ export async function controleerOnline(
 
   const inloggen = await ophalen(`${site}/inloggen`);
   if (inloggen.status !== 200) problemen.push(`/inloggen: status ${inloggen.status}`);
+
+  // /inloggen toont het formulier ook zonder Supabase. /mijn vraagt Supabase wie er is ingelogd en stuurt een
+  // bezoeker zonder sessie door: alleen dan weten we dat de Worker zijn Supabase-gegevens heeft.
+  // Next.js stuurt een relatief adres (location: /inloggen); lees het als adres op deze site.
+  const mijn = await ophalen(`${site}/mijn`);
+  const naar = new URL(mijn.headers.get('location') ?? '', `${site}/`).href;
+  if (mijn.status !== 307 || naar !== `${site}/inloggen`)
+    problemen.push(
+      `/mijn: stuurt niet door naar /inloggen (status ${mijn.status}); kloppen de Supabase-gegevens?`,
+    );
 
   const vast = vindVastBestand(await start.text());
   if (vast === undefined) {

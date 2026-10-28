@@ -11,13 +11,19 @@ const GOED = Object.fromEntries(beveiligingsheaders('production').map(({ key, va
 const HTML = '<script src="/_next/static/chunks/main-abc.js"></script>';
 
 /** Een nep-site: per pad een antwoord. Het BUILD_ID kan per aanroep verschillen (oude en nieuwe versie). */
-function site(opties: { buildIds?: string[]; vastHeaders?: Record<string, string> } = {}): Ophalen {
+function site(
+  opties: { buildIds?: string[]; vastHeaders?: Record<string, string>; mijn?: () => Response } = {},
+): Ophalen {
   const buildIds = [...(opties.buildIds ?? ['nieuw'])];
   return (url: string) => {
     const pad = url.slice(SITE.length);
     if (pad === '/BUILD_ID') return Promise.resolve(new Response(buildIds.shift() ?? 'nieuw'));
     if (pad === '/') return Promise.resolve(new Response(HTML, { headers: GOED }));
     if (pad === '/inloggen') return Promise.resolve(new Response('', { headers: GOED }));
+    if (pad === '/mijn')
+      return Promise.resolve(
+        opties.mijn?.() ?? new Response('', { status: 307, headers: { Location: '/inloggen' } }),
+      );
     if (pad.startsWith('/_next/static/'))
       return Promise.resolve(new Response('', { headers: opties.vastHeaders ?? GOED }));
     return Promise.resolve(new Response('', { status: 404 }));
@@ -43,6 +49,16 @@ describe('controleer-online', () => {
 
   it('faalt als een vast bestand de headers mist (review PR8-04)', async () => {
     assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', site({ vastHeaders: {} }), 0), []);
+  });
+
+  // /inloggen werkt ook zonder Supabase-gegevens; /mijn niet (gezien bij de eerste uitrol, 28-10-2026).
+  it('faalt als /mijn niet doorstuurt naar /inloggen, bijvoorbeeld zonder Supabase-gegevens', async () => {
+    const zonderSupabase = site({ mijn: () => new Response('', { status: 500 }) });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', zonderSupabase, 0), []);
+    const elders = site({
+      mijn: () => new Response('', { status: 307, headers: { Location: 'https://elders.invalid/' } }),
+    });
+    assert.notDeepEqual(await controleerOnline(SITE, 'nieuw', elders, 0), []);
   });
 
   it('keurt een header af die er wel is maar een andere waarde heeft', () => {
