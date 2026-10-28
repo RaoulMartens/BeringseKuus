@@ -20,7 +20,9 @@ export function contentSecurityPolicy(omgeving: Omgeving, nonce: string): string
     // 'strict-dynamic': een script met de nonce mag de scripts laden die het zelf nodig heeft. Next.js in
     // ontwikkeling gebruikt eval voor snel herladen; in productie niet.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${ontwikkeling ? " 'unsafe-eval'" : ''}`,
-    // Stijlen houden 'unsafe-inline': een nonce werkt niet voor style-attributen, en een stijl voert geen code uit.
+    // Stijlen houden 'unsafe-inline': een nonce werkt niet voor style-attributen. Een stijl voert geen code uit, maar
+    // CSS kan wel gegevens lekken via url() of lettertypen; dat kan hier niet omdat img-src, font-src en connect-src
+    // alleen de eigen site toestaan. Verruim die dus niet zonder dit opnieuw te bekijken (review PR10-11).
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
@@ -34,9 +36,9 @@ export function contentSecurityPolicy(omgeving: Omgeving, nonce: string): string
   return bronnen.join('; ');
 }
 
-/** Een nonce per aanvraag: 128 willekeurige bits, base64. */
+/** Een nonce per aanvraag: 16 willekeurige bytes (128 bits, de ondergrens uit de CSP-specificatie), base64. */
 export function nieuweNonce(): string {
-  return btoa(crypto.randomUUID());
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
 }
 
 /** Alle headers behalve de CSP; die verschilt per aanvraag. */

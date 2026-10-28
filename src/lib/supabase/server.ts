@@ -10,9 +10,12 @@ import { cookies } from 'next/headers';
 
 import { verplicht } from '@/lib/omgeving';
 
+import { cookieOpties } from './cookies';
+
 export async function maakSupabase() {
   const winkel = await cookies();
   return createServerClient(verplicht('SUPABASE_URL'), verplicht('SUPABASE_PUBLISHABLE_KEY'), {
+    cookieOptions: cookieOpties,
     cookies: {
       getAll() {
         return winkel.getAll();

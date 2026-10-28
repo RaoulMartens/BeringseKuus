@@ -1,4 +1,4 @@
-// De middleware draait vóór elke pagina (proefroute 2, docs/hosting.md). Twee taken:
+// De middleware draait vóór elke aanvraag die bij de Worker komt (proefroute 2, docs/hosting.md). Twee taken:
 //
 // Bewust middleware.ts met de edge-runtime, niet proxy.ts (Bouwbesluiten 3.1, 28-10-2026). Next.js 16 noemt
 // middleware "deprecated" en geeft bij de build een waarschuwing; proxy.ts draait altijd in de Node-runtime, en
@@ -14,9 +14,13 @@ import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { contentSecurityPolicy, nieuweNonce } from '@/lib/beveiligingsheaders';
-import { verplicht } from '@/lib/omgeving';
+import { cookieOpties } from '@/lib/supabase/cookies';
 
 const omgeving = process.env.NODE_ENV === 'development' ? 'development' : 'production';
+
+// Langer wacht een pagina niet op Supabase. Zonder grens probeert Supabase bij een storing tot 30 seconden opnieuw,
+// en dan hangt elke pagina zo lang, ook /inloggen (review PR10-03).
+const MAXIMAAL_WACHTEN_MS = 3000;
 
 /** Laat de aanvraag door naar de pagina, met de CSP in de aanvraag (voor Next.js) en in het antwoord. */
 function doorNaarPagina(request: NextRequest, csp: string): NextResponse {
@@ -27,40 +31,52 @@ function doorNaarPagina(request: NextRequest, csp: string): NextResponse {
   return antwoord;
 }
 
+/** Wacht op de belofte, maar nooit langer dan de grens; een fout telt als "niet ververst". */
+async function hooguit(ms: number, belofte: Promise<unknown>): Promise<void> {
+  let klok: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    belofte.catch(() => undefined),
+    new Promise((klaar) => {
+      klok = setTimeout(klaar, ms);
+    }),
+  ]);
+  clearTimeout(klok);
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const csp = contentSecurityPolicy(omgeving, nieuweNonce());
   let antwoord = doorNaarPagina(request, csp);
 
+  // Een serveractie (bijvoorbeeld uitloggen) regelt zijn eigen cookies. Ververst de middleware eerst, dan komt
+  // die nieuwe sessie ná het wissen in het antwoord en blijft hij staan (review PR10-01).
+  if (request.headers.has('next-action')) return antwoord;
   // Zonder sessiecookie valt er niets te verversen; dan ook geen aanroep naar Supabase.
   if (!request.cookies.getAll().some(({ name }) => name.startsWith('sb-'))) return antwoord;
+  // Ontbreken de gegevens, dan geen fout op elke pagina: de pagina's die Supabase nodig hebben, melden het zelf.
+  const url = process.env.SUPABASE_URL;
+  const sleutel = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !sleutel) return antwoord;
 
-  const supabase = createServerClient(verplicht('SUPABASE_URL'), verplicht('SUPABASE_PUBLISHABLE_KEY'), {
+  const supabase = createServerClient(url, sleutel, {
+    cookieOptions: cookieOpties,
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(teZetten) {
+      setAll(teZetten, headers) {
         for (const { name, value } of teZetten) request.cookies.set(name, value);
         antwoord = doorNaarPagina(request, csp);
         for (const { name, value, options } of teZetten) antwoord.cookies.set(name, value, options);
+        // Een antwoord met een sessie mag nooit in een gedeelde cache komen (review PR10-09).
+        for (const [naam, waarde] of Object.entries(headers)) antwoord.headers.set(naam, waarde);
       },
     },
   });
-  // getClaims ververst een verlopen sessie en controleert het token. Wie er is ingelogd, beslist de pagina zelf.
-  await supabase.auth.getClaims();
+  // getClaims ververst een verlopen sessie. Wie er is ingelogd, beslist de pagina zelf (met getUser).
+  await hooguit(MAXIMAAL_WACHTEN_MS, supabase.auth.getClaims());
   return antwoord;
 }
 
-export const config = {
-  matcher: [
-    {
-      // Niet voor de vaste bestanden: die serveert Cloudflare zonder de Worker, met hun eigen headers.
-      source: '/((?!_next/static|_next/image|favicon.ico|BUILD_ID).*)',
-      // Niet voor het vooraf ophalen van links: dat is geen pagina die wordt getoond.
-      missing: [
-        { type: 'header', key: 'next-router-prefetch' },
-        { type: 'header', key: 'purpose', value: 'prefetch' },
-      ],
-    },
-  ],
-};
+// Geen matcher: de middleware draait bij alles wat bij de Worker komt. Bestaande vaste bestanden serveert Cloudflare
+// zonder de Worker; een bestand dat niet bestaat, wordt een 404-pagina, en ook die krijgt zo een CSP (review
+// PR10-04). Uitzonderingen in een matcher volgt OpenNext bovendien maar gedeeltelijk (review PR10-06).

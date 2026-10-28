@@ -51,10 +51,10 @@ describe('beveiligingsheaders', () => {
     expect(contentSecurityPolicy('production', 'abc')).not.toContain('ws:');
   });
 
-  it('maakt elke keer een andere nonce, lang genoeg om niet te raden', () => {
+  it('maakt elke keer een andere nonce van minstens 128 bits', () => {
     const een = nieuweNonce();
     expect(een).not.toBe(nieuweNonce());
-    expect(atob(een)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(atob(een).length).toBeGreaterThanOrEqual(16);
   });
 
   it('geeft de vaste bestanden precies deze headers (public/_headers), met een CSP die niets toestaat', () => {

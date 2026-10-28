@@ -1,5 +1,5 @@
 # Beveiligingsheaders voor de vaste bestanden (review PR8-04). Cloudflare serveert alles uit public/ en
-# /_next/static/ zonder de Worker aan te roepen; de headers uit next.config.ts en src/proxy.ts komen daar niet mee.
+# /_next/static/ zonder de Worker aan te roepen; de headers uit next.config.ts en src/middleware.ts komen daar niet mee.
 # Een vast bestand voert nooit zelf code uit, dus de CSP staat niets toe. Precies gelijk aan
 # headersVasteBestanden() in src/lib/beveiligingsheaders.ts; src/lib/beveiligingsheaders.test.ts bewaakt dat.
 /*

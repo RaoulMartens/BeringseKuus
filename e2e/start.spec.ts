@@ -56,7 +56,7 @@ test.describe('startpagina', () => {
 
   // Vaste bestanden serveert Cloudflare zonder de Worker; de headers uit next.config.ts komen daar niet mee
   // (review PR8-04). Ze krijgen hun eigen set uit public/_headers.
-  test('stuurt dezelfde beveiligingsheaders mee bij een vast bestand', async ({ request }) => {
+  test('stuurt de eigen beveiligingsheaders van vaste bestanden mee', async ({ request }) => {
     const html = await (await request.get('/')).text();
     const pad = /["'](\/_next\/static\/[^"']+\.js)["']/.exec(html)?.[1];
     expect(pad).toBeDefined();
