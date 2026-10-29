@@ -11,12 +11,10 @@
 // 3. De sessie verversen. Een verlopen sessie wordt hier vernieuwd, en de nieuwe cookie gaat zowel naar de pagina
 //    (in de aanvraag) als naar de browser (in het antwoord). Een Server Component kan dat zelf niet.
 
-import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { contentSecurityPolicy, nieuweNonce } from '@/lib/beveiligingsheaders';
-import { cookieOpties } from '@/lib/supabase/cookies';
-import type { Database } from '@/lib/supabase/database.types';
+import { maakMiddlewareSupabase } from '@/lib/supabase/middleware';
 import { veiligeVerbinding } from '@/lib/verbinding';
 
 const omgeving = process.env.NODE_ENV === 'development' ? 'development' : 'production';
@@ -47,11 +45,11 @@ async function hooguit(ms: number, belofte: Promise<unknown>): Promise<void> {
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  // 308 en niet 301: de browser herhaalt een formulier (POST) dan ook over https. De agenda-feed niet: die weigert
-  // http zelf, zodat een verkeerd ingesteld abonnement meteen faalt (review PR11-01). En niet bij `npm run dev`: dan
-  // kun je ook vanaf een telefoon op het eigen netwerk kijken (http://192.168.…:3000, review PR14-05).
-  const agenda = request.nextUrl.pathname.startsWith('/proef/agenda/');
-  if (omgeving === 'production' && !veiligeVerbinding(request.nextUrl) && !agenda) {
+  // 308 en niet 301: de browser herhaalt een formulier (POST) dan ook over https. Niet bij `npm run dev`: dan kun je
+  // ook vanaf een telefoon op het eigen netwerk kijken (http://192.168.…:3000, review PR14-05).
+  // Fase 7: de agenda-feed krijgt hier een uitzondering. Die weigert http zelf, zodat een verkeerd ingesteld
+  // abonnement meteen faalt (review PR11-01), en ververst geen sessie (review PR11-09).
+  if (omgeving === 'production' && !veiligeVerbinding(request.nextUrl)) {
     const naar = request.nextUrl.clone();
     naar.protocol = 'https:';
     naar.port = '';
@@ -64,9 +62,6 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // Een serveractie (bijvoorbeeld uitloggen) regelt zijn eigen cookies. Ververst de middleware eerst, dan komt
   // die nieuwe sessie ná het wissen in het antwoord en blijft hij staan (review PR10-01).
   if (request.headers.has('next-action')) return antwoord;
-  // De agenda-feed kent geen sessie: een agenda-app logt niet in, en een .ics hoort geen cookie te krijgen
-  // (review PR11-09).
-  if (agenda) return antwoord;
   // Zonder sessiecookie valt er niets te verversen; dan ook geen aanroep naar Supabase.
   if (!request.cookies.getAll().some(({ name }) => name.startsWith('sb-'))) return antwoord;
   // Ontbreken de gegevens, dan geen fout op elke pagina: de pagina's die Supabase nodig hebben, melden het zelf.
@@ -74,19 +69,16 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const sleutel = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !sleutel) return antwoord;
 
-  const supabase = createServerClient<Database>(url, sleutel, {
-    cookieOptions: cookieOpties,
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(teZetten, headers) {
-        for (const { name, value } of teZetten) request.cookies.set(name, value);
-        antwoord = doorNaarPagina(request, csp);
-        for (const { name, value, options } of teZetten) antwoord.cookies.set(name, value, options);
-        // Een antwoord met een sessie mag nooit in een gedeelde cache komen (review PR10-09).
-        for (const [naam, waarde] of Object.entries(headers)) antwoord.headers.set(naam, waarde);
-      },
+  const supabase = maakMiddlewareSupabase(url, sleutel, {
+    getAll() {
+      return request.cookies.getAll();
+    },
+    setAll(teZetten, headers) {
+      for (const { name, value } of teZetten) request.cookies.set(name, value);
+      antwoord = doorNaarPagina(request, csp);
+      for (const { name, value, options } of teZetten) antwoord.cookies.set(name, value, options);
+      // Een antwoord met een sessie mag nooit in een gedeelde cache komen (review PR10-09).
+      for (const [naam, waarde] of Object.entries(headers)) antwoord.headers.set(naam, waarde);
     },
   });
   // getClaims ververst een verlopen sessie. Wie er is ingelogd, beslist de pagina zelf (met getUser).

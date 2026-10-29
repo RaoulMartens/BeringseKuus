@@ -53,4 +53,30 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-argument': 'error',
     },
   },
+  {
+    // Elke Supabase-client in de app komt uit src/lib/supabase/, getypeerd met de databasetypen (bouwgids 14.2,
+    // review PR14-08). Zo kan geen client ongetypeerd ontstaan en hoeft niemand een antwoord met de hand om te zetten.
+    // Tests en scripts maken hun eigen beheerclient (met de lokale geheime sleutel) en vallen erbuiten.
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: ['src/lib/supabase/**', 'src/**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@supabase/ssr',
+              importNames: ['createServerClient', 'createBrowserClient'],
+              message: 'Maak een Supabase-client alleen in src/lib/supabase/ (getypeerd met Database).',
+            },
+            {
+              name: '@supabase/supabase-js',
+              importNames: ['createClient'],
+              message: 'Maak een Supabase-client alleen in src/lib/supabase/ (getypeerd met Database).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);

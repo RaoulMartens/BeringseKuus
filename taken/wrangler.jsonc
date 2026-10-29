@@ -1,4 +1,4 @@
-// De taken-Worker: alleen geplande taken, zonder de Next-app (proefroute 3, Bouwbesluiten 3.1). Uitleg per keuze:
+// De taken-Worker: alleen geplande taken, zonder de Next-app (Bouwbesluiten 3.1). Nu zonder taken (fase 7). Uitleg:
 // docs/hosting.md. Wordt uitgerold met `wrangler deploy -c taken/wrangler.jsonc` (workflow uitrol).
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
@@ -10,9 +10,8 @@
   // de triggers.
   "workers_dev": false,
   "preview_urls": false,
-  // Geen geplande runs: de proef is geslaagd (28-10-2026, docs/hosting.md stap 12) en elke run kost rekentijd en
-  // schrijft een rij. Bewust een lege lijst en niet het blok weghalen: een uitrol zonder triggers laat de bestaande
-  // staan (review PR12-12). Opnieuw proberen of in fase 7: hier weer een schema zetten, bijvoorbeeld "* * * * *".
+  // Geen geplande runs: er zijn nog geen taken (de proef van fase 0 is weg). Bewust een lege lijst en niet het blok
+  // weghalen: een uitrol zonder triggers laat de bestaande staan (review PR12-12). In fase 7 hier een schema zetten.
   "triggers": {
     "crons": [],
   },
@@ -21,6 +20,6 @@
   "observability": {
     "enabled": true,
   },
-  // SUPABASE_URL, SUPABASE_SECRET_KEY, RESEND_API_KEY, RESEND_AFZENDER en PROEF_TAAK_ONTVANGER staan als geheim bij
-  // deze Worker (docs/hosting.md stap 12), niet hier en niet bij de app-Worker.
+  // Geen geheimen nu (verwijderd 29-10-2026). In fase 7 komen SUPABASE_URL, SUPABASE_SECRET_KEY en de
+  // Resend-gegevens als geheim bij déze Worker, niet hier en niet bij de app-Worker (docs/hosting.md, Geheimen).
 }

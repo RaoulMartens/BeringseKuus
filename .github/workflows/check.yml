@@ -62,6 +62,18 @@ jobs:
       - name: Browser voor de browsertests
         run: npx playwright install --with-deps chromium
 
+      # De lokale Supabase vooraf starten, met maximaal drie pogingen. Het ophalen van de images faalt soms op een
+      # limiet van de registry ("toomanyrequests", 29-10-2026); dat zegt niets over de code. check:basis start hem
+      # daarna opnieuw (doet dan niets) en zet de database schoon op.
+      - name: Lokale Supabase starten (herhaalt bij een limiet)
+        run: |
+          for poging in 1 2 3; do
+            npm run supabase:start && exit 0
+            echo "Poging $poging mislukt; over 60 seconden opnieuw."
+            sleep 60
+          done
+          exit 1
+
       # Deze stap krijgt de namenlijst niet.
       - name: De poort (npm run check:basis)
         run: npm run check:basis

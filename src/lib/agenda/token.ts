@@ -1,5 +1,6 @@
 // Het geheime token in de URL van de agenda-feed (bouwgids 4.7). Een agenda-app kan niet inloggen, dus het token
 // is de toegang. Daarom: een vaste vorm, en vergelijken zonder dat de duur verraadt hoeveel tekens klopten.
+// Bewust bewaard na de proef (Fase-1-plan stap A), voor de echte feed in fase 7; tot dan gebruiken alleen de tests het.
 
 const VORM = /^[A-Za-z0-9_-]{32,128}$/;
 

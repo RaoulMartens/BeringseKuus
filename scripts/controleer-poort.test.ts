@@ -11,6 +11,7 @@ import {
   controleerPoort,
   controleerScripts,
   controleerTestinstellingen,
+  controleerApiSchemas,
   controleerCompatibiliteitsdatum,
   controleerTsconfig,
   controleerUitrol,
@@ -226,6 +227,16 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
     assert.deepEqual(controleerUitrolBestanden(online, bestanden, ['scripts/controleer-online.ts']), []);
   });
 
+  it('eist dat de Data API alleen public en graphql_public bereikbaar maakt (review PR14-02)', () => {
+    const config = lees('supabase/config.toml');
+    assert.deepEqual(controleerApiSchemas(config), []);
+    const extra = config.replace(
+      'schemas = ["public", "graphql_public"]',
+      'schemas = ["public", "graphql_public", "beheer"]',
+    );
+    assert.notDeepEqual(controleerApiSchemas(extra), []);
+  });
+
   it('eist dezelfde compatibility_date in beide Workers (review F0-19)', () => {
     assert.deepEqual(
       controleerCompatibiliteitsdatum(lees('wrangler.jsonc'), lees('taken/wrangler.jsonc')),
@@ -317,7 +328,7 @@ describe('testinstellingen', () => {
 
 describe('ESLint keurt de foute voorbeelden af (review PR1-03 en PR1-04)', () => {
   it(
-    'geeft op deze repository geen problemen, dus de drie voorbeelden worden afgekeurd',
+    'geeft op deze repository geen problemen, dus de foute voorbeelden worden afgekeurd',
     { timeout: 120000 },
     async () => {
       assert.deepEqual(await controleerEslint(ROOT), []);

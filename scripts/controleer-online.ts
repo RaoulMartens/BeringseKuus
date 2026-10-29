@@ -21,7 +21,6 @@ import {
   headersVasteBestanden,
   vasteHeaders,
 } from '../src/lib/beveiligingsheaders.ts';
-import { TEST_AGENDA_TOKEN } from './agenda-testtoken.ts';
 
 export type Ophalen = (url: string) => Promise<Response>;
 
@@ -125,21 +124,7 @@ export async function controleerOnline(
       `/mijn: stuurt niet door naar /inloggen (status ${mijn.status}); staan de Supabase-gegevens bij de Worker?`,
     );
 
-  // Proefroute 1: het testtoken uit deze publieke repository mag online nooit werken (review PR11-03). Het antwoord
-  // is het eigen kale 404 van de route (geen 404-pagina van Next.js: dan ontbreekt de route, review PR11-06), en
-  // niet te bewaren. Dat de feed met het echte token werkt, bewijst docs/hosting.md stap 11 met de hand.
-  const agenda = await ophalen(`${site}/proef/agenda/${TEST_AGENDA_TOKEN}.ics`);
-  const agendaTekst = await agenda.text();
-  if (agenda.status !== 404 || agendaTekst !== 'Niet gevonden')
-    problemen.push(
-      `/proef/agenda: het testtoken gaf status ${agenda.status} en niet het kale "Niet gevonden"`,
-    );
-  if (!(agenda.headers.get('content-type') ?? '').startsWith('text/plain'))
-    problemen.push('/proef/agenda: het antwoord is geen text/plain (ontbreekt de route?)');
-  if (!/\bno-store\b/.test(agenda.headers.get('cache-control') ?? ''))
-    problemen.push('/proef/agenda: het antwoord mag bewaard worden (geen no-store)');
-
-  // Proefroute 3: de geplande taak is online niet van buiten te starten (/__scheduled bestaat alleen in wrangler dev).
+  // Een geplande taak is online niet van buiten te starten (/__scheduled bestaat alleen in wrangler dev).
   const taak = await ophalen(`${site}/__scheduled?cron=*+*+*+*+*`);
   if (taak.status !== 404)
     problemen.push(`/__scheduled: status ${taak.status}; de taak is van buiten te starten`);

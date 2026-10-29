@@ -87,13 +87,18 @@ select is_empty(
   'anon en authenticated schrijven nergens rechtstreeks in public'
 );
 
--- Een materialized view of foreign table kent geen rechten per rij: wie hem mag lezen, leest alles.
+-- Ingelogd leest alleen tabellen en views die daar bewust voor op de lijst staan, met de reden (review PR14-02). Elke
+-- tabel op de lijst heeft rechten per rij; wat een lid daarvan ziet, toetsen de tests per tabel en per rol (14.4).
+-- Een materialized view of foreign table kent geen rechten per rij en komt nooit op de lijst.
+-- Bewust toegestaan: nog niets.
 select is_empty(
   $$ select c.oid::regclass::text
        from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and c.relkind in ('m', 'f')
-        and has_any_column_privilege('authenticated', c.oid, 'select') $$,
-  'ingelogd: geen materialized view of foreign table in public leesbaar'
+      where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'f')
+        and (has_table_privilege('authenticated', c.oid, 'select')
+          or has_any_column_privilege('authenticated', c.oid, 'select'))
+        and (c.relkind in ('m', 'f') or c.relname <> all (array[]::text[])) $$,
+  'ingelogd: alleen tabellen en views op de lijst zijn leesbaar, nooit een materialized view of foreign table'
 );
 
 -- Extensies horen in het schema extensions, nooit in public: daar zouden hun functies en tabellen via de Data API

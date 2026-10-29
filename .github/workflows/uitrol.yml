@@ -105,9 +105,7 @@ jobs:
             uitrol
             wrangler.jsonc
             taken
-            src/taken/proef-taak.ts
             scripts/controleer-online.ts
-            scripts/agenda-testtoken.ts
             src/lib/beveiligingsheaders.ts
           sparse-checkout-cone-mode: false
 

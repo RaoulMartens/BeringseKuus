@@ -1,5 +1,8 @@
 // Een agendabestand (iCalendar, RFC 5545) voor de agenda-feed (bouwgids 4.7, proefroute 1).
 //
+// Bewust bewaard na de proef (Fase-1-plan stap A): getest en gereviewd (review PR11), en nodig voor de echte feed in
+// fase 7. Tot dan gebruiken alleen de tests het.
+//
 // Agenda-apps zijn streng: regels gescheiden met CRLF, hooguit 75 bytes per regel (daarna "vouwen": CRLF plus een
 // spatie), komma, puntkomma, backslash en regeleinde in tekst ontsnapt, en tijden met een tijdzone die in het
 // bestand zelf staat (VTIMEZONE). Een vaste UID per afspraak zorgt dat een app een wijziging bijwerkt in plaats van
