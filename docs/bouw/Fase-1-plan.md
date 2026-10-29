@@ -60,6 +60,12 @@ Daarna de **verplichte review** door een schone chat (`Bouwbesluiten` 2), en het
 
 ### Stap C: migraties, tests en seed
 
+**Gedaan (PR 22, 29-10-2026):** de drie migraties van fase 1, de pgTAP-tests (173, met bewuste fouten gecontroleerd
+dat ze rood worden), de gelijktijdigheidstest (`e2e/gelijktijdig.spec.ts`, ook rood zonder de lock), de seed en de
+bijgewerkte databasetypen. Afwijkingen van het stuk: de groepen staan in een migratie, niet in de seed (het
+ontwikkelproject en de pilot krijgen de seed niet), en de gelijktijdigheidstest is een Playwright-project in plaats
+van een Vitest-test (de poort leest het rapport van Playwright al).
+
 1. De migraties uit stap B, met per tabel en functie de rechten en de negatieve tests in pgTAP, in dezelfde migratie
    als het object (`Bouwbesluiten` 4.3).
 2. De tijdfunctie met de tests rond middernacht, het deadlinemoment en de zomertijd (4.5).

@@ -418,8 +418,10 @@ gelijktijdige sessies" (bouwgids 14.5). Die is er niet, om twee redenen:
   een opzet tegen een proeftabel zou opnieuw moeten bij de eerste echte functie.
 
 **Bijgewerkt 29-10-2026 (review van het datamodel, DM-08):** de eerste functies met een rij-lock komen al in fase 1
-(`activiteit_opslaan`, `concept_verwijderen`), dus de opzet ook: één sessie houdt via `psql` in de databasecontainer de
-lock vast, de andere roept de functie aan via `supabase-js`, zonder nieuw pakket (`Datamodel-fase-1.md` punt 9).
+(`activiteit_opslaan`, `concept_verwijderen`), dus de opzet ook: twee sessies via `psql` in de databasecontainer, waarvan
+één het concept publiceert en de ander tegelijk wijzigt of verwijdert, zonder nieuw pakket (`Datamodel-fase-1.md` punt 9).
+**Gebouwd 29-10-2026** als `e2e/gelijktijdig.spec.ts` (Playwright-project `database`); bewezen dat hij rood wordt als de lock
+uit de functies wordt gehaald.
 
 **Plan (oorspronkelijk):** bij de eerste schrijffunctie met een rij-lock (fase 1 of 2) een Vitest-test die twee aanroepen tegelijk via
 de Data API van de lokale Supabase doet (`supabase-js`, dat er al is), met een vertraging in de eerste, en controleert

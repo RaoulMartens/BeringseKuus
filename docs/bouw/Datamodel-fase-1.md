@@ -264,7 +264,6 @@ heeft; nooit voor `anon` of `PUBLIC`.
 | `huidig_lid()` | `security definer`, `stable` | Het `leden.id` met `auth_user_id = auth.uid()`, `actief` en `type = 'lid'`; anders leeg (`Bouwbesluiten` 4.1). Alle regels gebruiken deze, nooit rechtstreeks `auth.uid()` |
 | `is_beheerder()` | `security definer`, `stable` | Waar als: (1) er is een `huidig_lid()`; (2) die heeft `is_admin` in `leden_prive`; (3) `auth.jwt() ->> 'aal' = 'aal2'`; (4) er is een geverifieerde MFA-factor van deze gebruiker van **vóór** `beheerder_sinds`, en er is **geen** geverifieerde factor van **ná** `beheerder_sinds` (DM-09, DM-25, zie hieronder). Intrekken van `is_admin` werkt direct, ook in een lopende sessie |
 | `lid_mag_zien(activiteit_id, lid_id)` | `security definer`, `stable` | **Onwaar als `lid_id` leeg is** (DM-20: anders ziet iemand zonder lidmaatschap elke activiteit voor iedereen). Verder: status `gepubliceerd` of `geannuleerd`, en geen `activiteit_groep`-rij of het lid zit in een van die groepen. **Zonder** uitzondering voor de beheerder (DM-03). In regels en de view als `intern.lid_mag_zien(id, (select intern.huidig_lid()))` |
-| `mag_activiteit_zien(activiteit_id)` | `security definer`, `stable` | `is_beheerder()` of `lid_mag_zien(activiteit_id, huidig_lid())`. Voor de RLS op `activiteiten`, `rol_slots`, `activiteit_groep` |
 | `aantal_aanwezigen(activiteit_id)` | `security definer`, `stable`, **geen** `execute` voor `authenticated` | Actieve leden van type `lid` in de doelgroep (iedereen, of de leden van minstens één van de groepen, elk één keer), min de afmeldingen (R1, R12, R22, V8 5.6). Voor `beheeroverzicht()` nu en `meld_af()` in fase 3 |
 
 **Tijd** (`Bouwbesluiten` 4.5, DM-05, DM-06): `immutable`, zonder definer, zonder `execute` voor `authenticated` (de
@@ -300,6 +299,13 @@ onderschept, kan zelf een factor inschrijven. Daarom:
   herstelroute bij een verloren toestel (`Bouwbesluiten` 5.2 punt 2), en een reden voor twee beheerders. Preciezer kan
   het met de factor van de sessie zelf (`auth.sessions.factor_id` via `session_id` uit de JWT); of dat werkt, gaat de
   proef van stap D na. `postgres` mag `auth.mfa_factors` lezen (lokaal nagegaan in de review).
+- **GoTrue-gedrag, lokaal nagegaan (PR 22-review):** een `aal1`-sessie kan geen tweede factor inschrijven als er al een
+  geverifieerde is (403); uitschrijven vraagt `aal2`. Gebruik daarom `created_at` van de factor, zoals `is_beheerder()` doet.
+- **`beheerder_sinds` volgt `is_admin` (PR22-08):** een trigger op `leden_prive` zet het bij het aanzetten op het moment
+  van nu en maakt het leeg bij het uitzetten. Een bij het aanmaken meegegeven waarde blijft staan (de seed zet hem lokaal
+  ver in de toekomst, zodat elke lokaal ingeschreven factor telt).
+- **`service_role`** mag geen tabel leegmaken (`truncate`) en de auditlog niet wijzigen of wissen (PR22-07); de
+  rechtentest bewaakt het voor alle tabellen in `public`.
 - **Na te gaan in stap D** (proef op de echte Worker): of de functie `auth.mfa_factors` online ook mag lezen; of
   Supabase met een `aal1`-sessie een tweede factor laat inschrijven als er al een geverifieerde is; of de factor van de
   sessie te achterhalen is; wat er met een `aal2`-sessie gebeurt als de factor wordt verwijderd.
@@ -381,10 +387,17 @@ zonder "Kies iemand…" en zonder de bak; mensen kiezen kan pas in fase 2. Het b
 
 Wie een sessie heeft maar geen actief lid is, leest uit geen van deze iets (DM-02).
 
+**Kolomrechten op `activiteiten` (PR22-13):** `authenticated` leest alle kolommen behalve `bron_activiteit_id` (dat zou het
+id van een verborgen concept verraden) en `vereniging_id`. Lees dus met een kolomlijst; de view `mijn_activiteiten` noemt
+dezelfde kolommen. De regels rekenen `is_beheerder()` en `huidig_lid()` als `(select …)` uit, één keer per query.
+
+**De check `publiceren_vereist_tijden_en_locatie`** geldt alleen voor `gepubliceerd`: een concept mag direct geannuleerd
+worden, ook zonder tijden (V8 5.4).
+
 **De lijsten in de rechtentest** (`supabase/tests/database/rechten.test.sql`): de tabellen en de view hierboven staan op
 de lijst "bewust leesbaar voor ingelogd", met deze reden; `activiteit_opslaan`, `concept_verwijderen` en
 `beheeroverzicht` op de lijst "bewust uit te voeren door ingelogd" in `public`; en de hulpfuncties die RLS nodig heeft
-(`huidig_lid`, `is_beheerder`, `lid_mag_zien`, `mag_activiteit_zien`) op dezelfde lijst voor het schema `intern`, dat de
+(`huidig_lid`, `is_beheerder`, `lid_mag_zien`) op dezelfde lijst voor het schema `intern`, dat de
 test ook gaat nalopen. Niets voor `anon`.
 
 ## 7. Foutcodes van fase 1
@@ -496,10 +509,11 @@ verwijderen dat `bron_activiteit_id` is van een ander, verandert `bijgewerkt` va
 
 **Gelijktijdig** (DM-08, DM-23, `Bouwbesluiten` 11): de eerste test met twee sessies komt in deze fase, omdat hier de
 eerste functies met een lock komen. Opzet zonder nieuw pakket: twee sessies via `psql` in de databasecontainer
-(`docker exec`), gestart vanuit een Vitest-test. Sessie B draait met `set local role authenticated` en de claims van een
+(`docker exec`), gestart vanuit een Playwright-test zonder browser (`e2e/gelijktijdig.spec.ts`, project `database`:
+de poort leest het rapport van Playwright al en één keer draaien kan zo). Sessie B draait met `set local role authenticated` en de claims van een
 beheerder (zo is er geen echte `aal2`-sessie met een TOTP-code nodig).
 - Sessie A **publiceert** het concept (status `gepubliceerd`, met tijden en locatie) in een open transactie en wacht.
-  De test wacht tot `pg_locks` de lock van A toont, niet een vaste tijd.
+  De test wacht tot `pg_stat_activity` toont dat A de slaap uitvoert (lock dan vast), niet een vaste tijd.
 - Sessie B roept `concept_verwijderen` aan. Verwacht: B wacht, en krijgt na de commit van A `BK001` /
   `alleen_concept` **uit de functie**; de activiteit bestaat nog.
 - Hetzelfde met `activiteit_opslaan` in sessie B (een veld van het concept wijzigen). Verwacht: `niet_ondersteund`;
@@ -527,8 +541,10 @@ naam en datum, ziet het met het label "concept", en verwijdert het; zonder `aal2
   programma 2026/2027 (28 regels, 32 activiteiten: de verkoop van donateurskaarten is vijf dagen) als concept met alleen
   naam en datum, zoals het programma is; een paar daarvan gepubliceerd met verzonnen tijden en locatie, zodat de
   ledenschermen iets tonen. Verzonnen leden (de namen uit het prototype) met hun `leden_prive`-rij en een account in
-  `auth.users` (zoals `npm run lid:lokaal`), één beheerder met een factor, de vier groepen, een paar afmeldingen, en de
-  vertrekplaats van de bus.
+  `auth.users` (zoals `npm run lid:lokaal`), één beheerder (een echte tweede factor stelt hij lokaal zelf in, stap D),
+  een paar afmeldingen, en de vertrekplaats van de bus. **De vier groepen staan niet in de seed maar in de migratie**
+  (net als `roltypen`): het ontwikkelproject en de pilot krijgen de seed niet en hebben de groepen wel nodig. De seed
+  heeft bewust geen doelgroepen: de tests tellen wat een lid ziet en rekenen op een seed zonder.
 - **Het ontwikkelproject online** krijgt de seed **niet** via de job `migraties` (`db push` zonder `--include-seed`).
   Wat daar nodig is voor de doorloop, zet een klein script met de geheime sleutel erin, met de hand gestart door de
   bouwer, nooit tegen het pilotproject.

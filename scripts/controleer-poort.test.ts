@@ -239,6 +239,12 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
       'schemas = ["public", "graphql_public", "beheer"]',
     );
     assert.notDeepEqual(controleerApiSchemas(extra), []);
+    const internInZoekpad = config.replace(
+      'extra_search_path = ["public", "extensions"]',
+      'extra_search_path = ["public", "extensions", "intern"]',
+    );
+    assert.notEqual(internInZoekpad, config);
+    assert.notDeepEqual(controleerApiSchemas(internInZoekpad), []);
   });
 
   it('eist dezelfde compatibility_date in beide Workers (review F0-19)', () => {
