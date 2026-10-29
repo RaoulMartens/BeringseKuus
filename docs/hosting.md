@@ -228,12 +228,17 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       fase 1, met een migratie (`docs/bouw/Afname-fase-0.md`, "Van fase 0 naar fase 1").
 13. **Migraties bij de uitrol** (besluit 29-10-2026, `Bouwbesluiten` 3.1). Vóór het samenvoegen van de pull request
     die de job `migraties` toevoegt, één keer:
-    1. Supabase, het project, knop **Connect**, kies **Session pooler** (niet *Direct connection*: GitHub heeft geen
-       IPv6, en de transaction pooler werkt niet voor migraties). Kopieer de connection string; die begint met
-       `postgresql://postgres.<ref>:` en eindigt op `:5432/postgres`.
-    2. Vervang `[YOUR-PASSWORD]` door het databasewachtwoord (wachtwoordmanager). Staan er tekens als `@`, `:`, `/`,
-       `?` of `#` in, vervang die dan door hun %-code (`@` wordt `%40`, `:` `%3A`, `/` `%2F`, `?` `%3F`, `#` `%23`),
-       of kies eerst een nieuw wachtwoord zonder die tekens (Project Settings, Database, *Reset database password*).
+    1. Supabase, het project, knop **Connect**, tabblad **Direct** (*Connection string*), en kies in de keuzelijst
+       **Session pooler** (niet *Direct connection*: GitHub heeft geen IPv6, en de transaction pooler werkt niet voor
+       migraties). Kopieer de connection string; die begint met `postgresql://postgres.<ref>:` en eindigt op
+       `:5432/postgres`.
+    2. Plak hem in Kladblok en vervang `[YOUR-PASSWORD]` (met de blokhaken) door het databasewachtwoord van het
+       project (in de wachtwoordmanager onder de naam van het project, niet het wachtwoord van het Supabase-account).
+       Kopieer het resultaat en sluit Kladblok zonder op te slaan. Staan er tekens als `@`, `:`, `/`, `?` of `#` in het
+       wachtwoord, vervang die dan door hun %-code (`@` wordt `%40`, `:` `%3A`, `/` `%2F`, `?` `%3F`, `#` `%23`), of
+       maak eerst een nieuw wachtwoord met *Generate a password* (Project Settings, Database, *Reset database
+       password*); dat heeft alleen letters en cijfers. Een nieuw databasewachtwoord breekt de app niet: die gebruikt
+       het niet.
     3. GitHub, Settings, Environments, **ontwikkel**, *Add environment secret*: naam `SUPABASE_DB_URL`, waarde de
        string uit stap 2. Plak hem nergens anders; hij geeft volledige toegang tot de database.
     4. Na het samenvoegen: in Actions, `uitrol`, de job **migraties**. De droge stap toont welke migraties er online
