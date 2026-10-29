@@ -192,14 +192,40 @@ export function controleerUitrol(tekst: string): string[] {
     if (!tekst.includes(nodig)) fout(`"${nodig}" ontbreekt`);
   }
   if (/:\s*write\b/.test(tekst)) fout('het workflowtoken mag nergens schrijfrechten krijgen');
+  // De jobs staan in deze volgorde: bouw, migraties, uitrol. Elk geheim hoort in precies één job (review PR8-03).
+  const jobMigraties = tekst.indexOf('\n  migraties:\n');
   const jobUitrol = tekst.indexOf('\n  uitrol:\n');
+  if (jobMigraties < 0 || jobUitrol < 0 || jobMigraties > jobUitrol)
+    fout('de jobs "migraties" en "uitrol" ontbreken, of staan in de verkeerde volgorde');
   const geheimen = [...tekst.matchAll(/secrets\.([A-Z_]+)/g)];
-  if (geheimen.length !== 1 || geheimen[0]?.[1] !== 'CLOUDFLARE_API_TOKEN')
-    fout('alleen het geheim CLOUDFLARE_API_TOKEN, precies één keer');
-  if (jobUitrol < 0 || geheimen.some((m) => (m.index ?? 0) < jobUitrol))
-    fout('het Cloudflare-token hoort alleen in de job "uitrol", na de job "bouw"');
+  const toegestaan: Record<string, [number, number]> = {
+    SUPABASE_DB_URL: [jobMigraties, jobUitrol],
+    CLOUDFLARE_API_TOKEN: [jobUitrol, tekst.length],
+  };
+  for (const naam of Object.keys(toegestaan)) {
+    if (geheimen.filter((m) => m[1] === naam).length !== 1)
+      fout(`het geheim ${naam} hoort er precies één keer in`);
+  }
+  for (const m of geheimen) {
+    const [van, tot] = toegestaan[m[1] ?? ''] ?? [-1, -1];
+    const plek = m.index ?? 0;
+    if (van < 0 || plek < van || plek > tot)
+      fout(
+        `het geheim ${m[1] ?? '?'} staat niet (alleen) in zijn eigen job: SUPABASE_DB_URL in "migraties", CLOUDFLARE_API_TOKEN in "uitrol"`,
+      );
+  }
   if (jobUitrol >= 0 && /npm (ci|install)(?! --ignore-scripts)|npm run/.test(tekst.slice(jobUitrol)))
     fout('de job "uitrol" mag geen code van de app of installatiescripts draaien');
+  // De job "migraties" draait alleen de Supabase-CLI op de map supabase/ (besluit 29-10-2026).
+  if (jobMigraties >= 0 && jobUitrol > jobMigraties) {
+    const migraties = tekst.slice(jobMigraties, jobUitrol);
+    if (/\bnpm\b|\bnpx\b|\bnode\b|\bwrangler\b/.test(migraties.replace(/^\s*#.*$/gm, '')))
+      fout('de job "migraties" mag geen code van de app, npm of wrangler draaien');
+    if (sparsePaden(migraties).some((p) => !p.startsWith('supabase/')))
+      fout('de job "migraties" mag alleen de map supabase/ uitchecken');
+  }
+  if (!/\n {4}needs: \[bouw, migraties\]\n/.test(tekst.slice(jobUitrol)))
+    fout('de job "uitrol" moet wachten op "bouw" en "migraties" (needs: [bouw, migraties])');
   // Uit de bouwjob komt alleen de gebouwde app; configuratie en de taken-Worker komen uit git (review PR12-05).
   const artefact = /upload-artifact[\s\S]*?path:\s*\|?\s*\n([\s\S]*?)\n\s*include-hidden-files/.exec(
     tekst,
@@ -211,6 +237,15 @@ export function controleerUitrol(tekst: string): string[] {
   if (paden.join(',') !== '.open-next/') fout('het artefact van de bouwjob mag alleen .open-next/ bevatten');
   problemen.push(...controleerShas('uitrol.yml', tekst));
   return problemen;
+}
+
+/** De tekst van één job uit een workflow (van "  naam:" tot de volgende job); leeg als hij ontbreekt. */
+export function jobTekst(workflow: string, job: string): string {
+  const begin = workflow.indexOf(`\n  ${job}:\n`);
+  if (begin < 0) return '';
+  const rest = workflow.slice(begin + 1);
+  const volgende = rest.slice(1).search(/\n {2}[a-z][\w-]*:\n/);
+  return volgende < 0 ? rest : rest.slice(0, volgende + 2);
 }
 
 /**
@@ -231,6 +266,7 @@ export function uitrolStartbestanden(takenWrangler: string): { pad: string; node
  * weten wat er wordt uitgecheckt, en keurt hij een bestand daaronder af (veilige kant, review PR14-04).
  */
 export function sparsePaden(uitrol: string): string[] {
+  // Lees alleen het eerste blok; geef een workflow met meer jobs dus eerst door jobTekst.
   const regels = uitrol.split('\n');
   const begin = regels.findIndex((r) => /^\s*sparse-checkout:\s*\|-?\s*$/.test(r));
   if (begin < 0) return [];
@@ -340,6 +376,17 @@ export function controleerUitrolPakket(pakket: unknown, uitrolPakket: unknown): 
   return problemen;
 }
 
+/** De job "migraties" gebruikt dezelfde Supabase-CLI als de poort, die de migraties lokaal test. */
+export function controleerSupabaseCli(pakket: unknown, uitrol: string): string[] {
+  const lokaal = ((pakket as { devDependencies?: Record<string, unknown> }).devDependencies ?? {}).supabase;
+  const online = /supabase\/setup-cli@[^\n]*\n\s*with:\s*\n\s*version:\s*([^\s#]+)/.exec(uitrol)?.[1];
+  return typeof lokaal === 'string' && lokaal === online
+    ? []
+    : [
+        'uitrol.yml: de Supabase-CLI in de job "migraties" moet dezelfde versie hebben als supabase in package.json',
+      ];
+}
+
 /** Vitest en Playwright: .only maakt de run niet stilletjes kleiner; de browsertests draaien tegen de Worker. */
 export function controleerTestinstellingen(vitest: string, playwright: string): string[] {
   const problemen: string[] = [];
@@ -428,7 +475,11 @@ export async function controleerPoort(root: string): Promise<string[]> {
     ...controleerUitrolBestanden(
       uitrolStartbestanden(lees('taken/wrangler.jsonc')),
       leesAls,
-      sparsePaden(lees('.github/workflows/uitrol.yml')),
+      sparsePaden(jobTekst(lees('.github/workflows/uitrol.yml'), 'uitrol')),
+    ),
+    ...controleerSupabaseCli(
+      JSON.parse(lees('package.json')) as unknown,
+      lees('.github/workflows/uitrol.yml'),
     ),
     ...controleerCompatibiliteitsdatum(lees('wrangler.jsonc'), lees('taken/wrangler.jsonc')),
     ...controleerApiSchemas(lees('supabase/config.toml')),

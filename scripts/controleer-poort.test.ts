@@ -16,9 +16,11 @@ import {
   controleerTsconfig,
   controleerUitrol,
   controleerUitrolBestanden,
+  controleerSupabaseCli,
   controleerUitrolPakket,
   controleerWranglerZonderBuild,
   controleerWorkflow,
+  jobTekst,
   sparsePaden,
   uitrolStartbestanden,
 } from './controleer-poort.ts';
@@ -164,17 +166,22 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
         return undefined;
       }
     };
-    assert.ok(sparsePaden(uitrol).includes('taken'));
+    const uitrolJob = jobTekst(uitrol, 'uitrol');
+    assert.ok(sparsePaden(uitrolJob).includes('taken'));
     const starts = uitrolStartbestanden(lees('taken/wrangler.jsonc'));
     assert.equal(starts[0]?.pad, 'taken/worker.ts');
-    assert.deepEqual(controleerUitrolBestanden(starts, leesAls, sparsePaden(uitrol)), []);
+    assert.deepEqual(controleerUitrolBestanden(starts, leesAls, sparsePaden(uitrolJob)), []);
   });
 
   it('leest alleen de paden onder sparse-checkout, zonder uitsluitingen of patronen (review PR14-04)', () => {
     const yaml =
       '          sparse-checkout: |\n            uitrol\n            !geheim\n            src/*.ts\n          sparse-checkout-cone-mode: false\n';
     assert.deepEqual(sparsePaden(yaml), ['uitrol']);
-    assert.ok(!sparsePaden(uitrol).some((p) => p.includes(':')));
+    assert.ok(!sparsePaden(jobTekst(uitrol, 'uitrol')).some((p) => p.includes(':')));
+    assert.deepEqual(sparsePaden(jobTekst(uitrol, 'migraties')), [
+      'supabase/migrations',
+      'supabase/config.toml',
+    ]);
   });
 
   it('faalt op een import die de poort niet kan volgen (review PR14-04)', () => {
@@ -265,6 +272,32 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
 });
 
 describe('uitrol-workflow', () => {
+  it('de migraties: eigen job, eigen geheim, alleen de Supabase-CLI, en de uitrol wacht erop (besluit 29-10-2026)', () => {
+    assert.deepEqual(controleerUitrol(uitrol), []);
+    assert.deepEqual(controleerSupabaseCli(pakket, uitrol), []);
+    const zonderWachten = uitrol.replace('needs: [bouw, migraties]', 'needs: bouw');
+    assert.notDeepEqual(controleerUitrol(zonderWachten), []);
+    const geheimInUitrol = uitrol.replace(
+      '          CLOUDFLARE_ACCOUNT_ID:',
+      '          DB: ${{ secrets.SUPABASE_DB_URL }}\n          CLOUDFLARE_ACCOUNT_ID:',
+    );
+    assert.notDeepEqual(controleerUitrol(geheimInUitrol), []);
+    const npmInMigraties = uitrol.replace(
+      '          supabase db push --db-url "$SUPABASE_DB_URL" --dry-run',
+      '          npm run build\n          supabase db push --db-url "$SUPABASE_DB_URL" --dry-run',
+    );
+    assert.notDeepEqual(controleerUitrol(npmInMigraties), []);
+    const meerUitchecken = uitrol.replace(
+      '            supabase/config.toml\n',
+      '            supabase/config.toml\n            src\n',
+    );
+    assert.notDeepEqual(controleerUitrol(meerUitchecken), []);
+    assert.notDeepEqual(
+      controleerSupabaseCli(pakket, uitrol.replace('version: 2.122.0', 'version: latest')),
+      [],
+    );
+  });
+
   it('faalt als een van de sloten verdwijnt (review PR8-02)', () => {
     for (const slot of [
       "github.event.workflow_run.event == 'push' &&",

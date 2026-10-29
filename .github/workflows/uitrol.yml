@@ -4,8 +4,10 @@
 # is. Geen handmatige start: een handmatige start zou check overslaan (review PR8-01). Opnieuw proberen = de
 # laatste run van uitrol opnieuw draaien (Re-run all jobs); die bouwt dezelfde, groen gekeurde commit.
 #
-# Twee jobs (review PR8-03): "bouw" draait npm ci en de build, zonder geheimen. "uitrol" krijgt het Cloudflare-
-# token, maar installeert alleen wrangler, zonder installatiescripts, en draait geen code van de app.
+# Drie jobs (review PR8-03): "bouw" draait npm ci en de build, zonder geheimen. "migraties" zet de migraties uit
+# supabase/migrations online met alleen de Supabase-CLI en de databaseverbinding (besluit 29-10-2026, Bouwbesluiten
+# 3.1). "uitrol" krijgt het Cloudflare-token, installeert alleen wrangler, zonder installatiescripts, en draait geen
+# code van de app; hij wacht op de migraties, zodat nieuwe code nooit vóór zijn tabellen online staat.
 # scripts/controleer-poort.ts bewaakt deze opzet.
 name: uitrol
 
@@ -85,9 +87,42 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # De migraties online, vóór de nieuwe app (besluit 29-10-2026, review F0-11). Alleen de Supabase-CLI en de map
+  # supabase/: geen code van de app, geen npm. Eerst droog (welke migraties, in de log), dan echt. Faalt een migratie,
+  # dan rolt de app niet uit. Een migratie moet daarom ook met de vorige versie van de app werken (docs/hosting.md).
+  migraties:
+    name: migraties
+    needs: bouw
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # De verbinding met de database staat alleen in deze omgeving.
+    environment:
+      name: ontwikkel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            supabase/migrations
+            supabase/config.toml
+          sparse-checkout-cone-mode: false
+
+      # Dezelfde versie als in package.json, waarmee de poort de migraties lokaal test.
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.122.0
+
+      - name: Migraties online
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
+          supabase db push --db-url "$SUPABASE_DB_URL" --yes
+
   uitrol:
     name: uitrol
-    needs: bouw
+    needs: [bouw, migraties]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     # Het Cloudflare-token staat alleen in deze omgeving.
