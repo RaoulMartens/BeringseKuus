@@ -155,6 +155,7 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 | De pilotcheck: veilig inloggen, MFA voor beheer, berichten binnen de mailgrens, een teruggezette back-up, twee beheerders | `Bouwbesluiten` 5.2 |
 | Workers betaald ($5), en Supabase Pro in Frankfurt | `Bouwbesluiten` 3.1, 3.2, 10 |
 | Op Pro: bescherming tegen gelekte wachtwoorden aanzetten, zodat de Security Advisor 0 waarschuwingen geeft | Punt 2.2 |
+| Wissen op verzoek (AVG): leden worden nooit verwijderd; het antwoord is anonimiseren, ook de namen in `wijzigingen_log` | Review datamodel DM-19, `Datamodel-fase-1.md` punt 12 |
 | Migraties die iets weghalen (`drop`) kunnen niet terug: een back-up vóór de uitrol (Pro), en zo'n migratie apart laten reviewen; eventueel een controle in de poort die een `drop` laat bevestigen | Review PR20-12 |
 | Looptijd van de sessiecookie: nu blijft een lid tot ±400 dagen ingelogd, ook op een gedeelde computer. Ontwerpkeuze | Review PR10-02 |
 | Logs: een tussenvorm (alleen eigen meldingen), zodat een mislukte verzending zichtbaar is | `hosting.md`, Keuzes |
