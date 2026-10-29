@@ -511,7 +511,6 @@ export type Database = {
           bak_actief: boolean;
           begint_om: string;
           bijgewerkt: string;
-          bron_activiteit_id: string | null;
           bus_locatie: string | null;
           bus_vertrektijd: string | null;
           datum: string;
@@ -526,7 +525,6 @@ export type Database = {
           starttijd: string | null;
           status: string;
           type: string;
-          vereniging_id: string;
           verzameltijd: string | null;
         };
         ComputedFields: never;
@@ -536,7 +534,6 @@ export type Database = {
           bak_actief?: boolean | null;
           begint_om?: string | null;
           bijgewerkt?: string | null;
-          bron_activiteit_id?: string | null;
           bus_locatie?: string | null;
           bus_vertrektijd?: string | null;
           datum?: string | null;
@@ -551,7 +548,6 @@ export type Database = {
           starttijd?: string | null;
           status?: string | null;
           type?: string | null;
-          vereniging_id?: string | null;
           verzameltijd?: string | null;
         };
         Update: {
@@ -560,7 +556,6 @@ export type Database = {
           bak_actief?: boolean | null;
           begint_om?: string | null;
           bijgewerkt?: string | null;
-          bron_activiteit_id?: string | null;
           bus_locatie?: string | null;
           bus_vertrektijd?: string | null;
           datum?: string | null;
@@ -575,32 +570,9 @@ export type Database = {
           starttijd?: string | null;
           status?: string | null;
           type?: string | null;
-          vereniging_id?: string | null;
           verzameltijd?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: 'activiteiten_bron_activiteit_id_fkey';
-            columns: ['bron_activiteit_id'];
-            isOneToOne: false;
-            referencedRelation: 'activiteiten';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'activiteiten_bron_activiteit_id_fkey';
-            columns: ['bron_activiteit_id'];
-            isOneToOne: false;
-            referencedRelation: 'mijn_activiteiten';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'activiteiten_vereniging_id_fkey';
-            columns: ['vereniging_id'];
-            isOneToOne: false;
-            referencedRelation: 'verenigingen';
-            referencedColumns: ['id'];
-          },
-        ];
+        Relationships: [];
       };
     };
     Functions: {

@@ -64,3 +64,7 @@ npm run dev              # http://127.0.0.1:3000/inloggen
 
 Inloggen kan alleen met een bestaand (verzonnen) testlid: `npm run lid:lokaal -- iemand@example.com` (Studio staat
 bij `supabase:start` uit om geheugen te sparen). De mail komt aan in Mailpit: <http://127.0.0.1:54324>.
+
+Let op: `lid:lokaal` maakt alleen een auth-gebruiker. Heeft het e-mailadres geen rij in `leden` en `leden_prive` (de
+seed heeft verzonnen leden), dan kun je inloggen maar lees je niets: wie geen actief lid is, krijgt van de rechten
+niets te zien (Datamodel DM-02).

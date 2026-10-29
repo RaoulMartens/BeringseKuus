@@ -185,8 +185,9 @@ create table public.activiteiten (
   aangemaakt timestamptz not null default now(),
   bijgewerkt timestamptz not null default now(),
   constraint eindtijd_ongelijk_aan_starttijd check (eindtijd <> starttijd),
+  -- Alleen gepubliceerd eist tijden en locatie: een concept mag direct geannuleerd worden (V8 5.4), ook zonder.
   constraint publiceren_vereist_tijden_en_locatie check (
-    status = 'concept' or (starttijd is not null and eindtijd is not null and locatie is not null)
+    status <> 'gepubliceerd' or (starttijd is not null and eindtijd is not null and locatie is not null)
   )
 );
 create index activiteiten_datum on public.activiteiten (datum);

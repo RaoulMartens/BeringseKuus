@@ -8,8 +8,11 @@
 update public.verenigingsinstellingen set bus_vertrekplaats = 'Parkeerplaats Sporthal';
 
 -- ===== Verzonnen leden =====
--- Mark is lid én bestuurslid; is_admin staat aan met beheerder_sinds, maar een echte tweede factor (MFA) stel je
--- lokaal zelf in (stap D). Zonder factor krijgt hij geen beheerrechten.
+-- Mark is lid én bestuurslid; is_admin staat aan. Een echte tweede factor (MFA) stel je lokaal zelf in (stap D, daarvoor
+-- zet je TOTP aan in config.toml). Zonder factor krijgt hij geen beheerrechten. beheerder_sinds staat ver in de toekomst:
+-- is_beheerder() telt alleen een factor van vóór dat moment, dus lokaal telt elke factor die je nu inschrijft. Online
+-- draait deze seed nooit; daar zet de trigger beheerder_sinds op het moment waarop is_admin aangaat (PR22-02).
+-- Draai nooit `supabase db reset --linked`: dat zou het ontwikkelproject leegmaken en deze verzonnen leden erin zetten.
 create temp table seed_leden (
   voornaam text, achternaam text, groepen text[], admin boolean default false, mag_bob boolean default false,
   mag_eindverantw boolean default false
@@ -49,7 +52,7 @@ begin
     insert into public.leden (auth_user_id, voornaam, achternaam, type) values (v_uid, r.voornaam, r.achternaam, 'lid')
     returning id into v_lid;
     insert into public.leden_prive (lid_id, email, is_admin, beheerder_sinds, mag_bob, mag_eindverantw)
-    values (v_lid, v_email, r.admin, case when r.admin then timestamptz '2026-10-01 12:00+00' end, r.mag_bob, r.mag_eindverantw);
+    values (v_lid, v_email, r.admin, case when r.admin then timestamptz '2099-01-01 00:00+00' end, r.mag_bob, r.mag_eindverantw);
     insert into public.lid_groep (lid_id, groep_id)
     select v_lid, g.id from public.groepen g where g.naam = any (r.groepen);
   end loop;

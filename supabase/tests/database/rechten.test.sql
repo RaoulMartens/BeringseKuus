@@ -60,7 +60,7 @@ select is_empty(
   $$ select p.oid::regprocedure::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'intern' and has_function_privilege('authenticated', p.oid, 'execute')
-        and p.proname <> all (array['huidig_lid', 'is_beheerder', 'lid_mag_zien', 'mag_activiteit_zien']) $$,
+        and p.proname <> all (array['huidig_lid', 'is_beheerder', 'lid_mag_zien']) $$,
   'ingelogd: in intern alleen de hulpfuncties van de regels zijn uit te voeren'
 );
 select ok(not has_schema_privilege('anon', 'intern', 'usage'), 'niet ingelogd: geen toegang tot het schema intern');
@@ -70,7 +70,7 @@ select is_empty(
   $$ select p.proname::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'intern'
-        and p.proname in ('huidig_lid', 'is_beheerder', 'lid_mag_zien', 'mag_activiteit_zien', 'aantal_aanwezigen')
+        and p.proname in ('huidig_lid', 'is_beheerder', 'lid_mag_zien', 'aantal_aanwezigen')
         and not (p.prosecdef and pg_get_userbyid(p.proowner) = 'postgres') $$,
   'de hulpfuncties in intern zijn security definer met eigenaar postgres'
 );

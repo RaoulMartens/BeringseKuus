@@ -5,14 +5,14 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(57);
+select plan(68);
 
 -- Gebruikers en leden, als postgres. De naam is de sleutel in de tests.
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
 
 create function pg_temp.maak(
   p_naam text, p_actief boolean default true, p_admin boolean default false, p_met_lid boolean default true,
-  p_factor_na boolean default false
+  p_factor_na boolean default false, p_factor text default 'verified'
 ) returns void
 language plpgsql
 as $$
@@ -28,10 +28,10 @@ begin
     values (v_uid, p_naam, 'Test', 'lid', p_actief) returning id into v_lid;
     insert into public.leden_prive (lid_id, email, is_admin, beheerder_sinds)
     values (v_lid, p_naam || '@example.com', p_admin, case when p_admin then timestamptz '2026-06-01' end);
-    if p_admin then
-      -- Een geverifieerde factor van vóór beheerder_sinds.
+    if p_admin and p_factor <> 'geen' then
+      -- Een factor van vóór beheerder_sinds: geverifieerd, of (p_factor = 'unverified') niet.
       insert into auth.mfa_factors (id, user_id, factor_type, status, created_at, updated_at)
-      values (gen_random_uuid(), v_uid, 'totp', 'verified', timestamptz '2026-05-01', timestamptz '2026-05-01');
+      values (gen_random_uuid(), v_uid, 'totp', p_factor::auth.factor_status, timestamptz '2026-05-01', timestamptz '2026-05-01');
     end if;
     if p_factor_na then
       -- Een tweede geverifieerde factor van ná beheerder_sinds (DM-25).
@@ -60,6 +60,8 @@ select pg_temp.maak('t_weg', p_actief => false);
 select pg_temp.maak('t_els', p_admin => true, p_factor_na => true);
 select pg_temp.maak('t_piet', p_admin => true);
 select pg_temp.maak('t_oud', p_actief => false, p_admin => true);
+select pg_temp.maak('t_zonder', p_admin => true, p_factor => 'geen');
+select pg_temp.maak('t_onverif', p_admin => true, p_factor => 'unverified');
 -- Een sessie met een sub die in geen enkele tabel voorkomt.
 insert into pg_temp.gebruikers values ('t_onbekend', gen_random_uuid(), null);
 
@@ -72,12 +74,12 @@ select (select lid from pg_temp.gebruikers where naam = 't_ton'), id from public
 -- Activiteiten: een concept, een gepubliceerde voor iedereen, een voor Bestuur, een geannuleerde, en een voor Dames en
 -- een voor de Raad van Elf. Ver in de toekomst, zodat de seed en de datum van vandaag er niets mee te maken hebben.
 insert into public.activiteiten (naam, datum, starttijd, eindtijd, locatie, status) values
-  ('T Concept', '2030-03-01', null, null, null, 'concept'),
-  ('T Gepubliceerd', '2030-03-02', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
-  ('T Bestuur', '2030-03-03', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
-  ('T Geannuleerd', '2030-03-04', '20:00', '23:00', 'De Kuus', 'geannuleerd'),
-  ('T Dames', '2030-03-05', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
-  ('T Raad', '2030-03-06', '20:00', '23:00', 'De Kuus', 'gepubliceerd');
+  ('T Concept', '2099-03-01', null, null, null, 'concept'),
+  ('T Gepubliceerd', '2099-03-02', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
+  ('T Bestuur', '2099-03-03', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
+  ('T Geannuleerd', '2099-03-04', '20:00', '23:00', 'De Kuus', 'geannuleerd'),
+  ('T Dames', '2099-03-05', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
+  ('T Raad', '2099-03-06', '20:00', '23:00', 'De Kuus', 'gepubliceerd');
 insert into public.activiteit_groep (activiteit_id, groep_id)
 select a.id, g.id from public.activiteiten a join public.groepen g
   on (a.naam, g.naam) in (('T Bestuur', 'Bestuur'), ('T Dames', 'Dames'), ('T Raad', 'Raad van Elf'));
@@ -104,7 +106,10 @@ select is((select count(*)::int from public.activiteiten where naam like 'T %'),
 select is((select count(*)::int from public.mijn_activiteiten where naam like 'T %'), 0,
   'ingelogd zonder lid: ziet niets in mijn_activiteiten (DM-20)');
 select is((select count(*)::int from public.verenigingsinstellingen), 0, 'ingelogd zonder lid: leest de instellingen niet');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "Nee", "datum": "2030-01-01"}', '[]') $$,
+select is((select count(*)::int from public.groepen) + (select count(*)::int from public.roltypen)
+         + (select count(*)::int from public.verenigingen), 0,
+  'ingelogd zonder lid: leest ook groepen, roltypen en verenigingen niet');
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "Nee", "datum": "2099-01-01"}', '[]') $$,
   'BK001', 'geen_admin', 'ingelogd zonder lid: activiteit_opslaan geeft geen_admin');
 select throws_ok($$ select public.concept_verwijderen(gen_random_uuid()) $$,
   'BK001', 'geen_admin', 'ingelogd zonder lid: concept_verwijderen geeft geen_admin, ook voor een onbekend id');
@@ -148,12 +153,12 @@ select is((select count(*)::int from public.leden_prive), 1, 'lid: leest alleen 
 select is((select count(*)::int from public.afmeldingen), 1, 'lid: ziet alleen zijn eigen afmelding, niet die van Ton');
 select is((select count(*)::int from public.wijzigingen_log), 0, 'lid: leest de auditlog niet');
 select is((select count(*)::int from public.lid_groep), 2, 'lid: leest alleen zijn eigen groepen');
-select is((select count(*)::int from public.leden where voornaam like 't\_%'), 7,
+select is((select count(*)::int from public.leden where voornaam like 't\_%'), 9,
   'lid: leest alle leden, met een kolomlijst');
 select throws_ok('select * from public.leden', '42501', null,
   'lid: select * op leden geeft een fout; leden lees je met een kolomlijst (DM-10)');
 select is((select count(*)::int from public.verenigingsinstellingen), 1, 'lid: leest de instellingen van de vereniging');
-select is((select count(*)::int from public.activiteit_groep where groep_id = (select id from public.groepen where naam = 'Bestuur')), 0,
+select is((select count(*)::int from public.activiteit_groep where activiteit_id = (select id from public.activiteiten where naam = 'T Bestuur')), 0,
   'lid: ziet de doelgroep van een verborgen activiteit niet');
 
 -- ===== Een bestuurslid dat geen beheerder is (Ton: groep Bestuur, geen is_admin, aal2) =====
@@ -161,9 +166,9 @@ reset role;
 select pg_temp.als('t_ton', 'aal2');
 set local role authenticated;
 select is((select count(*)::int from public.activiteiten where naam = 'T Bestuur'), 1, 'groep Bestuur: ziet de bestuursactiviteit');
-select is((select count(*)::int from public.activiteit_groep where groep_id = (select id from public.groepen where naam = 'Bestuur')), 1,
+select is((select count(*)::int from public.activiteit_groep where activiteit_id = (select id from public.activiteiten where naam = 'T Bestuur')), 1,
   'groep Bestuur: ziet de doelgroep van die activiteit');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "Nee", "datum": "2030-01-01"}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "Nee", "datum": "2099-01-01"}', '[]') $$,
   'BK001', 'geen_admin', 'groep Bestuur geeft geen beheerrechten, ook niet met aal2 (V8 12)');
 
 -- ===== Een beheerder (Mark: is_admin, factor van vóór beheerder_sinds, aal2) =====
@@ -178,7 +183,7 @@ select is((select count(*)::int from public.mijn_activiteiten where naam = 'T Co
 select is((select count(*)::int from public.mijn_activiteiten where naam like 'T %'), 2,
   'beheerder: ziet in mijn_activiteiten alleen wat een lid zou zien: geen groepsactiviteit waar hij niet in zit (DM-03)');
 select is((select count(*)::int from public.wijzigingen_log where omschrijving = 'T logregel'), 1, 'beheerder: leest de auditlog');
-select is((select count(*)::int from public.leden_prive where email like 't\_%@example.com'), 7, 'beheerder: leest alle leden_prive');
+select is((select count(*)::int from public.leden_prive where email like 't\_%@example.com'), 9, 'beheerder: leest alle leden_prive');
 select is((select count(*)::int from public.afmeldingen where activiteit_id = (select id from public.activiteiten where naam = 'T Gepubliceerd')), 2,
   'beheerder: ziet alle afmeldingen');
 select lives_ok($$ select * from public.beheeroverzicht() $$, 'beheerder: beheeroverzicht werkt');
@@ -189,6 +194,22 @@ select pg_temp.als('t_mark', 'aal1');
 set local role authenticated;
 select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
   'beheerder zonder aal2 (alleen de inloglink): geen beheer (Bouwbesluiten 4.3)');
+
+reset role;
+select pg_temp.als('t_zonder', 'aal2');
+set local role authenticated;
+select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
+  'is_admin en aal2 maar geen enkele factor: geen beheer');
+reset role;
+select pg_temp.als('t_onverif', 'aal2');
+set local role authenticated;
+select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
+  'is_admin en aal2 maar alleen een niet-geverifieerde factor: geen beheer');
+reset role;
+select pg_temp.als('t_mark', null);
+set local role authenticated;
+select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
+  'een token zonder aal-claim: geen beheer');
 
 reset role;
 select pg_temp.als('t_els', 'aal2');
@@ -224,6 +245,10 @@ select ok(not has_column_privilege('authenticated', 'public.leden', 'vereniging_
   'authenticated leest leden.vereniging_id niet');
 select ok(not has_column_privilege('authenticated', 'public.leden', 'aangemaakt', 'select'),
   'authenticated leest leden.aangemaakt niet');
+select ok(not has_column_privilege('authenticated', 'public.activiteiten', 'bron_activiteit_id', 'select')
+      and not has_column_privilege('authenticated', 'public.activiteiten', 'vereniging_id', 'select')
+      and has_column_privilege('authenticated', 'public.activiteiten', 'naam', 'select'),
+  'authenticated leest van activiteiten geen bron_activiteit_id en vereniging_id (PR22-13)');
 select ok(has_column_privilege('authenticated', 'public.leden', 'voornaam', 'select')
       and not has_table_privilege('authenticated', 'public.leden', 'select'),
   'authenticated leest van leden alleen kolommen, geen tabelbrede select (DM-10)');
@@ -280,6 +305,31 @@ select is((select bijgewerkt::text from public.activiteiten where naam = 'T Conc
 update public.activiteiten set notitie = 'nieuw' where naam = 'T Concept';
 select isnt((select bijgewerkt::text from public.activiteiten where naam = 'T Concept'), current_setting('test.bijgewerkt'),
   'bijgewerkt verandert als een zichtbaar veld verandert');
+
+-- ===== service_role en beheerder_sinds (PR22-07, PR22-08) =====
+select is_empty(
+  $$ select c.relname::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind in ('r', 'p') and has_table_privilege('service_role', c.oid, 'truncate') $$,
+  'service_role mag geen enkele tabel leegmaken (truncate slaat de triggers over)');
+select ok(not has_table_privilege('service_role', 'public.wijzigingen_log', 'update')
+      and not has_table_privilege('service_role', 'public.wijzigingen_log', 'delete'),
+  'service_role mag de auditlog niet wijzigen of wissen');
+set local role service_role;
+select lives_ok($$ insert into public.activiteiten (naam, datum) values ('T Service', '2099-07-01') $$,
+  'service_role kan een activiteit invoegen: de gegenereerde kolommen werken met zijn rechten (DM-22)');
+reset role;
+
+update public.leden_prive set is_admin = true where lid_id = (select lid from pg_temp.gebruikers where naam = 't_truus');
+select isnt((select beheerder_sinds from public.leden_prive where lid_id = (select lid from pg_temp.gebruikers where naam = 't_truus')), null,
+  'is_admin aanzetten zet beheerder_sinds op het moment van nu');
+update public.leden_prive set is_admin = false where lid_id = (select lid from pg_temp.gebruikers where naam = 't_truus');
+select is((select beheerder_sinds from public.leden_prive where lid_id = (select lid from pg_temp.gebruikers where naam = 't_truus')), null,
+  'is_admin uitzetten maakt beheerder_sinds leeg');
+
+-- Een concept kan direct geannuleerd worden, ook zonder tijden (V8 5.4); alleen publiceren eist ze.
+insert into public.activiteiten (naam, datum) values ('T Annuleer', '2099-08-01');
+select lives_ok($$ update public.activiteiten set status = 'geannuleerd' where naam = 'T Annuleer' $$,
+  'een concept zonder tijden kan direct geannuleerd worden');
 
 select * from finish();
 rollback;

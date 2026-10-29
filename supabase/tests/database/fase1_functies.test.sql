@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(75);
+select plan(91);
 
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
 
@@ -51,16 +51,29 @@ begin
 end
 $$;
 
+-- Het aantal rijen per tabel, behalve de tabellen die de functies mogen wijzigen (R18: geen meldingen, geen leden of
+-- groepen). Afmeldingen horen erbij: een verwijderd concept neemt zijn eigen afmeldingen mee.
+create function pg_temp.tellers() returns text
+language sql
+as $$
+  select string_agg(format('%s=%s', c.relname,
+           (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', c.relname), false, true, '')))[1]::text),
+         ', ' order by c.relname)
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r'
+     and c.relname not in ('activiteiten', 'rol_slots', 'activiteit_groep', 'wijzigingen_log', 'afmeldingen')
+$$;
+
 select pg_temp.maak('t_mark', true);
 select pg_temp.maak('t_truus');
 
 -- Een eigen concept met een bezette plek, een gepubliceerde en een geannuleerde activiteit.
-insert into public.activiteiten (naam, datum) values ('T Ander', '2030-04-01');
+insert into public.activiteiten (naam, datum) values ('T Ander', '2099-04-01');
 insert into public.rol_slots (activiteit_id, rol_type)
 select id, 'werker' from public.activiteiten where naam = 'T Ander';
 insert into public.activiteiten (naam, datum, starttijd, eindtijd, locatie, status) values
-  ('T Pub', '2030-04-02', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
-  ('T Weg', '2030-04-03', '20:00', '23:00', 'De Kuus', 'geannuleerd');
+  ('T Pub', '2099-04-02', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
+  ('T Weg', '2099-04-03', '20:00', '23:00', 'De Kuus', 'geannuleerd');
 select set_config('test.ander_slot', (select s.id::text from public.rol_slots s join public.activiteiten a on a.id = s.activiteit_id where a.naam = 'T Ander'), true);
 select set_config('test.groep_bestuur', (select id::text from public.groepen where naam = 'Bestuur'), true);
 select set_config('test.log_voor', (select count(*)::text from public.wijzigingen_log), true);
@@ -68,7 +81,7 @@ select set_config('test.log_voor', (select count(*)::text from public.wijziginge
 -- ===== Een lid mag niets, ook niet met een onbekend id; er is niets aangemaakt =====
 select pg_temp.als('t_truus', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T Nee", "datum": "2030-01-01"}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T Nee", "datum": "2099-01-01"}', '[]') $$,
   'BK001', 'geen_admin', 'lid: activiteit_opslaan geeft geen_admin');
 select throws_ok($$ select public.activiteit_opslaan(gen_random_uuid(), '{}', '[]') $$,
   'BK001', 'geen_admin', 'lid: geen_admin gaat voor activiteit_onbekend (eerst wie belt)');
@@ -98,21 +111,21 @@ select is((select (begint_om, eindigt_om)::text from public.activiteiten where i
 -- ===== Fouten in de velden =====
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(null, '{"datum": "2030-01-01"}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"datum": "2099-01-01"}', '[]') $$,
   'BK001', 'veld_ontbreekt', 'naam ontbreekt: veld_ontbreekt');
 select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": ""}', '[]') $$,
   'BK001', 'veld_ontbreekt', 'een lege naam en geen datum: veld_ontbreekt');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2030-01-01", "kleur": "rood"}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "kleur": "rood"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een onbekende sleutel: veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2030-13-45"}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-13-45"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een datum die niet bestaat: veld_ongeldig, geen kale databasefout');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": 5, "datum": "2030-01-01"}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": 5, "datum": "2099-01-01"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een getal als naam: veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2030-01-01", "starttijd": "20:00", "eindtijd": "20:00"}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "20:00", "eindtijd": "20:00"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'eindtijd gelijk aan starttijd: veld_ongeldig (DM-06)');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2030-01-01", "min_aanwezigen": 0}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "min_aanwezigen": 0}', '[]') $$,
   'BK001', 'veld_ongeldig', 'minimum 0: veld_ongeldig, geen kale 23514');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2030-01-01", "groepen": ["00000000-0000-4000-8000-0000000000ff"]}', '[]') $$,
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "groepen": ["00000000-0000-4000-8000-0000000000ff"]}', '[]') $$,
   'BK001', 'groep_onbekend', 'een onbekende groep: groep_onbekend');
 select throws_ok($$ select public.activiteit_opslaan(gen_random_uuid(), '{}', '[]') $$,
   'BK001', 'activiteit_onbekend', 'een onbekende activiteit: activiteit_onbekend');
@@ -131,7 +144,7 @@ select is((select count(*)::int from public.rol_slots where activiteit_id = curr
 select ok((current_setting('test.plekken')::jsonb -> 'plekken' ->> 'a')::uuid in (select id from public.rol_slots)
       and (current_setting('test.plekken')::jsonb -> 'plekken' ->> 'b')::uuid in (select id from public.rol_slots),
   'het antwoord geeft bij elk tijdelijk_id het echte id van de nieuwe plek');
-select is((select count(*)::int from public.wijzigingen_log where actie = 'plek_toegevoegd'), 2, 'elke toegevoegde plek is gelogd');
+select is((select count(*)::int from public.wijzigingen_log where actie = 'plek_toegevoegd' and omschrijving like '%T Avond%'), 2, 'elke toegevoegde plek is gelogd');
 select set_config('test.ev', (select id::text from public.rol_slots where activiteit_id = current_setting('test.nieuw')::uuid and rol_type = 'eindverantwoordelijke'), true);
 select set_config('test.werker', (select id::text from public.rol_slots where activiteit_id = current_setting('test.nieuw')::uuid and rol_type = 'werker'), true);
 
@@ -174,7 +187,7 @@ select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw'
   'een lege plek weghalen lukt');
 reset role;
 select is((select count(*)::int from public.rol_slots where activiteit_id = current_setting('test.nieuw')::uuid), 2, 'daarna zijn er twee plekken');
-select is((select count(*)::int from public.wijzigingen_log where actie = 'plek_weggehaald'), 1, 'het weghalen is gelogd');
+select is((select count(*)::int from public.wijzigingen_log where actie = 'plek_weggehaald' and omschrijving like '%T Avond%'), 1, 'het weghalen is gelogd');
 
 -- ===== Wat nog niet kan in fase 1 =====
 select pg_temp.als('t_mark', 'aal2');
@@ -229,6 +242,52 @@ select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw'
 reset role;
 select is((select count(*)::int from public.activiteit_groep where activiteit_id = current_setting('test.nieuw')::uuid), 0, 'de doelgroep is weer leeg');
 
+-- ===== Tijdstippen en invoer (PR22-01, PR22-03) =====
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-02-01T20:00"}', '[]') $$,
+  'een deadline zonder tijdzone');
+reset role;
+select is((select afmeld_deadline::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), '2099-02-01 19:00:00+00',
+  'zonder tijdzone geldt Amsterdamse tijd: 20:00 in de winter is 19:00 UTC (PR22-01)');
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-07-01T20:00"}', '[]') $$,
+  'een deadline in de zomer zonder tijdzone');
+reset role;
+select is((select afmeld_deadline::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), '2099-07-01 18:00:00+00',
+  '20:00 in de zomer is 18:00 UTC');
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-02-01T20:00:00+01:00"}', '[]') $$,
+  'een deadline met een tijdzone');
+reset role;
+select is((select afmeld_deadline::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), '2099-02-01 19:00:00+00',
+  'met een tijdzone geldt die tijdzone');
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "infinity"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een deadline infinity: veld_ongeldig');
+select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "now"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een deadline "now": veld_ongeldig');
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "infinity"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een datum infinity: veld_ongeldig, geen kale 0A000');
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "today"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een datum "today": veld_ongeldig');
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "1970-01-01"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een datum buiten 2000 tot en met 2100: veld_ongeldig');
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "5874897-12-31"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een datum ver in de toekomst: veld_ongeldig, geen kale 22008');
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "now"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een starttijd "now": veld_ongeldig');
+select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "24:00"}', '[]') $$,
+  'BK001', 'veld_ongeldig', 'een starttijd 24:00: veld_ongeldig');
+select throws_ok(format($f$ select public.activiteit_opslaan(null, '{"naam": "%s", "datum": "2099-01-01"}', '[]') $f$, repeat('x', 201)),
+  'BK001', 'veld_ongeldig', 'een naam van 201 tekens: veld_ongeldig');
+select throws_ok($$ select public.activiteit_opslaan(null, jsonb_build_object('naam', 'T X', 'datum', '2099-01-01', 'notitie', 'a' || chr(1)), '[]') $$,
+  'BK001', 'veld_ongeldig', 'een notitie met een stuurteken: veld_ongeldig');
+reset role;
+
 -- Alles of niets: een fout in de laatste regel laat ook de velden en de eerdere regels niet doorgaan.
 select set_config('test.log_voor', (select count(*)::text from public.wijzigingen_log), true);
 select set_config('test.plekken_voor', (select count(*)::text from public.rol_slots where activiteit_id = current_setting('test.nieuw')::uuid), true);
@@ -245,15 +304,14 @@ select is((select count(*)::text from public.wijzigingen_log), current_setting('
 
 -- ===== concept_verwijderen =====
 -- Een concept met plekken, een doelgroep, een afmelding, en een ander concept dat ernaar verwijst als bron.
-insert into public.activiteiten (id, naam, datum) values ('a0000000-0000-4000-8000-0000000000d1', 'T Verwijder', '2030-05-01');
+insert into public.activiteiten (id, naam, datum) values ('a0000000-0000-4000-8000-0000000000d1', 'T Verwijder', '2099-05-01');
 insert into public.rol_slots (activiteit_id, rol_type) values ('a0000000-0000-4000-8000-0000000000d1', 'werker');
 insert into public.activiteit_groep (activiteit_id, groep_id) values ('a0000000-0000-4000-8000-0000000000d1', current_setting('test.groep_bestuur')::uuid);
 insert into public.afmeldingen (activiteit_id, lid_id) values ('a0000000-0000-4000-8000-0000000000d1', (select lid from pg_temp.gebruikers where naam = 't_truus'));
 insert into public.activiteiten (naam, datum, bron_activiteit_id) values ('T Kopie', '2031-05-01', 'a0000000-0000-4000-8000-0000000000d1');
 select set_config('test.kopie_bijgewerkt', (select bijgewerkt::text from public.activiteiten where naam = 'T Kopie'), true);
 -- R18: wat er niet mag veranderen.
-select set_config('test.tellers_voor', (select (select count(*) from public.leden)::text || '/' || (select count(*) from public.leden_prive)::text
-  || '/' || (select count(*) from public.lid_groep)::text || '/' || (select count(*) from public.groepen)::text), true);
+select set_config('test.tellers_voor', pg_temp.tellers(), true);
 
 select pg_temp.als('t_truus', 'aal2');
 set local role authenticated;
@@ -273,7 +331,7 @@ reset role;
 select is((select count(*)::int from public.activiteiten where naam in ('T Pub', 'T Weg')), 2, 'beide bestaan nog');
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select is((public.concept_verwijderen('a0000000-0000-4000-8000-0000000000d1'))::text, '{"naam": "T Verwijder", "datum": "2030-05-01"}',
+select is((public.concept_verwijderen('a0000000-0000-4000-8000-0000000000d1'))::text, '{"naam": "T Verwijder", "datum": "2099-05-01"}',
   'een concept verwijderen geeft naam en datum terug voor de melding');
 reset role;
 select is((select (select count(*) from public.activiteiten where id = 'a0000000-0000-4000-8000-0000000000d1')
@@ -288,10 +346,8 @@ select is((select bron_activiteit_id from public.activiteiten where naam = 'T Ko
   'een ander concept dat ernaar verwees, heeft nu een lege bronverwijzing');
 select is((select bijgewerkt::text from public.activiteiten where naam = 'T Kopie'), current_setting('test.kopie_bijgewerkt'),
   'en bijgewerkt van dat andere concept is niet veranderd (DM-24)');
-select is((select (select count(*) from public.leden)::text || '/' || (select count(*) from public.leden_prive)::text
-  || '/' || (select count(*) from public.lid_groep)::text || '/' || (select count(*) from public.groepen)::text),
-  current_setting('test.tellers_voor'),
-  'R18: leden, groepen en groepslidmaatschappen zijn niet veranderd door opslaan en verwijderen');
+select is(pg_temp.tellers(), current_setting('test.tellers_voor'),
+  'R18: geen enkele andere tabel is veranderd door opslaan en verwijderen (geen meldingen, geen leden)');
 select is(to_regclass('public.meldingen')::text, null, 'R18: er bestaat nog geen meldingentabel (fase 7)');
 
 -- ===== Aanwezigen (R1, R12, R22) =====
@@ -313,8 +369,8 @@ insert into public.lid_groep (lid_id, groep_id) values
   (current_setting('test.d')::uuid, current_setting('test.g2')::uuid),
   (current_setting('test.e')::uuid, current_setting('test.g2')::uuid);
 insert into public.activiteiten (id, naam, datum, starttijd, eindtijd, locatie, status)
-values ('a0000000-0000-4000-8000-0000000000e1', 'T Groepsavond', '2030-06-01', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
-       ('a0000000-0000-4000-8000-0000000000e2', 'T Iedereenavond', '2030-06-02', '20:00', '23:00', 'De Kuus', 'gepubliceerd');
+values ('a0000000-0000-4000-8000-0000000000e1', 'T Groepsavond', '2099-06-01', '20:00', '23:00', 'De Kuus', 'gepubliceerd'),
+       ('a0000000-0000-4000-8000-0000000000e2', 'T Iedereenavond', '2099-06-02', '20:00', '23:00', 'De Kuus', 'gepubliceerd');
 insert into public.activiteit_groep (activiteit_id, groep_id) values
   ('a0000000-0000-4000-8000-0000000000e1', current_setting('test.g1')::uuid),
   ('a0000000-0000-4000-8000-0000000000e1', current_setting('test.g2')::uuid);

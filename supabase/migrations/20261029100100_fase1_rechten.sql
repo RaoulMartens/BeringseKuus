@@ -66,14 +66,6 @@ as $$
   )
 $$;
 
--- Voor de rechten op de activiteit en alles eronder: een beheerder ziet alles (ook concepten), een lid wat het mag zien.
-create function intern.mag_activiteit_zien(p_activiteit uuid) returns boolean
-language sql stable security definer
-set search_path = ''
-as $$
-  select (select intern.is_beheerder()) or intern.lid_mag_zien(p_activiteit, (select intern.huidig_lid()))
-$$;
-
 -- Aanwezigen (R1, R12, R22): actieve leden van type lid in de doelgroep, elk één keer, min de afmeldingen. Geen execute
 -- voor authenticated; beheeroverzicht() en later meld_af() roepen hem aan.
 create function intern.aantal_aanwezigen(p_activiteit uuid) returns int
@@ -97,8 +89,8 @@ $$;
 
 -- Alleen wat de RLS-regels en de view nodig hebben. De tijdfuncties en aantal_aanwezigen krijgen authenticated niet.
 revoke all on all functions in schema intern from public, anon, authenticated;
-grant execute on function intern.huidig_lid(), intern.is_beheerder(), intern.lid_mag_zien(uuid, uuid),
-  intern.mag_activiteit_zien(uuid) to authenticated;
+grant execute on function intern.huidig_lid(), intern.is_beheerder(), intern.lid_mag_zien(uuid, uuid)
+  to authenticated;
 grant execute on function intern.seizoen_van(date), intern.activiteit_begin(date, time),
   intern.activiteit_einde(date, time, time), intern.deadline_verstreken(timestamptz, timestamptz),
   intern.vandaag(timestamptz) to service_role;
@@ -123,13 +115,18 @@ create policy eigen_of_beheerder on public.lid_groep for select to authenticated
 create policy eigen_of_beheerder on public.afmeldingen for select to authenticated
   using (lid_id = (select intern.huidig_lid()) or (select intern.is_beheerder()));
 
+-- Een beheerder ziet alles (ook concepten), een lid wat het mag zien (R15, R22). is_beheerder en huidig_lid staan als
+-- (select …), zodat Postgres ze één keer per query uitrekent in plaats van per rij (DM-18, PR22-12).
 create policy zichtbaar on public.activiteiten for select to authenticated
-  using (intern.mag_activiteit_zien(id));
+  using ((select intern.is_beheerder()) or intern.lid_mag_zien(id, (select intern.huidig_lid())));
 create policy zichtbaar on public.activiteit_groep for select to authenticated
-  using (intern.mag_activiteit_zien(activiteit_id));
+  using ((select intern.is_beheerder()) or intern.lid_mag_zien(activiteit_id, (select intern.huidig_lid())));
 -- Lege plekken zijn voor leden onzichtbaar (R13); een beheerder ziet ze wel.
 create policy zichtbaar on public.rol_slots for select to authenticated
-  using (intern.mag_activiteit_zien(activiteit_id) and ((select intern.is_beheerder()) or bezetter_id is not null));
+  using (
+    (select intern.is_beheerder())
+    or (bezetter_id is not null and intern.lid_mag_zien(activiteit_id, (select intern.huidig_lid())))
+  );
 
 create policy alleen_beheerder on public.wijzigingen_log for select to authenticated
   using ((select intern.is_beheerder()));
@@ -137,15 +134,22 @@ create policy alleen_beheerder on public.wijzigingen_log for select to authentic
 -- Leesrechten op de tabellen. Op leden alleen vijf kolommen (DM-10): lees leden dus altijd met een kolomlijst; `select *`
 -- en een embed leden(*) geven een fout. Eén goedbedoelde grant op de hele tabel zet alles open; de rechtentest bewaakt dat.
 grant select on public.verenigingen, public.verenigingsinstellingen, public.roltypen, public.groepen,
-  public.leden_prive, public.lid_groep, public.activiteiten, public.activiteit_groep, public.rol_slots,
-  public.afmeldingen, public.wijzigingen_log to authenticated;
+  public.leden_prive, public.lid_groep, public.activiteit_groep, public.rol_slots, public.afmeldingen,
+  public.wijzigingen_log to authenticated;
 grant select (id, voornaam, achternaam, type, actief) on public.leden to authenticated;
+-- Ook op activiteiten per kolom (PR22-13): zonder bron_activiteit_id, dat zou het id van een verborgen concept
+-- verraden, en zonder vereniging_id. Lees activiteiten dus ook met een kolomlijst.
+grant select (id, naam, datum, verzameltijd, starttijd, eindtijd, locatie, bus_vertrektijd, bus_locatie, notitie, type,
+  seizoen, status, afmeld_deadline, min_aanwezigen, bak_actief, begint_om, eindigt_om, aangemaakt, bijgewerkt)
+  on public.activiteiten to authenticated;
 
 -- Het welkomscherm: de activiteiten die een lid zou zien, ook voor een beheerder (DM-03). security_invoker, zodat de
 -- rechten van de aanroeper gelden. Mijn diensten (fase 3) gebruikt dezelfde view; de agenda-feed (fase 7) niet, want
 -- die heeft geen sessie en gebruikt intern.lid_mag_zien() met het lid van het token (DM-24).
 create view public.mijn_activiteiten with (security_invoker = true) as
-  select a.*
+  select a.id, a.naam, a.datum, a.verzameltijd, a.starttijd, a.eindtijd, a.locatie, a.bus_vertrektijd, a.bus_locatie,
+         a.notitie, a.type, a.seizoen, a.status, a.afmeld_deadline, a.min_aanwezigen, a.bak_actief, a.begint_om,
+         a.eindigt_om, a.aangemaakt, a.bijgewerkt
     from public.activiteiten a
    where intern.lid_mag_zien(a.id, (select intern.huidig_lid()));
 grant select on public.mijn_activiteiten to authenticated;
@@ -188,3 +192,34 @@ create trigger activiteit_vangnet_wijzigen before update on public.activiteiten
   for each row execute function intern.activiteit_vangnet();
 create trigger activiteit_vangnet_verwijderen before delete on public.activiteiten
   for each row execute function intern.activiteit_vangnet();
+
+-- beheerder_sinds volgt is_admin (PR22-08): de bescherming tegen een nieuwe MFA-factor (DM-25) mag niet aan een
+-- handmatige stap hangen. Bij het aanzetten wordt het moment van nu gezet, bij het uitzetten wordt het leeggemaakt.
+-- Een waarde die bij het aanmaken wordt meegegeven, blijft staan (de seed en de tests).
+create function intern.beheerder_sinds_zetten() returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.is_admin and new.beheerder_sinds is null then
+      new.beheerder_sinds := clock_timestamp();
+    end if;
+  elsif new.is_admin and not old.is_admin then
+    new.beheerder_sinds := clock_timestamp();
+  elsif not new.is_admin and old.is_admin then
+    new.beheerder_sinds := null;
+  end if;
+  return new;
+end
+$$;
+
+create trigger beheerder_sinds_zetten before insert or update of is_admin on public.leden_prive
+  for each row execute function intern.beheerder_sinds_zetten();
+
+-- service_role is de sleutel van de seed, de tests en later de taken-Worker (op Cloudflare): hij mag geen tabel
+-- leegmaken (truncate slaat de triggers over) en de auditlog niet wijzigen of wissen (PR22-07). Voor fase 7 komt er een
+-- eigen rol met alleen de rechten die de dagmelding nodig heeft. Een tabel die later bijkomt, krijgt zijn eigen revoke;
+-- de rechtentest controleert het.
+revoke truncate on all tables in schema public from service_role;
+revoke update, delete on public.wijzigingen_log from service_role;

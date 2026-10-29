@@ -119,9 +119,10 @@ Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, 
 - **Hulpfuncties van de rechten staan in het schema `intern`**, buiten de Data API (`[api] schemas` en
   `extra_search_path` blijven zonder `intern`; de poort bewaakt dat). Een `security definer`-functie in `public` is
   als `/rest/v1/rpc/…` aan te roepen en kan zo lekken wat een lid niet mag weten (`Datamodel-fase-1.md`, DM-01).
-- **`leden` altijd met een kolomlijst lezen** (`.select('id, voornaam, achternaam, type, actief')`). Authenticated
-  heeft alleen die vijf kolommen; `select *` en een embed `leden(*)` geven een fout. Zet nooit een tabelbrede
-  `grant select` op `leden`: de rechtentest faalt dan.
+- **`leden` en `activiteiten` altijd met een kolomlijst lezen** (`.select('id, voornaam, achternaam, type, actief')`).
+  Authenticated heeft op `leden` alleen die vijf kolommen en op `activiteiten` niet `bron_activiteit_id` en
+  `vereniging_id`; `select *` en een embed `leden(*)` geven een fout. Zet nooit een tabelbrede `grant select` op deze
+  tabellen: de rechtentest faalt dan.
 - **Fouten van de databasefuncties** hebben SQLSTATE `BK001`, de foutcode als `message` en JSON in `detail`. Vertaal
   ze naar het scherm uit de wireframes; een foutcode zonder scherm is een ontwerpgat, meld het.
 - **`vereniging_id` op elke tabel met eigen verenigingsgegevens** (`Bouwbesluiten` 1), standaardwaarde De

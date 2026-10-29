@@ -5,7 +5,8 @@
 // Alleen de rij vergrendelen in sessie A bewijst niets: de delete van B wacht daar zelf ook op, met of zonder lock in de
 // functie. Daarom publiceert A het concept. Met de lock leest B de nieuwe stand en weigert zelf (alleen_concept,
 // niet_ondersteund). Zonder lock leest B nog het concept: concept_verwijderen wordt dan door het vangnet (de trigger)
-// tegengehouden met een andere melding, en activiteit_opslaan overschrijft stilletjes een gepubliceerde activiteit.
+// tegengehouden met een andere melding, en activiteit_opslaan faalt op de CHECK publiceren_vereist_tijden_en_locatie
+// (zijn eigen update zet de status terug naar concept) in plaats van op niet_ondersteund.
 import { execFileSync, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
@@ -14,9 +15,13 @@ import { expect, test } from '@playwright/test';
 
 const uitvoeren = promisify(execFile);
 
-const container = execFileSync('docker', ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'], {
-  encoding: 'utf8',
-})
+const container = execFileSync(
+  'docker',
+  ['ps', '--filter', 'name=supabase_db_ledenplatform', '--format', '{{.Names}}'],
+  {
+    encoding: 'utf8',
+  },
+)
   .split('\n')[0]
   ?.trim();
 if (!container) throw new Error('de lokale Supabase draait niet (npm run supabase:start)');
@@ -69,7 +74,7 @@ test.afterAll(() => {
 const wacht = (ms: number): Promise<void> => new Promise((klaar) => setTimeout(klaar, ms));
 
 /**
- * Sessie A publiceert het concept en houdt de transactie drie seconden open. Zodra de database laat zien dat A de lock
+ * Sessie A publiceert het concept en houdt de transactie vijf seconden open. Zodra de database laat zien dat A de lock
  * heeft (niet na een vaste tijd), draait sessie B als beheerder de aanroep. Geeft de foutmelding van B terug.
  */
 async function eenAanroepTijdensPublicatie(
@@ -83,7 +88,7 @@ async function eenAanroepTijdensPublicatie(
     begin;
     update public.activiteiten set status = 'gepubliceerd', starttijd = '20:00', eindtijd = '23:00', locatie = 'Test'
      where id = '${conceptId}';
-    select pg_sleep(3) /* ${markering} */;
+    select pg_sleep(5) /* ${markering} */;
     commit;
   `);
   a.stdin.end();
@@ -140,8 +145,7 @@ test('activiteit_opslaan wacht op de lock en overschrijft niets van een activite
     concept2,
     `select public.activiteit_opslaan('${concept2}', '{"notitie": "overschreven"}', '[]')`,
   );
-  // Zonder lock zou B het concept nog zien, en de update daarna stilletjes op de gepubliceerde rij uitvoeren: het vangnet
-  // laat een wijziging met dezelfde status door.
+  // Zonder lock zou B het concept nog zien en een andere fout geven (de CHECK op tijden en locatie), niet niet_ondersteund.
   expect(fout).toContain('niet_ondersteund');
   expect(duurMs, 'B moet op A hebben gewacht').toBeGreaterThan(1000);
   expect(

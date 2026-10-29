@@ -4,17 +4,24 @@
 -- en controleert elk veld zelf vóór het schrijven: de check-regels van de tabellen zijn alleen het vangnet, zodat de
 -- app nooit een kale SQLSTATE als 23514 of 22007 krijgt (DM-13). Elke fout is intern.fout() met SQLSTATE BK001.
 
--- Invoerhulpen: lezen één JSON-waarde als het goede soort, of geven veld_ongeldig met de naam van het veld.
-create function intern.json_tekst(p jsonb, p_veld text) returns text
+-- Invoerhulpen: lezen één JSON-waarde als het goede soort, of geven veld_ongeldig met de naam van het veld. Strenger dan
+-- de casts van Postgres: die nemen ook "today", "infinity", "allballs" en datums in het jaar 99999 aan (PR22-03).
+create function intern.json_tekst(p jsonb, p_veld text, p_max int default 2000) returns text
 language plpgsql
 set search_path = ''
 as $$
+declare v_tekst text;
 begin
   if p is null or jsonb_typeof(p) = 'null' then return null; end if;
   if jsonb_typeof(p) <> 'string' then
     perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
   end if;
-  return nullif(btrim(p #>> '{}'), '');
+  v_tekst := nullif(btrim(p #>> '{}'), '');
+  -- Niet te lang, en geen stuurtekens (behalve een regeleinde of tab in een notitie).
+  if v_tekst is not null and (char_length(v_tekst) > p_max or v_tekst ~ '[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]') then
+    perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
+  end if;
+  return v_tekst;
 end
 $$;
 
@@ -22,15 +29,23 @@ create function intern.json_datum(p jsonb, p_veld text) returns date
 language plpgsql
 set search_path = ''
 as $$
-declare v_tekst text := intern.json_tekst(p, p_veld);
+declare
+  v_tekst text := intern.json_tekst(p, p_veld, 10);
+  v_datum date;
 begin
   if v_tekst is null then return null; end if;
+  if v_tekst !~ '^\d{4}-\d{2}-\d{2}$' then
+    perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
+  end if;
   begin
-    return v_tekst::date;
+    v_datum := v_tekst::date;
   exception when others then
     perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
   end;
-  return null;
+  if extract(year from v_datum) not between 2000 and 2100 then
+    perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
+  end if;
+  return v_datum;
 end
 $$;
 
@@ -38,31 +53,45 @@ create function intern.json_tijd(p jsonb, p_veld text) returns time
 language plpgsql
 set search_path = ''
 as $$
-declare v_tekst text := intern.json_tekst(p, p_veld);
+declare v_tekst text := intern.json_tekst(p, p_veld, 8);
 begin
   if v_tekst is null then return null; end if;
-  begin
-    return v_tekst::time;
-  exception when others then
+  if v_tekst !~ '^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$' then
     perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
-  end;
-  return null;
+  end if;
+  return v_tekst::time;
 end
 $$;
 
+-- Een tijdstip met een tijdzone (Z of +01:00) wordt zo gelezen. Zonder tijdzone geldt Europe/Amsterdam, zoals de tijden
+-- elders in het systeem (Bouwbesluiten 4.5, DM-06): de sessie draait in UTC, en "20:00" is voor de admin 20:00 in
+-- Nederland (PR22-01). infinity en de woorden van Postgres (now, today) worden afgewezen.
 create function intern.json_tijdstip(p jsonb, p_veld text) returns timestamptz
 language plpgsql
 set search_path = ''
 as $$
-declare v_tekst text := intern.json_tekst(p, p_veld);
+declare
+  v_tekst text := intern.json_tekst(p, p_veld, 40);
+  v_tijdstip timestamptz;
 begin
   if v_tekst is null then return null; end if;
   begin
-    return v_tekst::timestamptz;
-  exception when others then
+    if v_tekst ~ '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}(:?\d{2})?)$' then
+      v_tijdstip := v_tekst::timestamptz;
+    elsif v_tekst ~ '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$' then
+      v_tijdstip := v_tekst::timestamp at time zone 'Europe/Amsterdam';
+    else
+      perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
+    end if;
+  exception when sqlstate 'BK001' then
+    raise;
+  when others then
     perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
   end;
-  return null;
+  if extract(year from v_tijdstip) not between 2000 and 2100 then
+    perform intern.fout('veld_ongeldig', jsonb_build_object('veld', p_veld));
+  end if;
+  return v_tijdstip;
 end
 $$;
 
@@ -189,19 +218,19 @@ begin
       perform intern.fout('veld_ongeldig', jsonb_build_object('veld', v_sleutel));
     end if;
   end loop;
-  if p_velden ? 'naam' then v_naam := intern.json_tekst(p_velden -> 'naam', 'naam'); end if;
+  if p_velden ? 'naam' then v_naam := intern.json_tekst(p_velden -> 'naam', 'naam', 200); end if;
   if p_velden ? 'datum' then v_datum := intern.json_datum(p_velden -> 'datum', 'datum'); end if;
   if p_velden ? 'verzameltijd' then
     v_verzameltijd := intern.json_tijd(p_velden -> 'verzameltijd', 'verzameltijd');
   end if;
   if p_velden ? 'starttijd' then v_starttijd := intern.json_tijd(p_velden -> 'starttijd', 'starttijd'); end if;
   if p_velden ? 'eindtijd' then v_eindtijd := intern.json_tijd(p_velden -> 'eindtijd', 'eindtijd'); end if;
-  if p_velden ? 'locatie' then v_locatie := intern.json_tekst(p_velden -> 'locatie', 'locatie'); end if;
+  if p_velden ? 'locatie' then v_locatie := intern.json_tekst(p_velden -> 'locatie', 'locatie', 200); end if;
   if p_velden ? 'bus_vertrektijd' then
     v_bus_vertrektijd := intern.json_tijd(p_velden -> 'bus_vertrektijd', 'bus_vertrektijd');
   end if;
   if p_velden ? 'bus_locatie' then
-    v_bus_locatie := intern.json_tekst(p_velden -> 'bus_locatie', 'bus_locatie');
+    v_bus_locatie := intern.json_tekst(p_velden -> 'bus_locatie', 'bus_locatie', 200);
   end if;
   if p_velden ? 'notitie' then v_notitie := intern.json_tekst(p_velden -> 'notitie', 'notitie'); end if;
   if p_velden ? 'afmeld_deadline' then

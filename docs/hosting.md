@@ -247,6 +247,14 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
        komen; daarna staat er "Finished supabase db push". Staat alles al online, dan zegt hij "Remote database is up
        to date". Bij een verbindingsfout staan het adres van de pooler en `postgres.<ref>` in de publieke log, het
        wachtwoord niet (review PR20-10).
+    5. **Eerste keer dat de fase-1-migraties online komen** (pull request 22), samen controleren in Supabase:
+       - Database, Advisors, *Security Advisor*: drie verwachte meldingen "SECURITY DEFINER executable" voor
+         `activiteit_opslaan`, `concept_verwijderen` en `beheeroverzicht` (bedoeld: ze controleren zelf wie belt).
+         Elke andere nieuwe melding is een bevinding.
+       - SQL Editor: `select has_table_privilege('postgres', 'auth.mfa_factors', 'select');` moet `true` geven. Zo niet,
+         dan kan `is_beheerder()` online de factoren niet lezen en is niemand beheerder (Datamodel punt 3).
+       - Project Settings, Data API: *Exposed schemas* alleen `public`, geen `intern`.
+       - Nooit `supabase db reset --linked` draaien: dat leegt het ontwikkelproject en zet de verzonnen seed erin.
     - **Een migratie moet met de vorige versie van de app werken.** De migraties gaan eerst online, dan de app. Faalt
       de uitrol van de app, of rol je de app terug, dan draait de oude app op de nieuwe database. Dus eerst iets
       toevoegen (een kolom, een functie), pas in een volgende pull request het oude weghalen. Een migratie die iets
