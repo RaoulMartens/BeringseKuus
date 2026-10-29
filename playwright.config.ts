@@ -12,7 +12,7 @@ import { leesLokaleSupabase } from './scripts/lokale-supabase.ts';
 const SITE = `http://127.0.0.1:${POORT}`;
 // De test met twee databasesessies (Datamodel-fase-1.md punt 9) heeft geen browser nodig en draait één keer, niet per
 // schermbreedte: twee tegelijk zouden elkaars activiteiten zien.
-const DATABASE = /gelijktijdig\.spec\.ts/;
+const DATABASE = /(gelijktijdig|mfa-gotrue)\.spec\.ts/;
 // De Worker praat met de lokale Supabase (npm run supabase:start); de sleutels komen uit `supabase status`.
 const lokaal = leesLokaleSupabase();
 

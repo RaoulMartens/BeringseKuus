@@ -262,7 +262,8 @@ heeft; nooit voor `anon` of `PUBLIC`.
 | Functie | Soort | Geeft |
 |---|---|---|
 | `huidig_lid()` | `security definer`, `stable` | Het `leden.id` met `auth_user_id = auth.uid()`, `actief` en `type = 'lid'`; anders leeg (`Bouwbesluiten` 4.1). Alle regels gebruiken deze, nooit rechtstreeks `auth.uid()` |
-| `is_beheerder()` | `security definer`, `stable` | Waar als: (1) er is een `huidig_lid()`; (2) die heeft `is_admin` in `leden_prive`; (3) `auth.jwt() ->> 'aal' = 'aal2'`; (4) er is een geverifieerde MFA-factor van deze gebruiker van **vóór** `beheerder_sinds`, en er is **geen** geverifieerde factor van **ná** `beheerder_sinds` (DM-09, DM-25, zie hieronder). Intrekken van `is_admin` werkt direct, ook in een lopende sessie |
+| `is_beheerder()` | `security definer`, `stable` | Waar als: (1) er is een `huidig_lid()`; (2) die heeft `is_admin` in `leden_prive`; (3) `auth.jwt() ->> 'aal' = 'aal2'` **en** de code-stap (`totp` in `amr`) is hooguit 12 uur oud (`intern.code_recent()`, stap D), van ná het aanmaken van de geldende app en niet uit de toekomst; (4) er is een geverifieerde MFA-factor van deze gebruiker van **vóór** `beheerder_sinds`, en er is **geen** geverifieerde factor van **ná** `beheerder_sinds` (DM-09, DM-25, zie hieronder). Intrekken van `is_admin` werkt direct, ook in een lopende sessie |
+| `public.beheerstatus()` | `security definer`, `stable`, **wel** `execute` voor `authenticated` | Voor de app, geen regel: één tekst die zegt welk scherm bij deze sessie hoort: `geen_lid`, `geen_beheerder`, `mfa_instellen`, `wacht_op_bevestiging`, `code_nodig` of `ok`. `ok` is precies `is_beheerder()`; een test eist dat. De volgorde van de controles en de handleiding staan in `docs/bouw/Beheerders.md` |
 | `lid_mag_zien(activiteit_id, lid_id)` | `security definer`, `stable` | **Onwaar als `lid_id` leeg is** (DM-20: anders ziet iemand zonder lidmaatschap elke activiteit voor iedereen). Verder: status `gepubliceerd` of `geannuleerd`, en geen `activiteit_groep`-rij of het lid zit in een van die groepen. **Zonder** uitzondering voor de beheerder (DM-03). In regels en de view als `intern.lid_mag_zien(id, (select intern.huidig_lid()))` |
 | `aantal_aanwezigen(activiteit_id)` | `security definer`, `stable`, **geen** `execute` voor `authenticated` | Actieve leden van type `lid` in de doelgroep (iedereen, of de leden van minstens één van de groepen, elk één keer), min de afmeldingen (R1, R12, R22, V8 5.6). Voor `beheeroverzicht()` nu en `meld_af()` in fase 3 |
 
@@ -290,8 +291,12 @@ wordt de wintertijd.
 **Wat `aal2` wel en niet bewijst** (DM-09). `aal2` zegt dat er een tweede factor is gebruikt, niet dat het die van het
 juiste bestuurslid is. Een bestuurslid met `is_admin` zonder factor logt in met alleen een inloglink; wie die mail
 onderschept, kan zelf een factor inschrijven. Daarom:
-- **Volgorde:** eerst stelt het bestuurslid zijn authenticator in (dat mag elk lid), daarna zet een beheerder `is_admin`
-  aan en `beheerder_sinds` op dat moment. Dit komt in de handleiding en in `Fase-1-plan` stap D.
+- **Volgorde:** de app moet van vóór `beheerder_sinds` zijn. Kan op twee manieren: een beheerder zet eerst `is_admin`
+  aan, het bestuurslid stelt zijn app in via Beheer, en de beheerder zet daarna `beheerder_sinds` opnieuw
+  (`wacht_op_bevestiging`); of het bestuurslid stelt zijn app in en een beheerder zet daarna `is_admin` aan. **In beide
+  gevallen moet de beheerder eerst nagaan dat er precies één app staat en dat het lid hem zelf net heeft ingesteld**
+  (review PR23-02): zonder die controle bevestigt hij mogelijk de app van een aanvaller met alleen de inloglink. De
+  wachtpagina toont daarvoor de naam en het moment van de app; de handleiding is `docs/bouw/Beheerders.md`.
 - **Een nieuwe factor zet het beheer stil** (DM-25). Het is niet genoeg dat er een oude factor bestaat: een aanvaller met
   de inloglink kan een tweede factor inschrijven en daarmee `aal2` krijgen, terwijl de oude er nog is. Daarom eist
   `is_beheerder()` dat er na `beheerder_sinds` **geen** factor bij is gekomen. Wie een nieuwe telefoon heeft, of wiens
@@ -306,12 +311,35 @@ onderschept, kan zelf een factor inschrijven. Daarom:
   ver in de toekomst, zodat elke lokaal ingeschreven factor telt).
 - **`service_role`** mag geen tabel leegmaken (`truncate`) en de auditlog niet wijzigen of wissen (PR22-07); de
   rechtentest bewaakt het voor alle tabellen in `public`.
-- **Na te gaan in stap D** (proef op de echte Worker): of de functie `auth.mfa_factors` online ook mag lezen; of
-  Supabase met een `aal1`-sessie een tweede factor laat inschrijven als er al een geverifieerde is; of de factor van de
-  sessie te achterhalen is; wat er met een `aal2`-sessie gebeurt als de factor wordt verwijderd.
-- **Sessieduur:** `aal2` blijft in elke ververste token van die sessie. In stap D kiest de bouwer bewust een
-  sessieduur (`[auth.sessions] timebox` of `inactivity_timeout`) of een recente MFA-stap voor het beheer, en legt die
-  vast.
+- **Stap D, lokaal bewezen met de echte GoTrue** (`e2e/mfa-gotrue.spec.ts`, project `database`): een nieuwe sessie is
+  `aal1`; een app inschrijven en met een goede code bevestigen geeft `aal2` en een regel `{"method": "totp", "timestamp":
+  …}` in `amr`; een foute code wordt geweigerd; een verversing houdt `aal2` en het oorspronkelijke tijdstip van de code
+  vast (daarom werkt de grens van 12 uur); met een `aal1`-sessie een tweede app inschrijven geeft 403 en uitschrijven 422;
+  dezelfde code mag in zijn eigen periode van 30 seconden nog een keer (GoTrue weigert hergebruik niet; geaccepteerd,
+  de code is zes cijfers voor 30 seconden en de sessie moet al bestaan).
+- **Een code hoort bij de geldende app** (review PR23-01). Zonder die eis houdt een gestolen sessie haar code na een
+  herstel (oude app los, nieuwe ingesteld, `beheerder_sinds` opnieuw): de oude code zou weer tellen tot 12 uur na het
+  invoeren. `code_recent()` eist daarom dat de code is ingevoerd op of na het aanmaken van de nieuwste bevestigde app.
+  Gemeten met de echte GoTrue (`e2e/mfa-gotrue.spec.ts`). Verwijderen van een app via de beheer-API of het dashboard
+  beëindigt de sessies van die app; via SQL niet: daarom staat in de handleiding dat alle sessies worden beëindigd.
+  `auth.sessions.factor_id` bestaat en wijst na verwijderen naar een app die er niet meer is; een strengere variant
+  (de sessie zelf aan de geldende app koppelen) is mogelijk maar vraagt pgTAP-fixtures met sessies, en is niet nodig
+  nu de code-eis dit al afdekt.
+- **Codes raden: geaccepteerd voor de pilot, met meten** (review PR23-03). De rem van GoTrue op foute codes is per
+  IP-adres en een uitdaging blijft na een foute code bruikbaar (de app maakt per poging een nieuwe). Wie de inloglink van
+  een bestuurslid heeft, kan buiten de app om gokken. Redenen om het te accepteren: de aanvaller heeft de mailbox al
+  nodig, het doelwit is een vereniging met een handvol beheerders, en er zijn drie geldige codes per moment (de vorige,
+  de huidige, de volgende periode). Vóór de pilot: online meten wat de rem is en welk IP GoTrue ziet achter een Worker
+  (`hosting.md` stap 14), en Supabase's MFA-verificatiehook (pogingen per gebruiker tellen) nagaan; mislukte pogingen
+  staan in de auth-logs. Bestuursleden melden verdachte inlogmails (`Beheerders.md`).
+- **Sessieduur (besluit 29-10-2026): 12 uur.** Het beheer eist een code-stap van hooguit 12 uur geleden, in de database
+  (`intern.code_recent()`) en in de app (`src/lib/mfa.ts`, een test houdt de twee gelijk). Dat werkt op elk plan; een
+  `timebox` in Supabase is er alleen op Pro en zou ook de ledenschermen uitloggen. Na 12 uur blijven de ledenschermen
+  werken en vraagt alleen beheer opnieuw om een code.
+- **Nog online na te gaan** (proef op de Worker, vóór de pilot): TOTP aan (Authentication, Multi-Factor; volgens
+  Supabase op elk plan beschikbaar), dezelfde stappen als lokaal, `mfa_ip_address_mismatch` in de Worker-logs (GoTrue
+  weigert een goede code als uitdaging en controle van een ander IP-adres komen; dan krijgt de gebruiker online steeds
+  een melding), de rem op codes, en of `delete from auth.mfa_factors` met de SQL Editor online mag.
 
 ## 4. Schrijffuncties in fase 1 (schema `public`)
 

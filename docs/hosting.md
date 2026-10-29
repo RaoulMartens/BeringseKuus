@@ -273,6 +273,19 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       die slaat de controle "Alleen de nieuwste main" in de job `bouw` over (review PR20-11).
     - `db push` met de hand (stap 12A) is daarna niet meer nodig.
 
+14. **MFA aanzetten** (stap D, 29-10-2026). Supabase, het project, **Authentication**, **Sign In / Providers** (of
+    *Multi-Factor*), en zet bij **TOTP (App Authenticator)** *Enrollment* en *Verification* aan. Volgens Supabase
+    is TOTP op elk plan beschikbaar (alleen telefoon-MFA kost geld) en staat het standaard aan; controleer dat. Zonder
+    dit geeft de pagina "Beheer beveiligen" een fout. Daarna online dezelfde proef als lokaal met een testbeheerder:
+    app instellen, bevestigen (`docs/bouw/Beheerders.md`, inclusief de controle in `auth.mfa_factors`), code invoeren.
+    Let tijdens de proef op:
+    - de Worker-logs: komt `mfa_ip_address_mismatch` voor? (GoTrue weigert een goede code als de uitdaging en de
+      controle van een ander IP-adres komen; Cloudflare heeft veel uitgaande adressen.) Zo ja, dan is de melding "Deze
+      code klopt niet" online onbetrouwbaar en moeten de twee aanroepen via één verbinding;
+    - de rem op foute codes: probeer 30 foute codes snel achter elkaar en kijk wanneer `429` komt, en of het
+      bestuur daarna nog kan inloggen. De pagina vangt de melding op, maar de grens is lokaal niet na te gaan;
+    - of `delete from auth.mfa_factors` in de SQL Editor online mag, anders is het dashboard de herstelroute.
+
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
 URL.

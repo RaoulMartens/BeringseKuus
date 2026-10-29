@@ -606,7 +606,9 @@ Geen wijziging aan activiteiten of bezetting. Er bestaat een persoonlijk token e
 
 **Nog niet als scherm uitgewerkt** (wel als foutcode belegd): `activiteit_niet_open`,
 `vervanger_ongeldig`, `al_afgemeld`, `niet_afgemeld`, en de laad-/netwerkfout uit
-UC-001 AF-6. Zie de UI Stack-bevinding in `UX-FLOWS.md`.
+UC-001 AF-6 (sinds 29-10-2026 beantwoord door `storing.html` en `fout.html`). Zie de UI Stack-bevinding in `UX-FLOWS.md`.
+
+**Schermen buiten de use cases (29-10-2026):** inloggen (`inloggen`, `inloggen-fout-adres`, `inloggen-verstuurd`, `inloggen-mail`, `inloggen-bevestigen`, `inloggen-link-ongeldig`, `uitgelogd`), `mijn-account` (tijdelijk), MFA voor het bestuur (`mfa-instellen`, `mfa-wacht-op-bevestiging`, `mfa-code`, `mfa-code-fout`, `mfa-opnieuw`, `mfa-toestel-kwijt`), `alleen-bestuur`, `niet-gevonden`, `fout` en `storing`. Ze zijn uit de bouw voortgekomen en horen bij geen UC; ze staan met kernelementen in `wireframes/INDEX.md` en in `UX-FLOWS.md` ("Ontwerpgaten uit de bouw").
 
 ## Besloten punten (11-09-2026)
 

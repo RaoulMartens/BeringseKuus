@@ -12,3 +12,19 @@ body {
   outline: 3px solid currentColor;
   outline-offset: 3px;
 }
+
+/* De QR-code is voor wie op een andere computer scant; op een telefoon staat de app op hetzelfde toestel (wireframe
+   mfa-instellen). */
+.alleen-mobiel {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .niet-op-mobiel {
+    display: none;
+  }
+
+  .alleen-mobiel {
+    display: block;
+  }
+}

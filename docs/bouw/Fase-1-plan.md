@@ -79,6 +79,17 @@ Een bestuurslid stelt een authenticator-app in (TOTP) en voert bij het inloggen 
 `aal2` in de database én in de middleware of pagina. **Ontwerpgat:** de wireframes hebben geen schermen voor MFA
 (instellen met QR-code, code invoeren, toestel kwijt). Die maakt de ontwerper vóór deze stap (beslissing 2.5).
 
+**Gedaan (PR 23, 29-10-2026):** wireframes (eerste versie van Claude, door de ontwerper te beoordelen; 18 schermen: inloggen, MFA,
+fout en storing, alleen-bestuur); TOTP aan in `config.toml`; een code-stap van hooguit 12 uur (`intern.code_recent()`) en
+`public.beheerstatus()` in migratie `20261029110000_fase1_mfa.sql`; `eisBeheer()` en de pagina's `/mfa/instellen`,
+`/mfa/code`, `/mfa/wacht`, `/mfa/toestel-kwijt`, `/geen-toegang` en een tijdelijke `/beheer`; de handleiding
+`Beheerders.md`; tests met de echte GoTrue (`e2e/mfa-gotrue.spec.ts`) en in de browser (`e2e/mfa.spec.ts`). Review (PR23-01 t/m 10) verwerkt: de code moet bij de geldende app horen, de wachtpagina toont de naam en het
+moment van de app voor de bevestiging, foutsoorten gesplitst, vangnet-layout en -test voor beheer, de handleiding
+herschreven. **Nog te
+doen:** de proef online (TOTP aan in het ontwikkelproject, zie `hosting.md` stap 14), de overige schermen van de
+wireframes (inloggen, 404, fout, storing) in code bij stap F, en de bevestiging door een tweede beheerder in een scherm
+(fase 4).
+
 ### Stap E: tokens en componentenset
 
 Volgens `Design-overdracht.md` 3: tokens uit `stijl.css` als CSS-variabelen (ook het thema per vereniging), de

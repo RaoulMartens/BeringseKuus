@@ -598,6 +598,7 @@ export type Database = {
           status: string;
         }[];
       };
+      beheerstatus: { Args: Record<PropertyKey, never>; Returns: string };
       concept_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
     };
     Enums: {
