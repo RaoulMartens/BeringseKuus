@@ -55,26 +55,31 @@ export default defineConfig([
   },
   {
     // Elke Supabase-client in de app komt uit src/lib/supabase/, getypeerd met de databasetypen (bouwgids 14.2,
-    // review PR14-08). Zo kan geen client ongetypeerd ontstaan en hoeft niemand een antwoord met de hand om te zetten.
-    // Tests en scripts maken hun eigen beheerclient (met de lokale geheime sleutel) en vallen erbuiten.
-    files: ['src/**/*.ts', 'src/**/*.tsx'],
-    ignores: ['src/lib/supabase/**', 'src/**/*.test.ts'],
+    // review PR14-08 en PR19-01). Zo kan geen client ongetypeerd ontstaan en hoeft niemand een antwoord met de hand
+    // om te zetten. Daarom mag code buiten die map niets uit een @supabase-pakket importeren, alleen typen (import
+    // type), en ook niet met een dynamische import. Tests, scripts en de browsertests maken hun eigen beheerclient
+    // (met de lokale geheime sleutel) en vallen erbuiten.
+    files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
+    ignores: ['src/lib/supabase/**', 'scripts/**', 'e2e/**', '**/*.test.ts', '**/*.test.tsx'],
     rules: {
-      'no-restricted-imports': [
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
-          paths: [
+          patterns: [
             {
-              name: '@supabase/ssr',
-              importNames: ['createServerClient', 'createBrowserClient'],
-              message: 'Maak een Supabase-client alleen in src/lib/supabase/ (getypeerd met Database).',
-            },
-            {
-              name: '@supabase/supabase-js',
-              importNames: ['createClient'],
-              message: 'Maak een Supabase-client alleen in src/lib/supabase/ (getypeerd met Database).',
+              group: ['@supabase/*'],
+              allowTypeImports: true,
+              message:
+                'Supabase alleen via src/lib/supabase/ (getypeerd met Database); hier mag alleen import type.',
             },
           ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression[source.value=/^@supabase\\u002F/]',
+          message: 'Supabase alleen via src/lib/supabase/, ook niet met een dynamische import.',
         },
       ],
     },

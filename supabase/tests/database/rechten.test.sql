@@ -3,7 +3,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(14);
 
 -- 1. Elke tabel in public heeft rechten per rij (RLS) aan. Een test die faalt zodra er één zonder bestaat.
 select is(
@@ -91,15 +91,26 @@ select is_empty(
 -- tabel op de lijst heeft rechten per rij; wat een lid daarvan ziet, toetsen de tests per tabel en per rol (14.4).
 -- Een materialized view of foreign table kent geen rechten per rij en komt nooit op de lijst.
 -- Bewust toegestaan: nog niets.
-select is_empty(
-  $$ select c.oid::regclass::text
-       from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'f')
-        and (has_table_privilege('authenticated', c.oid, 'select')
-          or has_any_column_privilege('authenticated', c.oid, 'select'))
-        and (c.relkind in ('m', 'f') or c.relname <> all (array[]::text[])) $$,
-  'ingelogd: alleen tabellen en views op de lijst zijn leesbaar, nooit een materialized view of foreign table'
-);
+create function pg_temp.leesbaar_voor_ingelogd() returns setof text language sql as $$
+  select c.oid::regclass::text
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'f')
+     and (has_table_privilege('authenticated', c.oid, 'select')
+       or has_any_column_privilege('authenticated', c.oid, 'select'))
+     and (c.relkind in ('m', 'f') or c.relname <> all (array[]::text[]))
+$$;
+
+-- Eerst bewijzen dat deze test rood kan worden (review PR19-04): een tabel die ingelogd leesbaar is en niet op de
+-- lijst staat, komt in het resultaat. Daarna weg, en dan de echte toets.
+create table public.proef_lezen (id int primary key);
+alter table public.proef_lezen enable row level security;
+grant select on public.proef_lezen to authenticated;
+select isnt_empty('select * from pg_temp.leesbaar_voor_ingelogd()',
+  'controle: de lijsttest ziet een tabel die ingelogd leesbaar is');
+drop table public.proef_lezen;
+
+select is_empty('select * from pg_temp.leesbaar_voor_ingelogd()',
+  'ingelogd: alleen tabellen en views op de lijst zijn leesbaar, nooit een materialized view of foreign table');
 
 -- Extensies horen in het schema extensions, nooit in public: daar zouden hun functies en tabellen via de Data API
 -- bereikbaar zijn, met de rechten van supabase_admin.

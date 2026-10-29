@@ -32,11 +32,11 @@ workflows of de poort, dan krijgt hij een eigen review door een schone chat (`CL
 
 ### Stap A: opruimen en voorwerk
 
-1. Proefcode weg (`Afname-fase-0.md` punt 4): `src/app/proef/`, `PROEF_AGENDA_TOKEN`, `scripts/agenda-testtoken.ts`
+1. **Gedaan (PR 19).** Proefcode weg (`Afname-fase-0.md` punt 4): `src/app/proef/`, `PROEF_AGENDA_TOKEN`, `scripts/agenda-testtoken.ts`
    en die controle, `src/taken/proef-taak.ts` met zijn tests, en een migratie die `proef_taak` en
    `proef_taak_bericht` verwijdert. `taken/worker.ts` blijft als lege taken-Worker tot fase 7.
-2. Het besluit over migraties online uitvoeren (beslissing 2.2).
-3. Poortpunten vóór de eerste tabel (review PR14-02 en PR14-08): één fabriek per soort Supabase-client met een
+2. Het besluit over migraties online uitvoeren (beslissing 2.2): een eigen pull request, na PR 19.
+3. **Gedaan (PR 19).** Poortpunten vóór de eerste tabel (review PR14-02 en PR14-08): één fabriek per soort Supabase-client met een
    ESLint-regel die andere clients verbiedt; de rechtentests ook voor `authenticated` per tabel, met een lijst van
    bewust toegestane tabellen; een controle dat de schema's van de Data API niet veranderen.
 

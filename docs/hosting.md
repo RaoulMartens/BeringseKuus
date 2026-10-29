@@ -244,8 +244,9 @@ tweede beheerder komt er vóór de pilot (`Bouwbesluiten` 5.2), en wie dat wordt
 | `PROEF_AGENDA_TOKEN` | Worker `ledenplatform` | De proef-feed geeft voor elk token een 404 (zo hoort het na de proef) | Stap 11 | Verwijderd 29-10-2026 |
 | `SUPABASE_SECRET_KEY` (sleutel `proef_taak`), `RESEND_API_KEY`, `RESEND_AFZENDER`, `PROEF_TAAK_ONTVANGER`, `SUPABASE_URL` | Worker `ledenplatform-taken` | De taak meldt "niet ingesteld" (zo hoort het na de proef) | Stap 12 | Verwijderd 29-10-2026 |
 
-Lokaal schrijft `npm run env:lokaal` de sleutels van de lokale Supabase in `.env.local`, `.dev.vars` en
-`taken/.dev.vars` (niet in git). Dat zijn de vaste sleutels van de ontwikkelomgeving in Docker, geen online sleutels.
+Lokaal schrijft `npm run env:lokaal` de sleutels van de lokale Supabase in `.env.local` en `.dev.vars` (niet in
+git). Dat zijn de vaste sleutels van de ontwikkelomgeving in Docker, geen online sleutels. Staat er nog een oud
+`taken/.dev.vars` (met de lokale geheime sleutel, van vóór fase 1), dan mag dat weg.
 
 ## Als er iets misgaat
 

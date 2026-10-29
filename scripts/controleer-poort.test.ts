@@ -154,7 +154,7 @@ describe('workflow', () => {
 describe('taken-Worker (review PR12-05 en PR12-06)', () => {
   const taak = (bestanden: Record<string, string>) => (pad: string) => bestanden[pad];
   const ALLEEN_TAAK = [{ pad: 'taken/worker.ts', nodeToegestaan: false }];
-  const SPARSE = ['taken', 'src/taken/proef-taak.ts'];
+  const SPARSE = ['taken', 'src/taken/taak.ts'];
 
   it('volgt de imports van deze repository en vindt geen problemen', () => {
     const leesAls = (pad: string): string | undefined => {
@@ -208,16 +208,16 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
   });
 
   it('volgt imports door: een pakket of bestand buiten de sparse checkout, één stap verder (review F0-19)', () => {
-    const start = "import { a } from '../src/taken/proef-taak.ts';";
+    const start = "import { a } from '../src/taken/taak.ts';";
     const viaPakket = taak({
       'taken/worker.ts': start,
-      'src/taken/proef-taak.ts': "import { b } from '../lib/hulp.ts';",
+      'src/taken/taak.ts': "import { b } from '../lib/hulp.ts';",
       'src/lib/hulp.ts': "import { z } from 'zod';",
     });
     const meldingen = controleerUitrolBestanden(ALLEEN_TAAK, viaPakket, SPARSE);
     assert.ok(meldingen.some((m) => m.startsWith('src/lib/hulp.ts: staat niet in de sparse checkout')));
     assert.ok(meldingen.some((m) => m.includes('"zod"')));
-    const goed = taak({ 'taken/worker.ts': start, 'src/taken/proef-taak.ts': 'export const a = 1;' });
+    const goed = taak({ 'taken/worker.ts': start, 'src/taken/taak.ts': 'export const a = 1;' });
     assert.deepEqual(controleerUitrolBestanden(ALLEEN_TAAK, goed, SPARSE), []);
   });
 

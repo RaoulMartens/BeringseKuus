@@ -69,10 +69,10 @@ jobs:
         run: |
           for poging in 1 2 3; do
             npm run supabase:start && exit 0
+            [ "$poging" = 3 ] && exit 1
             echo "Poging $poging mislukt; over 60 seconden opnieuw."
             sleep 60
           done
-          exit 1
 
       # Deze stap krijgt de namenlijst niet.
       - name: De poort (npm run check:basis)
