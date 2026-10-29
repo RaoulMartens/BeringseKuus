@@ -21,7 +21,7 @@ af moet zijn (bouwgids 13.3).
 
 ## Master screen map
 
-[diagrams/screen-map.md](diagrams/screen-map.md) — alle 61 schermen en hun navigatiepaden.
+[diagrams/screen-map.md](diagrams/screen-map.md) — alle 79 schermen en hun navigatiepaden.
 
 ## Scherminventaris
 
@@ -53,6 +53,31 @@ af moet zijn (bouwgids 13.3).
 | Programma — raadslid | Wat een lid buiten het bestuur ziet: geen Bestuursvergadering (R22) | [programma-raadslid.html](wireframes/programma-raadslid.html) | R22 |
 | Agenda koppelen | Alles of alleen diensten; iPhone met een tik, Android via Google Agenda | [agenda.html](wireframes/agenda.html) | UC-008 |
 | Agenda gekoppeld | Wat er nu gebeurt en hoe wijzigingen binnenkomen | [agenda-gelukt.html](wireframes/agenda-gelukt.html) | UC-008 |
+
+### Aanmelden, account en foutschermen (29-10-2026)
+
+Ontwerpgaten uit de bouw (zie "Ontwerpgaten uit de bouw" hieronder), geen onderdeel van een use case.
+
+| Scherm | Doel | Wireframe |
+|--------|------|-----------|
+| Inloggen | E-mailadres invullen; geen wachtwoord | [inloggen.html](wireframes/inloggen.html) |
+| Inloggen — fout e-mailadres | Foutmelding bij het veld | [inloggen-fout-adres.html](wireframes/inloggen-fout-adres.html) |
+| Inloggen — link verstuurd | Zelfde antwoord voor bekend en onbekend adres | [inloggen-verstuurd.html](wireframes/inloggen-verstuurd.html) |
+| Inloggen — de mail | Voorstel voor onderwerp en tekst van de mail (geen scherm) | [inloggen-mail.html](wireframes/inloggen-mail.html) |
+| Inloggen — bevestigen | Pagina achter de link in de mail; de klik op Inloggen logt in | [inloggen-bevestigen.html](wireframes/inloggen-bevestigen.html) |
+| Inloggen — link werkt niet meer | Verlopen of gebruikte link, meteen een nieuwe aanvragen | [inloggen-link-ongeldig.html](wireframes/inloggen-link-ongeldig.html) |
+| Uitgelogd | Terugkoppeling na uitloggen, op het inlogscherm | [uitgelogd.html](wireframes/uitgelogd.html) |
+| Mijn account | Wie is ingelogd, uitloggen (tijdelijk) | [mijn-account.html](wireframes/mijn-account.html) |
+| Beheer — app instellen | MFA instellen met een authenticator-app (bestuur) | [mfa-instellen.html](wireframes/mfa-instellen.html) |
+| Beheer — wacht op bevestiging | App ingesteld; een andere beheerder bevestigt nog | [mfa-wacht-op-bevestiging.html](wireframes/mfa-wacht-op-bevestiging.html) |
+| Beheer — code invoeren | 6 cijfers bij elke beheersessie | [mfa-code.html](wireframes/mfa-code.html) |
+| Beheer — foute code | Foutmelding bij het veld, zonder tellers | [mfa-code-fout.html](wireframes/mfa-code-fout.html) |
+| Beheer — code opnieuw | Na 12 uur, met de reden | [mfa-opnieuw.html](wireframes/mfa-opnieuw.html) |
+| Beheer — telefoon kwijt | Hulpscherm: wie je vraagt en wat die doet; geen zelfbediening | [mfa-toestel-kwijt.html](wireframes/mfa-toestel-kwijt.html) |
+| Pagina niet gevonden | 404; ook voor een voor jou verborgen activiteit (R22) | [niet-gevonden.html](wireframes/niet-gevonden.html) |
+| Er ging iets mis | Algemene fout aan onze kant | [fout.html](wireframes/fout.html) |
+| Storing | De gegevens zijn niet bereikbaar; niet doorsturen naar Inloggen | [storing.html](wireframes/storing.html) |
+| Alleen voor het bestuur | Lid zonder bestuursrol opent een beheerpagina | [alleen-bestuur.html](wireframes/alleen-bestuur.html) |
 
 ### Buiten de MVP-scope, voor de walkthrough
 
@@ -140,6 +165,23 @@ Volledige beschrijving met preconditions, stappen en alternative flows:
 | agenda.html | Link kopiëren (Android) | agenda-android.html |
 | admin-activiteiten.html | Rij za 23 januari Bonte Avond (Op orde) | admin-activiteit-bewerken-za.html |
 | mijn-diensten-raadslid.html | Tegel activiteiten, rij Bonte Avond | programma-raadslid.html, welkom-raadslid.html |
+| welkom.html | Naam rechtsboven (in het prototype alleen hier) | mijn-account.html |
+| welkom.html | Variantenblok "inloggen en foutschermen" | inloggen · mfa-code · niet-gevonden · fout · storing |
+| inloggen.html | "Stuur mij een inloglink" | inloggen-verstuurd.html |
+| inloggen.html | Variantenblok | inloggen-fout-adres · inloggen-link-ongeldig · uitgelogd |
+| inloggen-verstuurd.html | Variantenblok (de mail openen) / "Nieuwe link aanvragen" | inloggen-mail.html / inloggen.html |
+| inloggen-mail.html | Knop "Inloggen" in de mail | inloggen-bevestigen.html |
+| inloggen-bevestigen.html | Knop "Inloggen" | welkom.html |
+| inloggen-link-ongeldig.html · inloggen-fout-adres.html · uitgelogd.html | Knop met een nieuwe aanvraag | inloggen-verstuurd.html |
+| mijn-account.html | "Uitloggen" / "Nieuwe telefoon of telefoon kwijt?" | uitgelogd.html / mfa-toestel-kwijt.html |
+| mfa-instellen.html | "Bevestigen" | mfa-wacht-op-bevestiging.html |
+| mfa-wacht-op-bevestiging.html | "Naar Start" | welkom.html |
+| mfa-code.html · mfa-opnieuw.html · mfa-code-fout.html | "Verder naar beheer" | admin-activiteiten.html |
+| mfa-code.html | Variantenblok | mfa-code-fout · mfa-opnieuw · mfa-instellen · mfa-wacht-op-bevestiging |
+| mfa-code.html · mfa-code-fout.html · mfa-opnieuw.html | "Nieuwe telefoon of telefoon kwijt?" | mfa-toestel-kwijt.html |
+| mfa-toestel-kwijt.html | Variantenblok "Stap 2" / "Terug naar de code" | mfa-instellen.html / mfa-code.html |
+| welkom-raadslid.html · programma-raadslid.html · mijn-diensten-raadslid.html | Beheer in de bovenbalk (lid zonder bestuursrol) | alleen-bestuur.html |
+| niet-gevonden.html · fout.html · storing.html · alleen-bestuur.html | Naar start / Probeer opnieuw | welkom.html (welkom-raadslid.html bij alleen-bestuur) |
 | elk vervolgscherm | Terug-link linksboven | vorig scherm |
 
 ## Navigatiepatronen
@@ -354,6 +396,7 @@ terug-links en zijkaarten op een rij). Houd deze regels aan bij elk nieuw scherm
 |---|---|
 | **Iemand kiezen** | Eén zoekveld met daaronder alleen wie je kunt kiezen. Wie niet beschikbaar is, staat er niet; zoek je op die naam, dan verschijnt hij grijs en niet klikbaar, met de reden. Geldt voor leden (vervanger) en bestuur (plek vullen). |
 | **Foutscherm** | Alleen voor wat de lijst niet kon voorzien: iets veranderde terwijl je koos. Titel zegt wat er aan de hand is, kaart "Er is niets gewijzigd", knoppen "Iemand anders kiezen" + "Terug naar …". Geen uitlegkaart "waarom deze regel". Bij het bestuur alleen "Terug naar de activiteit": de plek is al gevuld, dus eerst zie je de actuele stand; wie toch iemand anders wil, klikt daar op de naam. |
+| **Fout buiten het lid om** | Pagina niet gevonden, algemene fout en storing: titel zegt wat er aan de hand is, de zin "Dat ligt niet aan jou" (bij een fout of storing), één uitweg naar Start. Een storing stuurt nooit naar Inloggen. |
 | **Wanneer bevestigen** | Bevestig als het anderen raakt of niet terug te draaien is (dienst overdragen, publiceren, opslaan met berichten). Niet als alleen jij het merkt en je het zo weer ongedaan maakt (afmelding intrekken, opslaan als concept). |
 | **Bevestigen** | Altijd een eigen pagina, nooit een venster eroverheen. Titel is de vraag ("Dienst overdragen aan Wil Coenen?"), één kaart met wat er gebeurt, eventueel één waarschuwing, dan de hoofdknop met het werkwoord en "Annuleren". |
 | **Terugkoppeling** | Na elke handeling zie je dat het gelukt is. Leden krijgen een gelukt-scherm met de volgende stap; het bestuur een melding bovenaan het overzicht, in dezelfde woorden als de knop (gepubliceerd, opgeslagen als concept, wijzigingen opgeslagen). |
@@ -476,6 +519,41 @@ staan met onderbouwing in [use-cases.md](use-cases.md) onder "Besloten punten".
 
 Het FO staat nog op V4. De bouwgids is wat de bouwer volgt en is daarom eerst bijgewerkt;
 het FO moet dezelfde punten krijgen zodat beide documenten hetzelfde zeggen.
+
+### Ontwerpgaten uit de bouw (fase 0, 28-10-2026; gedicht 29-10-2026)
+
+De bouw van fase 0 had schermen nodig die niet in de wireframes of use cases staan. De code gebruikt nu zelf
+bedachte teksten; bouwgids 14.3 zegt dat teksten uit het ontwerp komen. Vóór de schermen van fase 1 hier
+ontwerpen, daarna neemt de code de tekst over (review F0-15 en F0-18, `Afname-fase-0.md` in de repository).
+
+| Gat | Nu in de code | Ontworpen op 29-10-2026 |
+|-----|---------------|-------------------------|
+| Inloggen: e-mailadres invullen, "link verstuurd", fout adres, verlopen of gebruikte link, uitgelogd | `/inloggen` met vier meldingen | **Gedicht:** `inloggen`, `inloggen-fout-adres`, `inloggen-verstuurd`, `inloggen-link-ongeldig`, `uitgelogd` |
+| Bevestigen: de pagina achter de link in de mail, met de knop "Inloggen" (tegen linkscanners) | `/auth/bevestigen` | **Gedicht:** `inloggen-bevestigen` |
+| De inlogmail zelf (onderwerp en tekst) | Mailsjabloon in Supabase | **Voorstel:** `inloggen-mail` (geen scherm; de tekst voor het sjabloon) |
+| "Mijn account": wie is ingelogd, uitloggen | `/mijn` (tijdelijk; vervalt waarschijnlijk in Start of Mijn diensten) | **Gedicht:** `mijn-account`, nog steeds tijdelijk |
+| Pagina niet gevonden (404) en een foutpagina | De Engelse standaard van Next.js | **Gedicht:** `niet-gevonden`, `fout` |
+| Storing: Supabase antwoordt niet | Het lid belandt op `/inloggen`, alsof het is uitgelogd | **Gedicht:** `storing` (geen doorverwijzing naar Inloggen) |
+| MFA voor het bestuur (stap D van fase 1) en een lid zonder bestuursrol bij een beheerpagina | Nog niet gebouwd | **Ontworpen:** `mfa-instellen`, `mfa-wacht-op-bevestiging`, `mfa-code`, `mfa-code-fout`, `mfa-opnieuw`, `mfa-toestel-kwijt`, `alleen-bestuur` |
+
+Het scherm voor de beheerder die een collega helpt is niet ontworpen (zie hieronder).
+
+**Wat hier is besloten (29-10-2026, eerste versie, de bouwer beoordeelt)**
+
+- *Inloggen verklapt niets.* "Als dit e-mailadres bij ons bekend is, hebben we een link gestuurd" staat voor een bekend en een onbekend adres. Het adres staat niet in de link en wordt niet herhaald (zou het in de URL zetten). Prijs: wie zijn adres verkeerd typt, merkt het pas als er niets komt; daarom staat er op het scherm "Het bestuur kan kijken welk adres bij jou staat".
+- *Uitgelogd is het inlogscherm met een melding*, geen apart scherm met een dode eind: wie uitlogt wil meestal niets meer, en wie wil inloggen heeft het formulier meteen. Dezelfde afspraak als bij het bestuur na opslaan: de melding in de woorden van de knop.
+- *Bovenbalk zonder items* voor wie niet is ingelogd, en bij een storing: het platform weet dan niet wie je bent en of Beheer erbij hoort.
+- *Beheer en MFA.* Een bestuurslid stelt eenmalig een authenticator-app in; daarna bevestigt een andere beheerder de toegang (`mfa-wacht-op-bevestiging`). Elke beheersessie vraagt een code, geen "onthoud mij", na 12 uur opnieuw. Ledenschermen werken zonder code. Een foute code houdt je op het scherm, zonder tellers die dreigen.
+- *Geen zelfbediening bij een kwijte telefoon.* Als jij dat zelf kon regelen met alleen je mailbox, kon iemand met jouw mailbox dat ook. Daarom: een andere beheerder koppelt de oude app los, jij stelt een nieuwe in, die beheerder bevestigt. In de tussentijd kun je gewoon als lid inloggen. Zonder technische woorden.
+- *404 voor een verborgen activiteit.* Een lid dat een activiteit opent die voor zijn groep verborgen is, ziet hetzelfde scherm als bij een bestaande pagina die niet bestaat (R22, `Bouwbesluiten` 4.3): anders verraadt het scherm dat de activiteit er is.
+- *Fout.* "Er ging iets mis aan onze kant" waarschuwt om eerst te controleren of je laatste handeling is gelukt (afmelden, overdragen), omdat het platform niet weet of die is doorgegaan. Het foutnummer is voor het bestuur om door te geven.
+
+**Nog open uit deze ronde**
+
+- De beheerder die een collega helpt (oude app loskoppelen, toegang bevestigen) heeft nog geen scherm. Het kan geen ledenbeheer worden (buiten scope); denk aan een korte lijst "Wacht op bevestiging" in Beheer met per persoon één bevestigingspagina. Zonder scherm kan het alleen via de database. Pilotcheck: er zijn minstens twee beheerders, anders is er geen herstelroute (`Bouwbesluiten` 5.2).
+- Wat gebeurt er met niet-opgeslagen wijzigingen als de toegang tot beheer na 12 uur verloopt tijdens het bewerken van een activiteit? Voorstel: de code opnieuw vragen vóór Opslaan lukt, en de wijzigingen op het scherm laten staan. Nog niet ontworpen.
+- De geldigheid van de inloglink (een uur) en de tekst van de mail zijn een voorstel; de mail komt via een sjabloon in Supabase.
+- De opdrachtgever moet bevestigen hoe de andere beheerders heten of dat het platform ze mag noemen ("Wie kan je helpen?"). In de eerste versie staan geen namen.
 
 ### Open vraag uit de ontwerpronde
 

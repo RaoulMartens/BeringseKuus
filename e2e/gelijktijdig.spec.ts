@@ -7,31 +7,14 @@
 // niet_ondersteund). Zonder lock leest B nog het concept: concept_verwijderen wordt dan door het vangnet (de trigger)
 // tegengehouden met een andere melding, en activiteit_opslaan faalt op de CHECK publiceren_vereist_tijden_en_locatie
 // (zijn eigen update zet de status terug naar concept) in plaats van op niet_ondersteund.
-import { execFileSync, spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import { execFile } from 'node:child_process';
 
 import { expect, test } from '@playwright/test';
 
+import { PSQL, psql } from './database-hulp.ts';
+
 const uitvoeren = promisify(execFile);
-
-const container = execFileSync(
-  'docker',
-  ['ps', '--filter', 'name=supabase_db_ledenplatform', '--format', '{{.Names}}'],
-  {
-    encoding: 'utf8',
-  },
-)
-  .split('\n')[0]
-  ?.trim();
-if (!container) throw new Error('de lokale Supabase draait niet (npm run supabase:start)');
-
-const PSQL = ['exec', '-i', container, 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'];
-
-/** Draait SQL als postgres en geeft de uitvoer terug. */
-function psql(sql: string): string {
-  return execFileSync('docker', [...PSQL, '-t', '-A'], { input: sql, encoding: 'utf8' });
-}
 
 const uid = crypto.randomUUID();
 const lid = crypto.randomUUID();
@@ -42,7 +25,7 @@ const email = `gelijktijdig-${uid}@example.com`;
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(() => {
-  // Een beheerder die aan de regels van is_beheerder() voldoet: een factor van vóór beheerder_sinds, met aal2 in de claims.
+  // Een beheerder die aan de regels van is_beheerder() voldoet: een factor van vóór beheerder_sinds, met aal2 en een recente code in de claims.
   psql(`
     insert into auth.users (id, instance_id, aud, role, email, created_at, updated_at)
     values ('${uid}', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '${email}', now(), now());
@@ -104,7 +87,17 @@ async function eenAanroepTijdensPublicatie(
   }
   expect(heeftLock, 'sessie A heeft de lock genomen').toBe(true);
 
-  const claims = JSON.stringify({ sub: uid, role: 'authenticated', aal: 'aal2' });
+  // Zoals GoTrue het zet: aal2, en in amr de code (totp) van zojuist. is_beheerder() eist een code van max. 12 uur oud.
+  const nu = Math.floor(Date.now() / 1000);
+  const claims = JSON.stringify({
+    sub: uid,
+    role: 'authenticated',
+    aal: 'aal2',
+    amr: [
+      { method: 'otp', timestamp: nu },
+      { method: 'totp', timestamp: nu },
+    ],
+  });
   const begin = Date.now();
   let fout = '';
   try {

@@ -125,6 +125,12 @@ Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, 
   tabellen: de rechtentest faalt dan.
 - **Fouten van de databasefuncties** hebben SQLSTATE `BK001`, de foutcode als `message` en JSON in `detail`. Vertaal
   ze naar het scherm uit de wireframes; een foutcode zonder scherm is een ontwerpgat, meld het.
+- **Elke beheerpagina en elke serveractie in beheer begint met `eisBeheer()`** (`src/lib/beheer.ts`). Dat vraagt de
+  database wat deze sessie mag (`public.beheerstatus()`) en stuurt iedereen die niet `ok` is naar het scherm dat bij zijn
+  situatie hoort (inloggen, app instellen, wachten, code invoeren). Is die controle vergeten, dan weigert de database
+  nog steeds (`geen_admin`), maar de gebruiker ziet dan een foutmelding in plaats van het goede scherm. Beheer eist een
+  code van hooguit 12 uur oud (`CODE_GELDIG_UUR` in `src/lib/mfa.ts` en `intern.code_recent()` in de database; een test
+  houdt ze gelijk). Hoe iemand beheerder wordt of hersteld: `docs/bouw/Beheerders.md`.
 - **`vereniging_id` op elke tabel met eigen verenigingsgegevens** (`Bouwbesluiten` 1), standaardwaarde De
   Beringse Kuus. RLS en functies houden er in de pilot nog geen rekening mee; bouw die scheiding niet half
   in, die komt in een eigen fase. Geen tweede vereniging in de database vóór die fase is geaccepteerd.

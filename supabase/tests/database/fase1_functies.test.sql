@@ -30,12 +30,21 @@ begin
 end
 $$;
 
-create function pg_temp.als(p_naam text, p_aal text default 'aal1') returns void
+-- Zoals GoTrue het zet: `amr` heeft de inlog met de mail (otp) en, bij aal2, de code (totp) met het tijdstip. Met
+-- p_leeftijd (hoe lang geleden de code is ingevoerd) en null (geen code in het token) zijn de grenzen te testen.
+create function pg_temp.als(p_naam text, p_aal text default 'aal1', p_leeftijd interval default interval '1 minute')
+returns void
 language sql
 as $$
   select set_config('request.jwt.claims',
-    json_build_object('sub', (select uid from pg_temp.gebruikers where naam = p_naam),
-                      'role', 'authenticated', 'aal', p_aal)::text, true)
+    (json_build_object('sub', (select uid from pg_temp.gebruikers where naam = p_naam),
+                       'role', 'authenticated', 'aal', p_aal)::jsonb
+     || jsonb_build_object('amr',
+          jsonb_build_array(jsonb_build_object('method', 'otp', 'timestamp', extract(epoch from now())::bigint))
+          || case when p_aal = 'aal2' and p_leeftijd is not null
+                  then jsonb_build_array(jsonb_build_object('method', 'totp',
+                         'timestamp', extract(epoch from now() - p_leeftijd)::bigint))
+                  else '[]'::jsonb end))::text, true)
 $$;
 
 -- Een lid zonder inlogaccount, voor de tellingen.
