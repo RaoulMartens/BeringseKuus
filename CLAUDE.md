@@ -114,7 +114,16 @@ Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, 
   de eerste beheerfunctie. Leden-functies controleren eerst de aanroeper en de toegang tot de activiteit,
   daarna pas wat er bestaat; onbekend en ontoegankelijk geven dezelfde buitenkant.
 - **Eén tijdfunctie (4.5)** voor "bezig", "geweest" en deadlines in `Europe/Amsterdam`; een activiteit na
-  middernacht blijft zichtbaar.
+  middernacht blijft zichtbaar. Schrijffuncties toetsen met `clock_timestamp()` ná de lock, niet met `now()`
+  (dat is het begin van de transactie).
+- **Hulpfuncties van de rechten staan in het schema `intern`**, buiten de Data API (`[api] schemas` en
+  `extra_search_path` blijven zonder `intern`; de poort bewaakt dat). Een `security definer`-functie in `public` is
+  als `/rest/v1/rpc/…` aan te roepen en kan zo lekken wat een lid niet mag weten (`Datamodel-fase-1.md`, DM-01).
+- **`leden` altijd met een kolomlijst lezen** (`.select('id, voornaam, achternaam, type, actief')`). Authenticated
+  heeft alleen die vijf kolommen; `select *` en een embed `leden(*)` geven een fout. Zet nooit een tabelbrede
+  `grant select` op `leden`: de rechtentest faalt dan.
+- **Fouten van de databasefuncties** hebben SQLSTATE `BK001`, de foutcode als `message` en JSON in `detail`. Vertaal
+  ze naar het scherm uit de wireframes; een foutcode zonder scherm is een ontwerpgat, meld het.
 - **`vereniging_id` op elke tabel met eigen verenigingsgegevens** (`Bouwbesluiten` 1), standaardwaarde De
   Beringse Kuus. RLS en functies houden er in de pilot nog geen rekening mee; bouw die scheiding niet half
   in, die komt in een eigen fase. Geen tweede vereniging in de database vóór die fase is geaccepteerd.

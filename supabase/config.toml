@@ -66,8 +66,8 @@ schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-# Uit: er is nog geen seed (review F0-17). De seed met het programma 2026/2027 komt in fase 1 (bouwgids 13.5).
-enabled = false
+# Aan sinds fase 1: seed.sql bevat het programma 2026/2027 en verzonnen leden (bouwgids 13.5), alleen lokaal.
+enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]

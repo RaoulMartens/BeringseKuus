@@ -10,6 +10,9 @@ import { APP_POORT as POORT } from './e2e/poorten.ts';
 import { leesLokaleSupabase } from './scripts/lokale-supabase.ts';
 
 const SITE = `http://127.0.0.1:${POORT}`;
+// De test met twee databasesessies (Datamodel-fase-1.md punt 9) heeft geen browser nodig en draait één keer, niet per
+// schermbreedte: twee tegelijk zouden elkaars activiteiten zien.
+const DATABASE = /gelijktijdig\.spec\.ts/;
 // De Worker praat met de lokale Supabase (npm run supabase:start); de sleutels komen uit `supabase status`.
 const lokaal = leesLokaleSupabase();
 
@@ -40,11 +43,14 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
+      testIgnore: DATABASE,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1200, height: 800 } },
     },
     {
       name: 'telefoon',
+      testIgnore: DATABASE,
       use: { ...devices['Desktop Chrome'], viewport: { width: 375, height: 812 } },
     },
+    { name: 'database', testMatch: DATABASE },
   ],
 });

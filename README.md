@@ -60,7 +60,8 @@ is, is openbaar.
 
 `main` is beschermd: elke wijziging gaat via een branch en een pull request, ook voor de beheerder.
 
-De database (Supabase) draait lokaal in Docker; `npm run test:db` zet hem schoon op uit de migraties en draait
+De database (Supabase) draait lokaal in Docker; `npm run test:db` zet hem schoon op uit de migraties en de seed
+(`supabase/seed.sql`: het programma 2026/2027 en verzonnen leden, alleen lokaal) en draait
 de databasetests. Inloggen werkt met een link per mail (`docs/bouw/Inloggen.md`).
 
 ## Uitrollen

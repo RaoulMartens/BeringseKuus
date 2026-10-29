@@ -384,18 +384,25 @@ export function controleerUitrolBestanden(
 }
 
 /**
- * De Data API maakt alleen public en graphql_public bereikbaar (supabase/config.toml). De rechtentests lopen alleen
- * over public; een extra schema zou buiten alle tests vallen (review PR14-02). Komt er een bij, pas dan eerst de
- * tests aan en daarna deze controle.
+ * De Data API maakt alleen public en graphql_public bereikbaar (supabase/config.toml). De rechtentests lopen over public
+ * en intern; een extra schema zou buiten alle tests vallen (review PR14-02). Het schema intern (de hulpfuncties van de
+ * rechten, Datamodel-fase-1.md punt 1) mag daarnaast nooit in het zoekpad van de API staan: dan zijn die functies als
+ * /rest/v1/rpc/... aan te roepen (DM-01). Komt er een schema bij, pas dan eerst de tests aan en daarna deze controle.
  */
 export function controleerApiSchemas(config: string): string[] {
   const api = /^\[api\]\s*$([\s\S]*?)(?=^\[)/m.exec(config)?.[1] ?? '';
-  const schemas = /^schemas\s*=\s*(\[[^\]]*\])/m.exec(api)?.[1]?.replace(/\s/g, '');
-  return schemas === '["public","graphql_public"]'
-    ? []
-    : [
-        'supabase/config.toml: [api] schemas moet precies ["public", "graphql_public"] zijn (de rechtentests dekken alleen public)',
-      ];
+  const lijst = (naam: string): string | undefined =>
+    new RegExp(String.raw`^${naam}\s*=\s*(\[[^\]]*\])`, 'm').exec(api)?.[1]?.replace(/\s/g, '');
+  const problemen: string[] = [];
+  if (lijst('schemas') !== '["public","graphql_public"]')
+    problemen.push(
+      'supabase/config.toml: [api] schemas moet precies ["public", "graphql_public"] zijn (de rechtentests dekken alleen public en intern)',
+    );
+  if (/intern/.test(lijst('extra_search_path') ?? '') || /intern/.test(lijst('schemas') ?? ''))
+    problemen.push(
+      'supabase/config.toml: het schema intern mag niet in [api] schemas of extra_search_path staan',
+    );
+  return problemen;
 }
 
 /** Beide Workers draaien op dezelfde versie van het platform (review F0-19). */

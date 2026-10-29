@@ -496,7 +496,8 @@ verwijderen dat `bron_activiteit_id` is van een ander, verandert `bijgewerkt` va
 
 **Gelijktijdig** (DM-08, DM-23, `Bouwbesluiten` 11): de eerste test met twee sessies komt in deze fase, omdat hier de
 eerste functies met een lock komen. Opzet zonder nieuw pakket: twee sessies via `psql` in de databasecontainer
-(`docker exec`), gestart vanuit een Vitest-test. Sessie B draait met `set local role authenticated` en de claims van een
+(`docker exec`), gestart vanuit een Playwright-test zonder browser (`e2e/gelijktijdig.spec.ts`, project `database`:
+de poort leest het rapport van Playwright al en één keer draaien kan zo). Sessie B draait met `set local role authenticated` en de claims van een
 beheerder (zo is er geen echte `aal2`-sessie met een TOTP-code nodig).
 - Sessie A **publiceert** het concept (status `gepubliceerd`, met tijden en locatie) in een open transactie en wacht.
   De test wacht tot `pg_locks` de lock van A toont, niet een vaste tijd.
@@ -527,8 +528,10 @@ naam en datum, ziet het met het label "concept", en verwijdert het; zonder `aal2
   programma 2026/2027 (28 regels, 32 activiteiten: de verkoop van donateurskaarten is vijf dagen) als concept met alleen
   naam en datum, zoals het programma is; een paar daarvan gepubliceerd met verzonnen tijden en locatie, zodat de
   ledenschermen iets tonen. Verzonnen leden (de namen uit het prototype) met hun `leden_prive`-rij en een account in
-  `auth.users` (zoals `npm run lid:lokaal`), één beheerder met een factor, de vier groepen, een paar afmeldingen, en de
-  vertrekplaats van de bus.
+  `auth.users` (zoals `npm run lid:lokaal`), één beheerder (een echte tweede factor stelt hij lokaal zelf in, stap D),
+  een paar afmeldingen, en de vertrekplaats van de bus. **De vier groepen staan niet in de seed maar in de migratie**
+  (net als `roltypen`): het ontwikkelproject en de pilot krijgen de seed niet en hebben de groepen wel nodig. De seed
+  heeft bewust geen doelgroepen: de tests tellen wat een lid ziet en rekenen op een seed zonder.
 - **Het ontwikkelproject online** krijgt de seed **niet** via de job `migraties` (`db push` zonder `--include-seed`).
   Wat daar nodig is voor de doorloop, zet een klein script met de geheime sleutel erin, met de hand gestart door de
   bouwer, nooit tegen het pilotproject.
