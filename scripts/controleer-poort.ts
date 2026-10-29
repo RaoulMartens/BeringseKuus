@@ -192,14 +192,46 @@ export function controleerUitrol(tekst: string): string[] {
     if (!tekst.includes(nodig)) fout(`"${nodig}" ontbreekt`);
   }
   if (/:\s*write\b/.test(tekst)) fout('het workflowtoken mag nergens schrijfrechten krijgen');
-  const jobUitrol = tekst.indexOf('\n  uitrol:\n');
-  const geheimen = [...tekst.matchAll(/secrets\.([A-Z_]+)/g)];
-  if (geheimen.length !== 1 || geheimen[0]?.[1] !== 'CLOUDFLARE_API_TOKEN')
-    fout('alleen het geheim CLOUDFLARE_API_TOKEN, precies één keer');
-  if (jobUitrol < 0 || geheimen.some((m) => (m.index ?? 0) < jobUitrol))
-    fout('het Cloudflare-token hoort alleen in de job "uitrol", na de job "bouw"');
-  if (jobUitrol >= 0 && /npm (ci|install)(?! --ignore-scripts)|npm run/.test(tekst.slice(jobUitrol)))
+  // Alleen wat de workflow echt uitvoert: regels met alleen commentaar tellen niet mee.
+  const code = tekst
+    .split('\n')
+    .filter((regel) => !regel.trim().startsWith('#'))
+    .join('\n');
+  // Precies drie jobs, in deze volgorde (review PR20-04): een extra job zou de controles hieronder ontlopen.
+  const jobs = /\njobs:\n([\s\S]*)$/.exec(code)?.[1] ?? '';
+  const namen = [...jobs.matchAll(/^ {2}([A-Za-z][\w-]*):\s*$/gm)].map((m) => m[1]);
+  if (namen.join(',') !== 'bouw,migraties,uitrol')
+    fout(`precies de jobs bouw, migraties en uitrol, in die volgorde (nu: ${namen.join(', ') || 'geen'})`);
+  // Geen YAML-ankers of -verwijzingen: daarmee staat er iets in een job dat in de tekst ergens anders staat.
+  if (/(?:^|[\s:[{,])[&*][A-Za-z_]/m.test(code)) fout('YAML-ankers (& en *) zijn niet toegestaan');
+  if (/\b(?:always|failure|cancelled)\s*\(/.test(code))
+    fout(
+      'always(), failure() en cancelled() zijn niet toegestaan: een job mag alleen na een geslaagde draaien',
+    );
+  // Elk geheim precies één keer, in precies deze vorm, in zijn eigen job (review PR8-03, PR20-03). Elke andere
+  // verwijzing naar secrets (toJSON(secrets), secrets['…'], andere hoofdletters) keurt dit af.
+  const migraties = jobTekst(code, 'migraties');
+  const uitrolJob = jobTekst(code, 'uitrol');
+  const geheimen: [string, string][] = [
+    ['SUPABASE_DB_URL', migraties],
+    ['CLOUDFLARE_API_TOKEN', uitrolJob],
+  ];
+  const vormen = (stuk: string): number => (stuk.match(/secrets/gi) ?? []).length;
+  const exact = (stuk: string, naam: string): number => stuk.split(`\${{ secrets.${naam} }}`).length - 1;
+  if (vormen(code) !== geheimen.reduce((som, [naam]) => som + exact(code, naam), 0))
+    fout('alleen ${{ secrets.SUPABASE_DB_URL }} en ${{ secrets.CLOUDFLARE_API_TOKEN }}, in precies die vorm');
+  for (const [naam, job] of geheimen) {
+    if (exact(code, naam) !== 1 || exact(job, naam) !== 1)
+      fout(
+        `het geheim ${naam} hoort er precies één keer in, in zijn eigen job (SUPABASE_DB_URL in "migraties", CLOUDFLARE_API_TOKEN in "uitrol")`,
+      );
+  }
+  if (/npm (ci|install)(?! --ignore-scripts)|npm run/.test(uitrolJob))
     fout('de job "uitrol" mag geen code van de app of installatiescripts draaien');
+  if (!/\n {6}name: ontwikkel\n/.test(uitrolJob)) fout('de job "uitrol" draait in de omgeving ontwikkel');
+  if (!/\n {4}needs: \[bouw, migraties\]\n/.test(uitrolJob))
+    fout('de job "uitrol" moet wachten op "bouw" en "migraties" (needs: [bouw, migraties])');
+  problemen.push(...controleerMigratiejob(migraties).map((m) => `workflow uitrol.yml: ${m}`));
   // Uit de bouwjob komt alleen de gebouwde app; configuratie en de taken-Worker komen uit git (review PR12-05).
   const artefact = /upload-artifact[\s\S]*?path:\s*\|?\s*\n([\s\S]*?)\n\s*include-hidden-files/.exec(
     tekst,
@@ -211,6 +243,60 @@ export function controleerUitrol(tekst: string): string[] {
   if (paden.join(',') !== '.open-next/') fout('het artefact van de bouwjob mag alleen .open-next/ bevatten');
   problemen.push(...controleerShas('uitrol.yml', tekst));
   return problemen;
+}
+
+/** Wat de job "migraties" mag uitvoeren: een vaste lijst regels, de rest wordt afgekeurd (review PR20-04). */
+const MIGRATIEJOB_REGELS: readonly RegExp[] = [
+  /^\[ -n "\$SUPABASE_DB_URL" \] \|\| \{ echo "::error::[^"`$]*"; exit 1; \}$/,
+  /^supabase db push --db-url "\$SUPABASE_DB_URL" --skip-vault --dry-run$/,
+  /^supabase db push --db-url "\$SUPABASE_DB_URL" --skip-vault --yes$/,
+];
+
+/**
+ * De job "migraties" (besluit 29-10-2026): alleen na "bouw" (die de sloten van workflow_run heeft, review PR20-05),
+ * in zijn eigen omgeving, met precies twee actions (checkout en setup-cli) en precies één run-blok met alleen de regels
+ * hierboven, en hij checkt alleen de map supabase uit. Zo kan er geen curl, npm of tweede CLI-versie bijkomen.
+ */
+export function controleerMigratiejob(job: string): string[] {
+  const problemen: string[] = [];
+  if (job === '') return ['de job "migraties" ontbreekt'];
+  if (!/\n {4}needs: bouw\n/.test(job))
+    problemen.push('de job "migraties" moet wachten op "bouw" (needs: bouw)');
+  if (/\n {4}if:/.test(job))
+    problemen.push('de job "migraties" mag geen eigen if hebben: hij erft de sloten van "bouw"');
+  if (!/\n {6}name: ontwikkel-database\n/.test(job))
+    problemen.push('de job "migraties" draait in de eigen omgeving ontwikkel-database');
+  const acties = [...job.matchAll(/uses:\s*([^\s@]+)@/g)].map((m) => m[1]);
+  if (acties.join(',') !== 'actions/checkout,supabase/setup-cli')
+    problemen.push('de job "migraties" gebruikt alleen actions/checkout en daarna supabase/setup-cli');
+  if (sparsePaden(job).join(',') !== 'supabase')
+    problemen.push('de job "migraties" checkt alleen de map supabase uit');
+  const runs = [...job.matchAll(/\n( +)run: \|\n((?:\1 {2}.*\n?)+)/g)];
+  const losseRuns = (job.match(/\brun:/g) ?? []).length;
+  if (runs.length !== 1 || losseRuns !== 1) {
+    problemen.push('de job "migraties" heeft precies één run-blok');
+  } else {
+    const regels = (runs[0]?.[2] ?? '')
+      .split('\n')
+      .map((r) => r.trim())
+      .filter((r) => r !== '');
+    for (const regel of regels) {
+      if (!MIGRATIEJOB_REGELS.some((toegestaan) => toegestaan.test(regel)))
+        problemen.push(`de job "migraties" mag deze regel niet uitvoeren: ${regel}`);
+    }
+    if (regels.length !== MIGRATIEJOB_REGELS.length)
+      problemen.push('de job "migraties" voert precies de controle, de droge run en de echte run uit');
+  }
+  return problemen;
+}
+
+/** De tekst van één job uit een workflow (van "  naam:" tot de volgende job); leeg als hij ontbreekt. */
+export function jobTekst(workflow: string, job: string): string {
+  const begin = workflow.indexOf(`\n  ${job}:\n`);
+  if (begin < 0) return '';
+  const rest = workflow.slice(begin + 1);
+  const volgende = rest.slice(1).search(/\n {2}[a-z][\w-]*:\n/);
+  return volgende < 0 ? rest : rest.slice(0, volgende + 2);
 }
 
 /**
@@ -231,6 +317,7 @@ export function uitrolStartbestanden(takenWrangler: string): { pad: string; node
  * weten wat er wordt uitgecheckt, en keurt hij een bestand daaronder af (veilige kant, review PR14-04).
  */
 export function sparsePaden(uitrol: string): string[] {
+  // Lees alleen het eerste blok; geef een workflow met meer jobs dus eerst door jobTekst.
   const regels = uitrol.split('\n');
   const begin = regels.findIndex((r) => /^\s*sparse-checkout:\s*\|-?\s*$/.test(r));
   if (begin < 0) return [];
@@ -340,6 +427,19 @@ export function controleerUitrolPakket(pakket: unknown, uitrolPakket: unknown): 
   return problemen;
 }
 
+/** De job "migraties" gebruikt dezelfde Supabase-CLI als de poort, die de migraties lokaal test. */
+export function controleerSupabaseCli(pakket: unknown, uitrol: string): string[] {
+  const lokaal = ((pakket as { devDependencies?: Record<string, unknown> }).devDependencies ?? {}).supabase;
+  const online = /supabase\/setup-cli@[^\n]*\n\s*with:\s*\n\s*version:\s*([^\s#]+)/.exec(uitrol)?.[1];
+  // Precies één keer: een tweede setup-cli (bijvoorbeeld met latest) zou de eerste overschrijven (review PR20-04).
+  const aantal = (uitrol.match(/supabase\/setup-cli@/g) ?? []).length;
+  return typeof lokaal === 'string' && lokaal === online && aantal === 1
+    ? []
+    : [
+        'uitrol.yml: de Supabase-CLI in de job "migraties" moet dezelfde versie hebben als supabase in package.json',
+      ];
+}
+
 /** Vitest en Playwright: .only maakt de run niet stilletjes kleiner; de browsertests draaien tegen de Worker. */
 export function controleerTestinstellingen(vitest: string, playwright: string): string[] {
   const problemen: string[] = [];
@@ -428,7 +528,11 @@ export async function controleerPoort(root: string): Promise<string[]> {
     ...controleerUitrolBestanden(
       uitrolStartbestanden(lees('taken/wrangler.jsonc')),
       leesAls,
-      sparsePaden(lees('.github/workflows/uitrol.yml')),
+      sparsePaden(jobTekst(lees('.github/workflows/uitrol.yml'), 'uitrol')),
+    ),
+    ...controleerSupabaseCli(
+      JSON.parse(lees('package.json')) as unknown,
+      lees('.github/workflows/uitrol.yml'),
     ),
     ...controleerCompatibiliteitsdatum(lees('wrangler.jsonc'), lees('taken/wrangler.jsonc')),
     ...controleerApiSchemas(lees('supabase/config.toml')),
