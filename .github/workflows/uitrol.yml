@@ -88,37 +88,43 @@ jobs:
           retention-days: 7
 
   # De migraties online, vóór de nieuwe app (besluit 29-10-2026, review F0-11). Alleen de Supabase-CLI en de map
-  # supabase/: geen code van de app, geen npm. Eerst droog (welke migraties, in de log), dan echt. Faalt een migratie,
-  # dan rolt de app niet uit. Een migratie moet daarom ook met de vorige versie van de app werken (docs/hosting.md).
+  # supabase/: geen code van de app. Eerst droog (welke migraties, in de log), dan echt. Faalt een migratie, dan rolt
+  # de app niet uit. Een migratie moet daarom ook met de vorige versie van de app werken (docs/hosting.md stap 13).
+  # Krijgt de sloten van "bouw" via needs: zonder "bouw" geen migraties (review PR20-05).
   migraties:
     name: migraties
     needs: bouw
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # De verbinding met de database staat alleen in deze omgeving.
+    # Een eigen omgeving: alleen deze job krijgt de verbinding met de database, en de job "uitrol" niet (review
+    # PR20-06). Andersom krijgt deze job het Cloudflare-token niet.
     environment:
-      name: ontwikkel
+      name: ontwikkel-database
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
+          # De hele map: config.toml verwijst naar de mailsjablonen in supabase/templates/, en de CLI leest die al bij
+          # een droge run (review PR20-01).
           sparse-checkout: |
-            supabase/migrations
-            supabase/config.toml
+            supabase
           sparse-checkout-cone-mode: false
 
-      # Dezelfde versie als in package.json, waarmee de poort de migraties lokaal test.
+      # Dezelfde versie als in package.json, waarmee de poort de migraties lokaal test. De action installeert de CLI
+      # met npm, zonder installatiescripts (review PR20-07); de action zelf staat vast op een commit.
       - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: 2.122.0
 
+      # --skip-vault: de migraties wel, geen geheimen uit config.toml naar het project (review PR20-14).
       - name: Migraties online
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
-          supabase db push --db-url "$SUPABASE_DB_URL" --yes
+          [ -n "$SUPABASE_DB_URL" ] || { echo "::error::SUPABASE_DB_URL ontbreekt in de omgeving ontwikkel-database (docs/hosting.md stap 13)"; exit 1; }
+          supabase db push --db-url "$SUPABASE_DB_URL" --skip-vault --dry-run
+          supabase db push --db-url "$SUPABASE_DB_URL" --skip-vault --yes
 
   uitrol:
     name: uitrol

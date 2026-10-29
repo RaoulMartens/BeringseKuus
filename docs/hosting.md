@@ -13,10 +13,10 @@ doet als er iets misgaat.
 3. De uitrol start pas als de workflow `check` groen is na een push op `main` van deze repository, en alleen als
    die commit nog de nieuwste `main` is. Een pull request rolt nooit uit; met de hand starten kan niet.
 4. Job **bouw** (zonder geheimen): installeren, bouwen, controleren dat er geen waarden uit een `.env`-bestand in de
-   bundel zitten, en alleen `.open-next/` bewaren. Job **migraties** (met alleen de databaseverbinding
-   `SUPABASE_DB_URL`): de Supabase-CLI, in dezelfde versie als in `package.json`, zet de nieuwe migraties uit
+   bundel zitten, en alleen `.open-next/` bewaren. Job **migraties** (in een eigen omgeving `ontwikkel-database`, met alleen de
+   databaseverbinding `SUPABASE_DB_URL`): de Supabase-CLI, in dezelfde versie als in `package.json`, zet de nieuwe migraties uit
    `supabase/migrations/` online, eerst droog (welke, in de log) en dan echt (besluit 29-10-2026, stap 13). Geen code
-   van de app en geen npm. Faalt een migratie, dan rolt de app niet uit. Job **uitrol** (met het Cloudflare-token),
+   van de app; de action installeert de CLI zelf met npm, zonder installatiescripts. Faalt een migratie, dan rolt de app niet uit. Job **uitrol** (met het Cloudflare-token),
    pas ná de migraties: alleen wrangler uit
    `uitrol/`, geïnstalleerd zonder installatiescripts. Die rolt twee Workers uit: de app (`.open-next/` uit de job
    bouw) en de taken-Worker (`taken/`). De configuratie (`wrangler.jsonc`, `taken/wrangler.jsonc`) en de code van de
@@ -234,22 +234,35 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
        `:5432/postgres`.
     2. Plak hem in Kladblok en vervang `[YOUR-PASSWORD]` (met de blokhaken) door het databasewachtwoord van het
        project (in de wachtwoordmanager onder de naam van het project, niet het wachtwoord van het Supabase-account).
-       Kopieer het resultaat en sluit Kladblok zonder op te slaan. Staan er tekens als `@`, `:`, `/`, `?` of `#` in het
-       wachtwoord, vervang die dan door hun %-code (`@` wordt `%40`, `:` `%3A`, `/` `%2F`, `?` `%3F`, `#` `%23`), of
-       maak eerst een nieuw wachtwoord met *Generate a password* (Project Settings, Database, *Reset database
-       password*); dat heeft alleen letters en cijfers. Een nieuw databasewachtwoord breekt de app niet: die gebruikt
-       het niet.
-    3. GitHub, Settings, Environments, **ontwikkel**, *Add environment secret*: naam `SUPABASE_DB_URL`, waarde de
-       string uit stap 2. Plak hem nergens anders; hij geeft volledige toegang tot de database.
+       Kopieer het resultaat en sluit Kladblok zonder op te slaan. Het makkelijkst is een wachtwoord met alleen
+       letters en cijfers: *Generate a password* (Project Settings, Database, *Reset database password*). Een nieuw
+       databasewachtwoord breekt de app niet: die gebruikt het niet. Houd je een wachtwoord met andere tekens, vervang
+       die dan door hun %-code: `%` wordt `%25` (eerst), `@` `%40`, `:` `%3A`, `/` `%2F`, `?` `%3F`, `#` `%23`.
+    3. GitHub, Settings, Environments, **New environment**, naam **`ontwikkel-database`**. Bij *Deployment branches and
+       tags*: *Selected branches and tags*, en alleen `main` (zoals bij `ontwikkel`). Daarna *Add environment secret*:
+       naam `SUPABASE_DB_URL`, waarde de string uit stap 2. Plak hem nergens anders; hij geeft volledige toegang tot de
+       database. Een eigen omgeving, en niet `ontwikkel`: zo krijgt alleen de job `migraties` dit geheim, en de job
+       `uitrol` niet (review PR20-06). Stond het geheim al bij `ontwikkel`, verwijder het daar.
     4. Na het samenvoegen: in Actions, `uitrol`, de job **migraties**. De droge stap toont welke migraties er online
        komen; daarna staat er "Finished supabase db push". Staat alles al online, dan zegt hij "Remote database is up
-       to date".
+       to date". Bij een verbindingsfout staan het adres van de pooler en `postgres.<ref>` in de publieke log, het
+       wachtwoord niet (review PR20-10).
     - **Een migratie moet met de vorige versie van de app werken.** De migraties gaan eerst online, dan de app. Faalt
       de uitrol van de app, of rol je de app terug, dan draait de oude app op de nieuwe database. Dus eerst iets
-      toevoegen (een kolom, een functie), pas in een volgende pull request het oude weghalen.
-    - **Een mislukte migratie:** de job is rood, de app is niet uitgerold. Kijk in de log welke migratie faalde, en in
-      Supabase (Database, Migrations) welke er wel online staan. Herstel de fout met een nieuwe migratie in een pull
-      request; pas nooit een migratie aan die al online staat.
+      toevoegen (een kolom, een functie), pas in een volgende pull request het oude weghalen. Een migratie die iets
+      weghaalt (`drop`), kan niet worden teruggedraaid en er zijn op het gratis plan geen back-ups: lees zo'n migratie
+      in de review extra na (review PR20-12).
+    - **De naam van een nieuwe migratie** begint met een tijdstempel die later is dan die van alle migraties die al
+      online staan (`supabase migration new` doet dat vanzelf). Een oudere tijdstempel weigert de job (de CLI vraagt
+      dan om `--include-all`, review PR20-08); geef het bestand een nieuwe naam.
+    - **Een mislukte migratie** (review PR20-02): de job is rood, de app is niet uitgerold. Kijk in de log welke
+      migratie faalde, en in Supabase (Database, Migrations) welke er online staan. Migraties uit dezelfde uitrol die
+      vóór de mislukte kwamen, staan er al; die pas je nooit meer aan. De mislukte migratie zelf staat er **niet**
+      (per bestand alles of niets), en die pas je aan in een nieuwe pull request. Een herstelmigratie erachter helpt
+      niet: de CLI probeert eerst weer de mislukte. Een veelvoorkomende oorzaak: een `not null` of `unique` die lokaal
+      (lege database) slaagt en online faalt op bestaande rijen.
+    - **Opnieuw proberen** na een rode job: Actions, `uitrol`, de run, **Re-run all jobs**. Niet *Re-run failed jobs*:
+      die slaat de controle "Alleen de nieuwste main" in de job `bouw` over (review PR20-11).
     - `db push` met de hand (stap 12A) is daarna niet meer nodig.
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
@@ -269,7 +282,7 @@ tweede beheerder komt er vóór de pilot (`Bouwbesluiten` 5.2), en wie dat wordt
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Worker `ledenplatform` (type *Secret*) | Ontbreken: `/mijn` geeft een serverfout en de controle na de uitrol is rood. Kloppen ze niet: inloggen werkt niet, maar de controle blijft groen (punt 5 van "Hoe het werkt") | Supabase, API Keys: nieuwe *publishable key* maken, als geheim zetten, oude verwijderen | Nee |
 | `SITE_URL` | GitHub (variabele, omgeving `ontwikkel`), Worker `ledenplatform` (geheim), Supabase (Site URL en Redirect URL) | De inloglink wijst naar een verkeerd adres, of Supabase weigert hem | Alle vier plekken, zie hierboven | Nee |
 | Resend-sleutel voor de inlogmail | Supabase, Authentication, Emails, SMTP Settings (als wachtwoord) | Er komen geen inlogmails meer; leden kunnen niet inloggen | Resend, API Keys: nieuwe sleutel met *Sending access*, eerst in Supabase zetten, dán de oude intrekken (`docs/bouw/Inloggen.md`) | Nee |
-| `SUPABASE_DB_URL` (de verbinding met de database, met het wachtwoord erin) | GitHub, omgeving `ontwikkel`; alleen de job `migraties` krijgt hem | De job `migraties` is rood, en de app rolt niet uit | Nieuw databasewachtwoord (hieronder), dan de string opnieuw maken zoals in stap 13 en het geheim vervangen | Nee |
+| `SUPABASE_DB_URL` (de verbinding met de database, met het wachtwoord erin) | GitHub, eigen omgeving `ontwikkel-database`; alleen de job `migraties` krijgt hem | De job `migraties` is rood, en de app rolt niet uit | Nieuw databasewachtwoord (hieronder), dan de string opnieuw maken zoals in stap 13 en het geheim vervangen | Nee |
 | Databasewachtwoord van Supabase | Wachtwoordmanager van de beheerder, en in `SUPABASE_DB_URL` | Migraties kunnen niet online | Supabase, Project Settings, Database, *Reset database password*; daarna `SUPABASE_DB_URL` vervangen | Nee |
 | `PROEF_AGENDA_TOKEN` | Worker `ledenplatform` | De proef-feed geeft voor elk token een 404 (zo hoort het na de proef) | Stap 11 | Verwijderd 29-10-2026 |
 | `SUPABASE_SECRET_KEY` (sleutel `proef_taak`), `RESEND_API_KEY`, `RESEND_AFZENDER`, `PROEF_TAAK_ONTVANGER`, `SUPABASE_URL` | Worker `ledenplatform-taken` | De taak meldt "niet ingesteld" (zo hoort het na de proef) | Stap 12 | Verwijderd 29-10-2026 |

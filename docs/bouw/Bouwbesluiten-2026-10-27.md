@@ -318,7 +318,7 @@ Worker voor de Excel-import.
 | Besluit | Uiterlijk | Aanname tot dan |
 |---|---|---|
 | ~~Hosting: OpenNext of vinext~~ **Besloten 28-10-2026: OpenNext.** Alle drie proefroutes zijn op de echte Workers geslaagd; vinext is niet nodig (3.1) | — | — |
-| ~~Migraties en Auth-instellingen online~~ **Besloten 29-10-2026: een job `migraties` in de workflow `uitrol`**, vóór de uitrol van de app, met een eigen Supabase-token (3.1, review F0-11; uitvoering: `Fase-1-plan.md` stap A) | — | — |
+| ~~Migraties en Auth-instellingen online~~ **Besloten 29-10-2026: een job `migraties` in de workflow `uitrol`**, vóór de uitrol van de app, in een eigen omgeving `ontwikkel-database` (3.1, review F0-11 en PR20-06). In plaats van een Supabase-token gebruikt de job de verbinding met de database (`SUPABASE_DB_URL`): één geheim in plaats van een token plus het databasewachtwoord, en de CLI heeft dan geen `supabase link` nodig. Uitvoering: `Fase-1-plan.md` stap A, `docs/hosting.md` stap 13 | — | — |
 | ~~Testopzet voor twee gelijktijdige sessies (bouwgids 14.5)~~ **Besloten 29-10-2026: naar fase 1**, bij de eerste schrijffunctie met een rij-lock (punt 11) | — | — |
 | Wie de tweede beheerder wordt, en de repository naar een organisatie (5.2 punt 5, review F0-12) | vóór fase 1 | Alles op naam van de bouwer |
 | Licentie van de code (8, review F0-13) | vóór fase 1 bekijken; besloten vóór de eerste bijdrage van iemand anders | Geen licentie: alle rechten voorbehouden |
