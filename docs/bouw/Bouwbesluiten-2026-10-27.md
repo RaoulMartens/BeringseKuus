@@ -319,7 +319,7 @@ Worker voor de Excel-import.
 |---|---|---|
 | ~~Hosting: OpenNext of vinext~~ **Besloten 28-10-2026: OpenNext.** Alle drie proefroutes zijn op de echte Workers geslaagd; vinext is niet nodig (3.1) | — | — |
 | Migraties en Auth-instellingen online: een job in de workflow `uitrol`, of `db push` met de hand met een regel in het PR-sjabloon (3.1, review F0-11) | vóór de eerste migratie van fase 1 | Met de hand, zoals in fase 0 |
-| Testopzet voor twee gelijktijdige sessies (bouwgids 14.5): naar fase 1 (punt 11) | bevestigen bij de afronding van fase 0 | Voorstel: naar fase 1 |
+| ~~Testopzet voor twee gelijktijdige sessies (bouwgids 14.5)~~ **Besloten 29-10-2026: naar fase 1**, bij de eerste schrijffunctie met een rij-lock (punt 11) | — | — |
 | Wie de tweede beheerder wordt, en de repository naar een organisatie (5.2 punt 5, review F0-12) | vóór fase 1 | Alles op naam van de bouwer |
 | Licentie van de code (8, review F0-13) | vóór fase 1 bekijken; besloten vóór de eerste bijdrage van iemand anders | Geen licentie: alle rechten voorbehouden |
 | Pilotmoment (V8 13.3): A rond 14–22 nov, of B op 3 jan 2027 | vóór fase 1 | B, tenzij fase 0 t/m 2 in de eerste week van november af zijn |
@@ -405,9 +405,9 @@ uiterlijk vóór het begin van fase 1 bekeken.
   `public` (extensies horen in het schema `extensions`). Krijgt een functie of tabel in fase 1 bewust een recht, dan
   komt hij in die test op een lijst, met de reden.
 
-## 11. Gelijktijdigheid: de testopzet schuift naar fase 1 (voorstel 28-10-2026)
+## 11. Gelijktijdigheid: de testopzet schuift naar fase 1
 
-**Voorstel, door de bouwer te bevestigen** (review F0-02). Het Fase-0-plan vroeg in fase 0 al "de testopzet voor twee
+**Besluit (de bouwer, 29-10-2026)** (review F0-02). Het Fase-0-plan vroeg in fase 0 al "de testopzet voor twee
 gelijktijdige sessies" (bouwgids 14.5). Die is er niet, om twee redenen:
 
 - **Het kan niet in pgTAP alleen.** Een pgTAP-test draait in één databasesessie. Een tweede sessie openen vanuit de

@@ -239,8 +239,8 @@ tweede beheerder komt er vóór de pilot (`Bouwbesluiten` 5.2), en wie dat wordt
 | `SITE_URL` | GitHub (variabele, omgeving `ontwikkel`), Worker `ledenplatform` (geheim), Supabase (Site URL en Redirect URL) | De inloglink wijst naar een verkeerd adres, of Supabase weigert hem | Alle vier plekken, zie hierboven | Nee |
 | Resend-sleutel voor de inlogmail | Supabase, Authentication, Emails, SMTP Settings (als wachtwoord) | Er komen geen inlogmails meer; leden kunnen niet inloggen | Resend, API Keys: nieuwe sleutel met *Sending access*, eerst in Supabase zetten, dán de oude intrekken (`docs/bouw/Inloggen.md`) | Nee |
 | Databasewachtwoord van Supabase | Wachtwoordmanager van de beheerder; alleen nodig voor `supabase link` en `db push` | Migraties kunnen niet online | Supabase, Project Settings, Database, *Reset database password* | Nee |
-| `PROEF_AGENDA_TOKEN` | Worker `ledenplatform` | De proef-feed geeft voor elk token een 404 (zo hoort het na de proef) | Stap 11 | Weg bij de afronding van fase 0 |
-| `SUPABASE_SECRET_KEY` (sleutel `proef_taak`), `RESEND_API_KEY`, `RESEND_AFZENDER`, `PROEF_TAAK_ONTVANGER`, `SUPABASE_URL` | Worker `ledenplatform-taken` | De taak meldt "niet ingesteld" (zo hoort het na de proef) | Stap 12 | Weg bij de afronding van fase 0 |
+| `PROEF_AGENDA_TOKEN` | Worker `ledenplatform` | De proef-feed geeft voor elk token een 404 (zo hoort het na de proef) | Stap 11 | Verwijderd 29-10-2026 |
+| `SUPABASE_SECRET_KEY` (sleutel `proef_taak`), `RESEND_API_KEY`, `RESEND_AFZENDER`, `PROEF_TAAK_ONTVANGER`, `SUPABASE_URL` | Worker `ledenplatform-taken` | De taak meldt "niet ingesteld" (zo hoort het na de proef) | Stap 12 | Verwijderd 29-10-2026 |
 
 Lokaal schrijft `npm run env:lokaal` de sleutels van de lokale Supabase in `.env.local`, `.dev.vars` en
 `taken/.dev.vars` (niet in git). Dat zijn de vaste sleutels van de ontwikkelomgeving in Docker, geen online sleutels.
