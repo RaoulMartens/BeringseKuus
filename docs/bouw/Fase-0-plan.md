@@ -144,7 +144,7 @@ Controle: op de lege app is alles groen, lokaal én in GitHub.
 | 14.4 Afhankelijkheden | `npm audit --audit-level=high` in CI; Dependabot aan |
 | 14.4 Supabase | De beveiligingsadviseur geeft nul waarschuwingen; handmatige controle in fase 0 |
 | 14.4 Headers | Een test die de headers van stap B controleert |
-| 14.5 Gelijktijdigheid | Pas relevant vanaf fase 2; in fase 0 alleen de testopzet voor twee gelijktijdige sessies. **Voorstel bij de afronding: naar fase 1** (`Bouwbesluiten` 11): in pgTAP kan het niet, en er is nog geen functie met een rij-lock om tegen te testen |
+| 14.5 Gelijktijdigheid | Pas relevant vanaf fase 2; in fase 0 alleen de testopzet voor twee gelijktijdige sessies. **Besloten bij de afronding (29-10-2026): naar fase 1** (`Bouwbesluiten` 11): in pgTAP kan het niet, en er is nog geen functie met een rij-lock om tegen te testen |
 
 Workflow `check`: typecheck, lint, format, unit, `test:db` (lokale Supabase in Docker), `test:e2e`, audit.
 Eén workflow die ook lokaal met `npm run check` hetzelfde doet.

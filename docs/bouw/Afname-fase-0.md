@@ -4,15 +4,15 @@ Stand 28-10-2026. Bewijs per afrondingscriterium (bouwgids 14.6, `Fase-0-plan.md
 geheel met wat ermee is gedaan, en de lijst "Van fase 0 naar fase 1". Wie fase 1 begint, leest dit bestand eerst.
 
 **Stand:** fase 0 is af zodra de open vakjes in "Nog door de bouwer" zijn afgevinkt (het opruimen van de
-proefgeheimen en het Dependabot-geheim; de handmatige doorloop en de adviseur zijn gedaan) en de bouwer het voorstel in `Bouwbesluiten` 11 heeft
-bevestigd of afgewezen. De techniek zelf staat: de review van fase 0 vond niets dat de hostingkeuze of de opzet ter
+proefgeheimen en het Dependabot-geheim; de handmatige doorloop, de adviseur en `Bouwbesluiten` 11 zijn gedaan). De
+techniek zelf staat: de review van fase 0 vond niets dat de hostingkeuze of de opzet ter
 discussie stelt.
 
 ## 1. De vijf criteria
 
 | # | Criterium | Bewijs | Stand |
 |---|---|---|---|
-| 1 | Alle controles uit stap C groen in GitHub, niet alleen lokaal | Workflow `check` groen op `main` (commit `75ae5f9`, run 40718577763) en op elke pull request; `main` is beschermd (pull request verplicht, ook voor de beheerder; verplichte controle `check`, gebonden aan de GitHub Actions-app). Databasetypen met controle erbij in PR 14 (review F0-02). De testopzet voor gelijktijdigheid schuift naar fase 1, met reden (`Bouwbesluiten` 11, voorstel) | Gehaald na PR 14 en de bevestiging van `Bouwbesluiten` 11 |
+| 1 | Alle controles uit stap C groen in GitHub, niet alleen lokaal | Workflow `check` groen op `main` (commit `75ae5f9`, run 40718577763) en op elke pull request; `main` is beschermd (pull request verplicht, ook voor de beheerder; verplichte controle `check`, gebonden aan de GitHub Actions-app). Databasetypen met controle erbij in PR 14 (review F0-02). De testopzet voor gelijktijdigheid schuift naar fase 1, met reden (`Bouwbesluiten` 11, besloten 29-10-2026) | Gehaald |
 | 2 | Drie proefroutes geslaagd en gemeten; hostingkeuze in `Bouwbesluiten` | Route 1 (agenda-feed op een iPhone), route 2 (inloggen op een telefoon, na een uur nog ingelogd, uitloggen zonder cookie), route 3 (elke minuut één rij, één testbericht, gedwongen fout zichtbaar): `Fase-0-plan.md` punt 4. Metingen: `docs/hosting.md`, Metingen (mediaan 218 ms CPU per aanvraag, 0 fouten; taken-Worker 0,24 ms). Besluit: `Bouwbesluiten` 3.1 en 6 (OpenNext) | Gehaald |
 | 3 | Een schone chat heeft de fase gereviewd tegen hoofdstuk 14, bevindingen in de pull request | Review van fase 0 als geheel (28-10-2026, een nieuwe Claude-subagent zonder het bouwgesprek): 21 bevindingen, oordeel "af na kleine punten". De afhandeling per bevinding staat in punt 3 hieronder en in de pull request van deze afronding. Daarnaast een eigen review per pull request: PR 1, 8, 10, 11, 12 en 14 (PR 14: 9 bevindingen, verwerkt in die pull request of hieronder op de lijst) | Gehaald |
 | 4 | Het lege scherm met toetsenbord en op 375 px doorlopen | Geautomatiseerd: axe (WCAG 2.2 AA) op `/`, `/inloggen` (vier toestanden), `/auth/bevestigen` en `/mijn`, op 1200 en 375 px, zonder opzij scrollen; zichtbare focus op de eerste link. Met de hand (28-10-2026): toetsenbord, telefoon en VoiceOver, punt 2.1 | Gehaald |
@@ -62,7 +62,7 @@ bij de overstap naar Pro zetten we hem aan (Authentication, Attack Protection), 
 
 - [x] Doorloop 2.1 ingevuld (28-10-2026).
 - [x] Adviseur 2.2 ingevuld (28-10-2026).
-- [ ] `Bouwbesluiten` 11 (gelijktijdigheid naar fase 1) bevestigd of afgewezen.
+- [x] `Bouwbesluiten` 11 (gelijktijdigheid naar fase 1) bevestigd (29-10-2026).
 - [ ] `VERBODEN_WOORDEN` ook als **Dependabot-geheim** (GitHub, Settings, Secrets and variables, Dependabot), zodat een
       Dependabot-PR groen kan worden (review F0-04).
 - [ ] Bij de Worker `ledenplatform-taken` alle geheimen en variabelen weg (ook `PROEF_TAAK_FORCEER_FOUT`); in Supabase
@@ -77,7 +77,7 @@ Ernst volgens de reviewer. "PR 14" is de technische afronding; "afronding" is de
 | ID | Ernst | Bevinding | Afhandeling |
 |---|---|---|---|
 | F0-01 | blokkerend | Geen afnamebewijs; toetsenbord-doorloop niet vastgelegd | Dit bestand; de doorloop en de adviseur in punt 2 (bouwer) |
-| F0-02 | blokkerend | Databasetypen en de testopzet voor gelijktijdigheid ontbreken | Typen met controle: PR 14. Gelijktijdigheid: voorstel naar fase 1, `Bouwbesluiten` 11 |
+| F0-02 | blokkerend | Databasetypen en de testopzet voor gelijktijdigheid ontbreken | Typen met controle: PR 14. Gelijktijdigheid: naar fase 1, `Bouwbesluiten` 11 (besloten 29-10-2026) |
 | F0-03 | blokkerend | Hostingkeuze en metingen niet afgesloten in de documenten | Afronding: `Bouwbesluiten` 3.1 en 6, `hosting.md` Metingen, `CLAUDE.md`, `Fase-0-plan.md` |
 | F0-04 | belangrijk | Dependabot-PR's worden nooit groen | Bouwer zet het Dependabot-geheim (2.3); `hosting.md` beschrijft hoe een Dependabot-PR wordt beoordeeld |
 | F0-05 | belangrijk | De site antwoordt over http | PR 14: 308 naar https in de middleware, gecontroleerd na elke uitrol |
