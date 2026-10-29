@@ -61,6 +61,10 @@ test.describe('MFA voor het bestuur', () => {
     await page.getByRole('button', { name: 'Bevestigen' }).click();
     await expect(page).toHaveURL(/\/mfa\/wacht$/);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Je app is ingesteld');
+    // Wat de beheerder nakijkt (review PR23-02): de naam van de app en wanneer hij is ingesteld.
+    await expect(page.getByText('Naam van je app:')).toContainText('app-');
+    await expect(page.getByText('Ingesteld op:')).toBeVisible();
+    await expect(page.getByText('Heb je dit niet zelf net gedaan?')).toBeVisible();
 
     // Beheer is dicht tot een andere beheerder bevestigt.
     await page.goto('/beheer');
@@ -69,6 +73,24 @@ test.describe('MFA voor het bestuur', () => {
     psql(`update public.leden_prive set beheerder_sinds = now() where email = '${email}';`);
     await page.goto('/beheer');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Beheer');
+  });
+
+  test('een verouderde QR-code (de pagina is opnieuw geopend) geeft een duidelijke melding', async ({
+    page,
+  }) => {
+    await ingelogdAls(page, "timestamptz '2000-01-01'");
+    await page.goto('/mfa/instellen');
+    const geheim = (await page.locator('code').innerText()).replace(/\s/g, '');
+
+    // Een tweede tabblad maakt een nieuwe app en schrijft de eerste uit (review PR23-07).
+    const tweede = await page.context().newPage();
+    await tweede.goto('/mfa/instellen');
+    await tweede.close();
+
+    await page.getByLabel('Code uit de app').fill(totpCode(geheim));
+    await page.getByRole('button', { name: 'Bevestigen' }).click();
+    await expect(page.locator('#code-fout')).toContainText('Deze QR-code is verlopen');
+    await expect(page).toHaveURL(/\/mfa\/instellen$/);
   });
 
   test('een nieuwe sessie vraagt de code; een foute wordt geweigerd', async ({ page }) => {

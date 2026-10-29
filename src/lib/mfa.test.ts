@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BEHEERSTATUSSEN,
   CODE_GELDIG_UUR,
+  codeFoutVoor,
   leesBeheerstatus,
   normaliseerCode,
   routeVoorBeheerstatus,
@@ -56,5 +57,20 @@ describe('normaliseerCode', () => {
     for (const fout of ['', '12345', '1234567', 'abcdef', '12345a', '12-456', '１２３４５６', null, 123456]) {
       expect(normaliseerCode(fout), String(fout)).toBeNull();
     }
+  });
+});
+
+describe('codeFoutVoor', () => {
+  it('noemt alleen een echt foute code een foute code', () => {
+    expect(codeFoutVoor({ status: 422, code: 'mfa_verification_failed' })).toBe('code');
+  });
+
+  it('noemt te veel pogingen een rem, een verdwenen app verlopen, en al het andere een storing', () => {
+    expect(codeFoutVoor({ status: 429, code: 'over_request_rate_limit' })).toBe('druk');
+    expect(codeFoutVoor({ status: 404, code: 'mfa_factor_not_found' })).toBe('verlopen');
+    // Een goede code kan ook zo mislukken: uitdaging en controle vanaf een ander IP-adres.
+    expect(codeFoutVoor({ status: 422, code: 'mfa_ip_address_mismatch' })).toBe('sessie');
+    expect(codeFoutVoor({ status: 500 })).toBe('sessie');
+    expect(codeFoutVoor({})).toBe('sessie');
   });
 });

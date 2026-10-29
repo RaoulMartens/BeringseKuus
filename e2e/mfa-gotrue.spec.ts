@@ -33,11 +33,12 @@ async function overzicht(client: SupabaseClient<Database>): Promise<string> {
 
 async function claimsVan(
   client: SupabaseClient<Database>,
-): Promise<{ aal: string; amr: { method: string; timestamp: number }[] }> {
+): Promise<{ aal: string; session_id: string; amr: { method: string; timestamp: number }[] }> {
   const { data } = await client.auth.getSession();
   const token = data.session?.access_token ?? '';
   return JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString()) as {
     aal: string;
+    session_id: string;
     amr: { method: string; timestamp: number }[];
   };
 }
@@ -154,4 +155,64 @@ test('een app van na beheerder_sinds wacht op bevestiging; uitschrijven geeft we
   psql(`update public.leden_prive set beheerder_sinds = now() + interval '1 hour' where email = '${email}';`);
   expect(await beheerstatus(opnieuw)).toBe('ok');
   expect(await overzicht(opnieuw)).toBe('ok');
+});
+
+test('een open sessie met een code van vóór de nieuwe app krijgt na het herstel geen beheer terug', async () => {
+  // Het scenario van een gestolen telefoon (review PR23-01): de dief heeft een open sessie met een goede code. De
+  // beheerder haalt de app los en het bestuurslid stelt een nieuwe in. De oude code hoort bij de oude app.
+  const adres = `mfa-${crypto.randomUUID()}@example.com`;
+  const eigenUid = await maakLidMetRol(adres, "timestamptz '2099-01-01'");
+  try {
+    const dief = await logIn(adres);
+    const { factorId } = await schrijfAppIn(dief);
+    expect(await beheerstatus(dief)).toBe('ok');
+
+    // De code telt in hele seconden: wacht tot de nieuwe app zeker later is aangemaakt.
+    await new Promise((klaar) => setTimeout(klaar, 1500));
+    // Zoals Beheerders.md het voorschrijft (SQL): de sessie van de dief blijft dan bestaan. Via de beheer-API of het
+    // dashboard beëindigt GoTrue de sessies van die app zelf; dat is de betere route, maar de test pakt de zwakkere.
+    psql(`delete from auth.mfa_factors where id = '${factorId}';`);
+    const bestuurslid = await logIn(adres);
+    await schrijfAppIn(bestuurslid);
+    expect(await beheerstatus(bestuurslid), 'het bestuurslid zelf heeft beheer').toBe('ok');
+
+    expect((await dief.auth.refreshSession()).error).toBeNull();
+    expect(await beheerstatus(dief)).toBe('code_nodig');
+    expect(await overzicht(dief)).toBe('geen_admin');
+  } finally {
+    await ruimLidOp(eigenUid);
+  }
+});
+
+test('na 12 uur vraagt dezelfde sessie opnieuw een code, en met die code is beheer terug', async () => {
+  // De 12 uur rust erop dat GoTrue het tijdstip van de code in een bestaande sessie vernieuwt als er een nieuwe code
+  // wordt ingevoerd (review PR23-05). Het tijdstip komt uit auth.mfa_amr_claims; hier wordt het 13 uur terug gezet.
+  const adres = `mfa-${crypto.randomUUID()}@example.com`;
+  const eigenUid = await maakLidMetRol(adres, "timestamptz '2099-01-01'");
+  try {
+    const client = await logIn(adres);
+    const { factorId, geheim } = await schrijfAppIn(client);
+    expect(await beheerstatus(client)).toBe('ok');
+
+    const sessie = (await claimsVan(client)).session_id;
+    psql(
+      `update auth.mfa_amr_claims set updated_at = now() - interval '13 hours' where session_id = '${sessie}' and authentication_method = 'totp';`,
+    );
+    expect((await client.auth.refreshSession()).error).toBeNull();
+    expect(await beheerstatus(client), 'de code is te oud').toBe('code_nodig');
+    expect(await overzicht(client)).toBe('geen_admin');
+
+    const uitdaging = await client.auth.mfa.challenge({ factorId });
+    if (uitdaging.error) throw uitdaging.error;
+    const bevestigd = await client.auth.mfa.verify({
+      factorId,
+      challengeId: uitdaging.data.id,
+      code: totpCode(geheim),
+    });
+    expect(bevestigd.error).toBeNull();
+    expect(await beheerstatus(client), 'met een nieuwe code in dezelfde sessie weer beheer').toBe('ok');
+    expect(await overzicht(client)).toBe('ok');
+  } finally {
+    await ruimLidOp(eigenUid);
+  }
 });

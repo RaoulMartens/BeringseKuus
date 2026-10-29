@@ -129,7 +129,7 @@ Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, 
   database wat deze sessie mag (`public.beheerstatus()`) en stuurt iedereen die niet `ok` is naar het scherm dat bij zijn
   situatie hoort (inloggen, app instellen, wachten, code invoeren). Is die controle vergeten, dan weigert de database
   nog steeds (`geen_admin`), maar de gebruiker ziet dan een foutmelding in plaats van het goede scherm. Beheer eist een
-  code van hooguit 12 uur oud (`CODE_GELDIG_UUR` in `src/lib/mfa.ts` en `intern.code_recent()` in de database; een test
+  code van hooguit 12 uur oud en van ná het instellen van de geldende app (`CODE_GELDIG_UUR` in `src/lib/mfa.ts` en `intern.code_recent()` in de database; een test
   houdt ze gelijk). Hoe iemand beheerder wordt of hersteld: `docs/bouw/Beheerders.md`.
 - **`vereniging_id` op elke tabel met eigen verenigingsgegevens** (`Bouwbesluiten` 1), standaardwaarde De
   Beringse Kuus. RLS en functies houden er in de pilot nog geen rekening mee; bouw die scheiding niet half

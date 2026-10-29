@@ -2,16 +2,19 @@
 
 import { redirect } from 'next/navigation';
 
-import { normaliseerCode } from '@/lib/mfa';
+import { type CodeFout, codeFoutVoor, normaliseerCode } from '@/lib/mfa';
 import { maakSupabase } from '@/lib/supabase/server';
 
 export interface InstellenStaat {
   /** Wat er mis ging bij de vorige poging, of null. */
-  fout: 'code' | 'druk' | 'sessie' | null;
+  fout: CodeFout | null;
 }
 
-// GoTrue geeft 429 bij te veel pogingen binnen korte tijd; dat is geen foute code maar een rem.
-const TE_DRUK = 429;
+/** Op de codepagina staat geen QR-code die kan verlopen; een weg uitdaging is daar gewoon "er ging iets mis". */
+function soortOpCodepagina(fout: { status?: number; code?: string }): CodeFout {
+  const soort = codeFoutVoor(fout);
+  return soort === 'verlopen' ? 'sessie' : soort;
+}
 
 /** De code bij het inloggen in beheer: bewijst met de app dat de sessie van het bestuurslid is (aal2). */
 export async function bevestigCode(formulier: FormData): Promise<void> {
@@ -29,10 +32,11 @@ export async function bevestigCode(formulier: FormData): Promise<void> {
   const factor = lijst.data?.totp[0];
   if (!factor) redirect('/mfa/instellen');
 
+  // Elke poging een eigen uitdaging: een uitdaging blijft na een foute code bruikbaar (review PR23-03).
   const uitdaging = await supabase.auth.mfa.challenge({ factorId: factor.id });
   if (uitdaging.error) {
     console.error(`mfa-uitdaging mislukt: ${uitdaging.error.code ?? uitdaging.error.name}`);
-    redirect(`/mfa/code?fout=${uitdaging.error.status === TE_DRUK ? 'druk' : 'sessie'}`);
+    redirect(`/mfa/code?fout=${soortOpCodepagina(uitdaging.error)}`);
   }
   const { error } = await supabase.auth.mfa.verify({
     factorId: factor.id,
@@ -42,7 +46,7 @@ export async function bevestigCode(formulier: FormData): Promise<void> {
   if (error) {
     // Nooit de code of de gebruiker in het log, alleen de soort fout (bouwgids 14.4).
     console.error(`mfa-code niet geaccepteerd: ${error.code ?? error.name}`);
-    redirect(`/mfa/code?fout=${error.status === TE_DRUK ? 'druk' : 'code'}`);
+    redirect(`/mfa/code?fout=${soortOpCodepagina(error)}`);
   }
   // Waarheen na de code staat vast, net als bij het inloggen. Beheer beslist zelf of deze sessie erin mag.
   redirect('/beheer');
@@ -67,12 +71,12 @@ export async function bevestigInstellen(
   const uitdaging = await supabase.auth.mfa.challenge({ factorId });
   if (uitdaging.error) {
     console.error(`mfa-uitdaging mislukt: ${uitdaging.error.code ?? uitdaging.error.name}`);
-    return { fout: uitdaging.error.status === TE_DRUK ? 'druk' : 'sessie' };
+    return { fout: codeFoutVoor(uitdaging.error) };
   }
   const { error } = await supabase.auth.mfa.verify({ factorId, challengeId: uitdaging.data.id, code });
   if (error) {
     console.error(`mfa-code niet geaccepteerd bij instellen: ${error.code ?? error.name}`);
-    return { fout: error.status === TE_DRUK ? 'druk' : 'code' };
+    return { fout: codeFoutVoor(error) };
   }
   // De wachtpagina kijkt zelf wat er nu geldt: wacht op bevestiging, direct door naar beheer, of (nog geen
   // beheerder) gewoon dit bericht.

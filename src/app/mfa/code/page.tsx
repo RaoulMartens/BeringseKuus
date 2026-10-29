@@ -29,6 +29,9 @@ export default async function CodeVoorBeheer({ searchParams }: { searchParams: Z
 
   return (
     <main>
+      <p>
+        <Link href="/">← Terug naar start</Link>
+      </p>
       <h1>{opnieuw ? 'Vul opnieuw je code in' : 'Code voor beheer'}</h1>
       {opnieuw && (
         <p>

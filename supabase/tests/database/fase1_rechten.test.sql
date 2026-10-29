@@ -5,14 +5,15 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(81);
+select plan(89);
 
 -- Gebruikers en leden, als postgres. De naam is de sleutel in de tests.
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
 
 create function pg_temp.maak(
   p_naam text, p_actief boolean default true, p_admin boolean default false, p_met_lid boolean default true,
-  p_factor_na boolean default false, p_factor text default 'verified'
+  p_factor_na boolean default false, p_factor text default 'verified',
+  p_sinds timestamptz default timestamptz '2026-06-01', p_factor_op timestamptz default timestamptz '2026-05-01'
 ) returns void
 language plpgsql
 as $$
@@ -27,11 +28,11 @@ begin
     insert into public.leden (auth_user_id, voornaam, achternaam, type, actief)
     values (v_uid, p_naam, 'Test', 'lid', p_actief) returning id into v_lid;
     insert into public.leden_prive (lid_id, email, is_admin, beheerder_sinds)
-    values (v_lid, p_naam || '@example.com', p_admin, case when p_admin then timestamptz '2026-06-01' end);
+    values (v_lid, p_naam || '@example.com', p_admin, case when p_admin then p_sinds end);
     if p_admin and p_factor <> 'geen' then
       -- Een factor van vóór beheerder_sinds: geverifieerd, of (p_factor = 'unverified') niet.
       insert into auth.mfa_factors (id, user_id, factor_type, status, created_at, updated_at)
-      values (gen_random_uuid(), v_uid, 'totp', p_factor::auth.factor_status, timestamptz '2026-05-01', timestamptz '2026-05-01');
+      values (gen_random_uuid(), v_uid, 'totp', p_factor::auth.factor_status, p_factor_op, p_factor_op);
     end if;
     if p_factor_na then
       -- Een tweede geverifieerde factor van ná beheerder_sinds (DM-25).
@@ -68,6 +69,8 @@ select pg_temp.maak('t_geen', p_met_lid => false);
 select pg_temp.maak('t_weg', p_actief => false);
 select pg_temp.maak('t_els', p_admin => true, p_factor_na => true);
 select pg_temp.maak('t_na', p_admin => true, p_factor_na => true);
+-- Een app van een uur geleden, beheerder_sinds in de toekomst: voor de code van vóór de app (review PR23-01).
+select pg_temp.maak('t_vers', p_admin => true, p_sinds => now() + interval '1 day', p_factor_op => now() - interval '1 hour');
 select pg_temp.maak('t_piet', p_admin => true);
 select pg_temp.maak('t_oud', p_actief => false, p_admin => true);
 select pg_temp.maak('t_zonder', p_admin => true, p_factor => 'geen');
@@ -163,7 +166,7 @@ select is((select count(*)::int from public.leden_prive), 1, 'lid: leest alleen 
 select is((select count(*)::int from public.afmeldingen), 1, 'lid: ziet alleen zijn eigen afmelding, niet die van Ton');
 select is((select count(*)::int from public.wijzigingen_log), 0, 'lid: leest de auditlog niet');
 select is((select count(*)::int from public.lid_groep), 2, 'lid: leest alleen zijn eigen groepen');
-select is((select count(*)::int from public.leden where voornaam like 't\_%'), 10,
+select is((select count(*)::int from public.leden where voornaam like 't\_%'), 11,
   'lid: leest alle leden, met een kolomlijst');
 select throws_ok('select * from public.leden', '42501', null,
   'lid: select * op leden geeft een fout; leden lees je met een kolomlijst (DM-10)');
@@ -193,7 +196,7 @@ select is((select count(*)::int from public.mijn_activiteiten where naam = 'T Co
 select is((select count(*)::int from public.mijn_activiteiten where naam like 'T %'), 2,
   'beheerder: ziet in mijn_activiteiten alleen wat een lid zou zien: geen groepsactiviteit waar hij niet in zit (DM-03)');
 select is((select count(*)::int from public.wijzigingen_log where omschrijving = 'T logregel'), 1, 'beheerder: leest de auditlog');
-select is((select count(*)::int from public.leden_prive where email like 't\_%@example.com'), 10, 'beheerder: leest alle leden_prive');
+select is((select count(*)::int from public.leden_prive where email like 't\_%@example.com'), 11, 'beheerder: leest alle leden_prive');
 select is((select count(*)::int from public.afmeldingen where activiteit_id = (select id from public.activiteiten where naam = 'T Gepubliceerd')), 2,
   'beheerder: ziet alle afmeldingen');
 select lives_ok($$ select * from public.beheeroverzicht() $$, 'beheerder: beheeroverzicht werkt');
@@ -376,6 +379,64 @@ reset role;
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
 select is(public.beheerstatus(), 'ok', 'een beheerder met een recente code: ok');
+
+-- ===== De grenzen van de code-stap, en de code moet bij de geldende app horen (review PR23-01, PR23-05) =====
+reset role;
+select pg_temp.als('t_mark', 'aal2', interval '12 hours');
+set local role authenticated;
+select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
+  'een code van precies 12 uur geleden: geen beheer (de grens zelf telt niet mee)');
+reset role;
+select pg_temp.als('t_mark', 'aal2', interval '11 hours 59 minutes 59 seconds');
+set local role authenticated;
+select lives_ok($$ select * from public.beheeroverzicht() $$, 'een code van 11 uur 59 minuten 59 seconden geleden: beheer');
+reset role;
+select pg_temp.als('t_mark', 'aal2', interval '-1 hour');
+set local role authenticated;
+select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
+  'een code uit de toekomst: geen beheer');
+reset role;
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select uid from pg_temp.gebruikers where naam = 't_mark'), 'role', 'authenticated', 'aal', 'aal1',
+                    'amr', json_build_array(json_build_object('method', 'totp', 'timestamp', extract(epoch from now())::bigint)))::text, true);
+set local role authenticated;
+select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
+  'aal1 met een totp-regel in amr: geen beheer, aal2 blijft nodig');
+reset role;
+select pg_temp.als('t_vers', 'aal2', interval '3 hours');
+set local role authenticated;
+select is(public.beheerstatus(), 'code_nodig', 'een code van vóór de huidige app (de oude sessie na een herstel): code_nodig');
+reset role;
+select pg_temp.als('t_vers', 'aal2', interval '3 hours');
+set local role authenticated;
+select throws_ok($$ select * from public.beheeroverzicht() $$, 'BK001', 'geen_admin',
+  'een code van vóór de huidige app: geen beheer');
+reset role;
+select pg_temp.als('t_vers', 'aal2', interval '30 minutes');
+set local role authenticated;
+select lives_ok($$ select * from public.beheeroverzicht() $$, 'een code van ná de huidige app: beheer');
+
+-- ok is precies is_beheerder(): elke gebruiker, elk niveau, een handvol tijdstippen.
+reset role;
+create function pg_temp.verschillen() returns int
+language plpgsql
+as $$
+declare
+  v_naam text; v_niveau text; v_leeftijd interval; v_aantal int := 0;
+begin
+  for v_naam in select naam from pg_temp.gebruikers loop
+    foreach v_niveau in array array['aal1', 'aal2'] loop
+      foreach v_leeftijd in array array[interval '1 minute', interval '11 hours', interval '12 hours', interval '13 hours',
+                                        interval '-1 hour', interval '2 hours', null] loop
+        perform pg_temp.als(v_naam, v_niveau, v_leeftijd);
+        if (public.beheerstatus() = 'ok') is distinct from intern.is_beheerder() then v_aantal := v_aantal + 1; end if;
+      end loop;
+    end loop;
+  end loop;
+  return v_aantal;
+end
+$$;
+select is(pg_temp.verschillen(), 0, 'beheerstatus() is ok precies als is_beheerder() waar is, voor alle gebruikers en tokens');
 
 reset role;
 -- ===== service_role en beheerder_sinds (PR22-07, PR22-08) =====

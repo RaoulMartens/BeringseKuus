@@ -274,11 +274,17 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
     - `db push` met de hand (stap 12A) is daarna niet meer nodig.
 
 14. **MFA aanzetten** (stap D, 29-10-2026). Supabase, het project, **Authentication**, **Sign In / Providers** (of
-    *Multi-Factor*), en zet bij **TOTP (App Authenticator)** *Enrollment* en *Verification* aan. Zonder dit geeft de
-    pagina "Beheer beveiligen" een fout. Controleer op het gratis plan dat het kan; zo niet, dan is Pro nodig vóór de
-    pilot (`Bouwbesluiten` 3.2). Daarna online dezelfde proef als lokaal: een testbeheerder doorloopt app instellen,
-    bevestigen en code invoeren (`docs/bouw/Beheerders.md`). Vraag ook na welke rem Supabase op foute codes zet: de
-    pagina vangt een "te vaak" (429) op, maar de grens is online niet lokaal na te gaan.
+    *Multi-Factor*), en zet bij **TOTP (App Authenticator)** *Enrollment* en *Verification* aan. Volgens Supabase
+    is TOTP op elk plan beschikbaar (alleen telefoon-MFA kost geld) en staat het standaard aan; controleer dat. Zonder
+    dit geeft de pagina "Beheer beveiligen" een fout. Daarna online dezelfde proef als lokaal met een testbeheerder:
+    app instellen, bevestigen (`docs/bouw/Beheerders.md`, inclusief de controle in `auth.mfa_factors`), code invoeren.
+    Let tijdens de proef op:
+    - de Worker-logs: komt `mfa_ip_address_mismatch` voor? (GoTrue weigert een goede code als de uitdaging en de
+      controle van een ander IP-adres komen; Cloudflare heeft veel uitgaande adressen.) Zo ja, dan is de melding "Deze
+      code klopt niet" online onbetrouwbaar en moeten de twee aanroepen via één verbinding;
+    - de rem op foute codes: probeer 30 foute codes snel achter elkaar en kijk wanneer `429` komt, en of het
+      bestuur daarna nog kan inloggen. De pagina vangt de melding op, maar de grens is lokaal niet na te gaan;
+    - of `delete from auth.mfa_factors` in de SQL Editor online mag, anders is het dashboard de herstelroute.
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
