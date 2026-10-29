@@ -1,9 +1,9 @@
 # Datamodel en rechten, fase 1
 
-Stand 29-10-2026, **versie 2**: de review door een schone chat (`Bouwbesluiten` 2; 19 bevindingen DM-01 t/m DM-19,
-oordeel "niet akkoord, dichtbij") is verwerkt, en de bouwer heeft de vier vragen beslist (punt 8). Wacht op de controle
-van de gewijzigde punten door de reviewer en het akkoord van de bouwer; pas daarna komt de eerste migratie
-(`Fase-1-plan.md` stap B). Bronnen: bouwgids V8 hoofdstuk 3, 4, 5 en 7; `Bouwbesluiten-2026-10-27.md` punt 1 en 4 (gaat
+Stand 29-10-2026, **versie 3**. De review door een schone chat (`Bouwbesluiten` 2; DM-01 t/m DM-19, oordeel "niet
+akkoord, dichtbij") is verwerkt in versie 2, de bouwer heeft de vier vragen beslist (punt 8), en de controle van versie 2
+(DM-20 t/m DM-25, oordeel "akkoord na kleine punten") is verwerkt in deze versie. Wacht op het akkoord van de bouwer;
+daarna komt de eerste migratie (`Fase-1-plan.md` stap C). Bronnen: bouwgids V8 hoofdstuk 3, 4, 5 en 7; `Bouwbesluiten-2026-10-27.md` punt 1 en 4 (gaat
 voor); `docs/ux-flows/use-cases.md` (R1–R24, UC-001, UC-004); de wireframes van fase 1.
 
 Dit stuk legt vast: welke tabellen er komen, wie wat mag lezen en schrijven, welke databasefuncties fase 1 bouwt en met
@@ -22,7 +22,8 @@ hoofdstuk 3"); de functies zijn alleen die van fase 1. Fase 2 en 3 bouwen erop d
 3. **Twee schema's.** In `public` staan de tabellen en alleen de functies die de app aanroept (`activiteit_opslaan`,
    `concept_verwijderen`, `beheeroverzicht`) en de view `mijn_activiteiten`. De hulpfuncties staan in een eigen schema
    **`intern`**, dat de Data API niet openzet (`[api] schemas` blijft `public` en `graphql_public`; `controle:poort`
-   bewaakt dat). Zo zijn ze niet als `/rest/v1/rpc/…` aan te roepen: een hulpfunctie die een lid vraagt "is deze
+   bewaakt dat). `controle:poort` eist ook dat `intern` nooit in `extra_search_path` komt (stap C). Zo zijn ze niet als
+   `/rest/v1/rpc/…` aan te roepen: een hulpfunctie die een lid vraagt "is deze
    activiteit al geweest?" zou anders verraden dat een concept bestaat (DM-01). `authenticated` krijgt `usage` op
    `intern` en `execute` op precies de functies die de RLS-regels nodig hebben.
 4. **`security definer` waar het moet, en waarom.** De hulpfuncties die tabellen lezen, zijn `security definer` met
@@ -46,7 +47,11 @@ hoofdstuk 3"); de functies zijn alleen die van fase 1. Fase 2 en 3 bouwen erop d
 8. **Auditlog in dezelfde transactie.** Elke schrijffunctie schrijft zelf haar regels in `wijzigingen_log` (V8 3.5).
 9. **Vangnet in de database** (DM-14). Twee triggers op `activiteiten`, voor wie buiten de functies om schrijft (seed,
    SQL-editor, later de taken-Worker): de status gaat alleen concept → gepubliceerd → geannuleerd (of concept →
-   geannuleerd, V8 5.4), en `bijgewerkt` wordt bij elke wijziging gezet; verwijderen kan alleen bij status `concept`.
+   geannuleerd, V8 5.4); verwijderen kan alleen bij status `concept`. De triggers geven een **eigen** melding
+   (`vangnet_status`, `vangnet_alleen_concept`, zonder SQLSTATE `BK001`), zodat een test kan zien of de functie zelf de
+   regel toetst of dat alleen het vangnet hem tegenhoudt (DM-23). `bijgewerkt` zet de trigger alleen als een veld
+   verandert dat leden zien, niet als alleen `bron_activiteit_id` leeg wordt (DM-24: anders telt de agenda in fase 7
+   het verwijderen van een ander concept als wijziging).
 10. **`vereniging_id`** op de tabellen met eigen verenigingsgegevens, met de vaste Beringse-rij als standaardwaarde; RLS
     en functies kijken er nog niet naar (`Bouwbesluiten` 1). Zie punt 2.10.
 
@@ -148,7 +153,7 @@ recht: beheerrechten hangen aan `is_admin` (V8 3.6).
 | `min_aanwezigen` | int, `check (min_aanwezigen >= 1)` | Leeg = uit. Standaard 13 bij `seizoen`, leeg bij `oud_papier` (V8 3.2) |
 | **`bak_actief`** | boolean, standaard `false` | Fase 2 (V8 3.7) |
 | `bron_activiteit_id` | uuid → `activiteiten` `on delete set null` | Fase 9 |
-| **`begin`**, **`einde`** | timestamptz, **gegenereerd** (`stored`) uit `datum`, `starttijd` en `eindtijd` | Zie punt 3; maakt filteren via de Data API mogelijk (DM-07) |
+| **`begint_om`**, **`eindigt_om`** | timestamptz, **gegenereerd** (`stored`) uit `datum`, `starttijd` en `eindtijd` | Zie punt 3; maakt filteren via de Data API mogelijk (DM-07). Niet `begin`: dat is in PL/pgSQL een gereserveerd woord (DM-21) |
 | **`aangemaakt`**, **`bijgewerkt`** | timestamptz | `bijgewerkt` zet de trigger (fase 7: `LAST-MODIFIED`) |
 
 **Vangnet voor publiceren:** `check (status = 'concept' or (starttijd is not null and eindtijd is not null and
@@ -168,7 +173,8 @@ Lezen:
 Het **welkomscherm** van een beheerder is wel "precies zoals een lid" (V8 7.1): daarvoor is er de view
 `public.mijn_activiteiten` (`security_invoker`), die alleen rijen geeft waarvoor `lid_mag_zien(id, huidig_lid())`
 waar is. Een beheerder ziet daar dus geen concept en geen activiteit van een groep waar hij niet in zit (DM-03). Mijn
-diensten (fase 3) en de agenda-feed (fase 7) gebruiken dezelfde view.
+diensten (fase 3) gebruikt dezelfde view. De agenda-feed (fase 7) niet: die heeft geen sessie, dus `huidig_lid()` is
+daar leeg; de feed gebruikt `intern.lid_mag_zien(id, <lid van het token>)` direct (DM-24).
 
 Niet in fase 1: `versie` (`Bouwbesluiten` 5.1, besluit vóór fase 2).
 
@@ -256,13 +262,18 @@ heeft; nooit voor `anon` of `PUBLIC`.
 | Functie | Soort | Geeft |
 |---|---|---|
 | `huidig_lid()` | `security definer`, `stable` | Het `leden.id` met `auth_user_id = auth.uid()`, `actief` en `type = 'lid'`; anders leeg (`Bouwbesluiten` 4.1). Alle regels gebruiken deze, nooit rechtstreeks `auth.uid()` |
-| `is_beheerder()` | `security definer`, `stable` | Waar als: (1) er is een `huidig_lid()`; (2) die heeft `is_admin` in `leden_prive`; (3) `auth.jwt() ->> 'aal' = 'aal2'`; (4) er is een geverifieerde MFA-factor van deze gebruiker die is aangemaakt **vóór** `beheerder_sinds` (DM-09, zie hieronder). Intrekken van `is_admin` werkt direct, ook in een lopende sessie |
-| `lid_mag_zien(activiteit_id, lid_id)` | `security definer`, `stable` | Status `gepubliceerd` of `geannuleerd`, en geen `activiteit_groep`-rij of het lid zit in een van die groepen. **Zonder** uitzondering voor de beheerder (DM-03) |
+| `is_beheerder()` | `security definer`, `stable` | Waar als: (1) er is een `huidig_lid()`; (2) die heeft `is_admin` in `leden_prive`; (3) `auth.jwt() ->> 'aal' = 'aal2'`; (4) er is een geverifieerde MFA-factor van deze gebruiker van **vóór** `beheerder_sinds`, en er is **geen** geverifieerde factor van **ná** `beheerder_sinds` (DM-09, DM-25, zie hieronder). Intrekken van `is_admin` werkt direct, ook in een lopende sessie |
+| `lid_mag_zien(activiteit_id, lid_id)` | `security definer`, `stable` | **Onwaar als `lid_id` leeg is** (DM-20: anders ziet iemand zonder lidmaatschap elke activiteit voor iedereen). Verder: status `gepubliceerd` of `geannuleerd`, en geen `activiteit_groep`-rij of het lid zit in een van die groepen. **Zonder** uitzondering voor de beheerder (DM-03). In regels en de view als `intern.lid_mag_zien(id, (select intern.huidig_lid()))` |
 | `mag_activiteit_zien(activiteit_id)` | `security definer`, `stable` | `is_beheerder()` of `lid_mag_zien(activiteit_id, huidig_lid())`. Voor de RLS op `activiteiten`, `rol_slots`, `activiteit_groep` |
 | `aantal_aanwezigen(activiteit_id)` | `security definer`, `stable`, **geen** `execute` voor `authenticated` | Actieve leden van type `lid` in de doelgroep (iedereen, of de leden van minstens één van de groepen, elk één keer), min de afmeldingen (R1, R12, R22, V8 5.6). Voor `beheeroverzicht()` nu en `meld_af()` in fase 3 |
 
 **Tijd** (`Bouwbesluiten` 4.5, DM-05, DM-06): `immutable`, zonder definer, zonder `execute` voor `authenticated` (de
 gegenereerde kolommen en de functies gebruiken ze). Geen standaardwaarde voor het moment: elke aanroeper geeft het mee.
+Een gegenereerde kolom roept zijn functie aan met de rechten van wie invoegt: daarom krijgt `service_role` `usage` op
+`intern` en `execute` op de functies van de gegenereerde kolommen (`seizoen_van`, `activiteit_begin`,
+`activiteit_einde`), voor de scripts met de geheime sleutel en later de taken-Worker (DM-22). **Wijzigt een migratie zo'n
+functie, dan moet dezelfde migratie de kolommen opnieuw laten vullen**: opgeslagen waarden worden niet vanzelf opnieuw
+berekend (staat ook als commentaar bij de functie).
 
 | Functie | Geeft |
 |---|---|
@@ -270,8 +281,9 @@ gegenereerde kolommen en de functies gebruiken ze). Geen standaardwaarde voor he
 | `activiteit_einde(datum, starttijd, eindtijd)` | Met eindtijd: `((datum + (case when eindtijd < starttijd then 1 else 0 end)) + eindtijd) at time zone 'Europe/Amsterdam'`: de dag erbij op de **datum**, niet op het tijdstip (anders een uur fout rond de zomertijd). Zonder eindtijd, of zonder starttijd: het einde van de dag, `(datum + 1) at time zone 'Europe/Amsterdam'` |
 | `deadline_verstreken(afmeld_deadline, moment)` | `afmeld_deadline is not null and moment > afmeld_deadline`: het moment zelf telt als vóór (R8) |
 | `vandaag(moment)` | `(moment at time zone 'Europe/Amsterdam')::date`: de sessie draait in UTC |
+| `seizoen_van(datum)` | Het beginjaar met de grens 1 september (punt 2.4) |
 
-"Bezig" = `begin <= moment < einde`; "geweest" = `moment >= einde` (R16). Een schrijffunctie geeft als moment
+"Bezig" = `begint_om <= moment < eindigt_om`; "geweest" = `moment >= eindigt_om` (R16). Een schrijffunctie geeft als moment
 `clock_timestamp()` ná de lock mee (uitgangspunt 7); een leesregel `now()`. Postgres-gedrag bij de zomertijd, letterlijk
 in de tests: 02:30 op 28 maart 2027 bestaat niet en wordt 03:30 zomertijd; 02:30 op 31 oktober 2027 bestaat twee keer en
 wordt de wintertijd.
@@ -279,12 +291,18 @@ wordt de wintertijd.
 **Wat `aal2` wel en niet bewijst** (DM-09). `aal2` zegt dat er een tweede factor is gebruikt, niet dat het die van het
 juiste bestuurslid is. Een bestuurslid met `is_admin` zonder factor logt in met alleen een inloglink; wie die mail
 onderschept, kan zelf een factor inschrijven. Daarom:
-- **Volgorde:** eerst stelt het bestuurslid zijn authenticator in (dat mag elk lid), daarna zet de beheerder `is_admin`
-  aan en `beheerder_sinds` op dat moment. Een factor die later is ingeschreven, geeft geen beheerrechten (punt (4) van
-  `is_beheerder()`). Dit komt in de handleiding en in `Fase-1-plan` stap D.
-- **Na te gaan in stap D** (proef op de echte Worker): of de functie `auth.mfa_factors` mag lezen; of Supabase met een
-  `aal1`-sessie een tweede factor laat inschrijven als er al een geverifieerde is; wat er met een `aal2`-sessie gebeurt
-  als de factor wordt verwijderd.
+- **Volgorde:** eerst stelt het bestuurslid zijn authenticator in (dat mag elk lid), daarna zet een beheerder `is_admin`
+  aan en `beheerder_sinds` op dat moment. Dit komt in de handleiding en in `Fase-1-plan` stap D.
+- **Een nieuwe factor zet het beheer stil** (DM-25). Het is niet genoeg dat er een oude factor bestaat: een aanvaller met
+  de inloglink kan een tweede factor inschrijven en daarmee `aal2` krijgen, terwijl de oude er nog is. Daarom eist
+  `is_beheerder()` dat er na `beheerder_sinds` **geen** factor bij is gekomen. Wie een nieuwe telefoon heeft, of wiens
+  factor is vervangen, is geen beheerder meer tot een andere beheerder `beheerder_sinds` opnieuw zet. Dat is meteen de
+  herstelroute bij een verloren toestel (`Bouwbesluiten` 5.2 punt 2), en een reden voor twee beheerders. Preciezer kan
+  het met de factor van de sessie zelf (`auth.sessions.factor_id` via `session_id` uit de JWT); of dat werkt, gaat de
+  proef van stap D na. `postgres` mag `auth.mfa_factors` lezen (lokaal nagegaan in de review).
+- **Na te gaan in stap D** (proef op de echte Worker): of de functie `auth.mfa_factors` online ook mag lezen; of
+  Supabase met een `aal1`-sessie een tweede factor laat inschrijven als er al een geverifieerde is; of de factor van de
+  sessie te achterhalen is; wat er met een `aal2`-sessie gebeurt als de factor wordt verwijderd.
 - **Sessieduur:** `aal2` blijft in elke ververste token van die sessie. In stap D kiest de bouwer bewust een
   sessieduur (`[auth.sessions] timebox` of `inactivity_timeout`) of een recente MFA-stap voor het beheer, en legt die
   vast.
@@ -335,7 +353,7 @@ verwijderd". Geen meldingen (R18). Een verwijderd concept komt niet terug (`Bouw
 
 | Scherm (wireframe) | Wat het leest | Hoe |
 |---|---|---|
-| `welkom`, `welkom-leeg`, `welkom-twee` | De activiteiten van vandaag (in Amsterdamse tijd) die nog niet geweest zijn, anders de eerstvolgende; wat gisteren begon en nog loopt, blijft staan (`Bouwbesluiten` 4.5); de vertrekplaats van de bus. Ook voor een beheerder precies zoals een lid (DM-03) | View `mijn_activiteiten` met een filter op de kolom `einde` (`einde > now()`), plus `verenigingsinstellingen` |
+| `welkom`, `welkom-leeg`, `welkom-twee` | De activiteiten van vandaag (in Amsterdamse tijd) die nog niet geweest zijn, anders de eerstvolgende; wat gisteren begon en nog loopt, blijft staan (`Bouwbesluiten` 4.5); de vertrekplaats van de bus. Ook voor een beheerder precies zoals een lid (DM-03) | View `mijn_activiteiten` met een filter op de kolom `eindigt_om` (`eindigt_om > now()`), plus `verenigingsinstellingen` |
 | `programma` | Alle zichtbare activiteiten van het seizoen, komend en geweest, met "Alleen bestuur" bij een doelgroep; de beheerder ziet ook concepten | `activiteiten`, `activiteit_groep`, `groepen` met RLS |
 | Activiteitscherm voor leden (`activiteit-optocht`) | Eén activiteit; onbekend of verborgen geeft hetzelfde "niet gevonden" | `activiteiten` met RLS |
 | `admin-activiteiten` (tellers en taken) | Per komende, niet-geannuleerde activiteit: lege plekken per rol, welke van starttijd, eindtijd, locatie en eindverantwoordelijke ontbreken, aantal aanwezigen, minimum | `beheeroverzicht()`: `security definer`, eerst `is_beheerder()` anders `geen_admin`. De taak in woorden en de tellers maakt de app uit dezelfde rijen (V8 5.6), met de marge "bijna te weinig" (minimum + 1) als constante |
@@ -409,11 +427,13 @@ authenticated` en `request.jwt.claims`: geen lid, inactief lid, lid (`aal1`), li
 
 **Wie is lid** (DM-02)
 - Ingelogd zonder lid, inactief lid, een `sub` die niet bestaat, en een token zonder `aal`: lezen niets uit geen enkele
-  tabel of view, en elke functie geeft `geen_admin`.
+  tabel of view, ook geen activiteit voor iedereen (DM-20), en elke functie geeft `geen_admin`.
 
 **Beheer** (DM-09, V8 12)
 - `aal2` zonder `is_admin`, ook als het lid in groep Bestuur zit: `geen_admin`.
-- `is_admin` en `aal2`, maar de factor is aangemaakt ná `beheerder_sinds`: `geen_admin`.
+- `is_admin` en `aal2`, maar er is een geverifieerde factor van ná `beheerder_sinds`, **ook als er ook een oudere is**:
+  `geen_admin` (DM-25). Opnieuw `beheerder_sinds` zetten: weer beheerder.
+- `service_role` kan een activiteit invoegen (de gegenereerde kolommen, DM-22).
 - `is_admin` uitzetten binnen dezelfde sessie: direct `geen_admin` en geen concepten meer.
 - `is_admin` en `aal2` maar `actief = false`: niets.
 
@@ -433,7 +453,7 @@ authenticated` en `request.jwt.claims`: geen lid, inactief lid, lid (`aal1`), li
 
 **Functies** (DM-01, DM-18)
 - Voor een lid geven concept, verborgen en onbekend id hetzelfde antwoord bij **elke** functie die hij kan aanroepen.
-- De hulpfuncties staan in `intern`, niet in `public`; per functie: `prosecdef` waar punt 3 dat zegt, eigenaar
+- De hulpfuncties staan in `intern`, niet in `public`, en `intern` staat niet in `extra_search_path`; per functie: `prosecdef` waar punt 3 dat zegt, eigenaar
   `postgres`, `search_path = ''`, geen `execute` voor `anon` of `PUBLIC`; de lijst "bewust uit te voeren" klopt voor
   `public` en `intern`.
 
@@ -462,8 +482,9 @@ authenticated` en `request.jwt.claims`: geen lid, inactief lid, lid (`aal1`), li
 - Concept: weg, met plekken en doelgroep, één logregel met naam en datum; een ander concept dat ernaar verwees, houdt
   `bron_activiteit_id` leeg.
 
-**Vangnet** (DM-14): als `postgres` een gepubliceerde activiteit terug naar concept zetten, of een gepubliceerde
-verwijderen: geweigerd door de trigger.
+**Vangnet** (DM-14, DM-23): als `postgres` een gepubliceerde activiteit terug naar concept zetten, of een gepubliceerde
+verwijderen: geweigerd door de trigger, met `vangnet_status` of `vangnet_alleen_concept` (niet `BK001`). Een concept
+verwijderen dat `bron_activiteit_id` is van een ander, verandert `bijgewerkt` van dat andere niet.
 
 **Tijd** (`Bouwbesluiten` 4.5, DM-05, DM-06)
 - Eindtijd vóór de starttijd (20:11–01:11): einde de volgende dag. Zonder eindtijd of starttijd: het einde van de dag.
@@ -473,12 +494,19 @@ verwijderen: geweigerd door de trigger.
 - De zomertijd: een activiteit op 27 maart 2027 tot 03:30 (de volgende dag) eindigt om 03:30 zomertijd; de twee
   gevallen 02:30 op 28 maart en 31 oktober 2027 met hun letterlijke uitkomst.
 
-**Gelijktijdig** (DM-08, `Bouwbesluiten` 11): de eerste test met twee sessies komt in deze fase, omdat hier de eerste
-functies met een lock komen; zonder die test bewijst niets dat de lock er staat. Opzet zonder nieuw pakket: een
-Vitest-test laat één sessie via `psql` in de databasecontainer (`docker exec`) een transactie openen, de lock op een
-concept nemen en twee seconden wachten; tegelijk roept de test via `supabase-js` als beheerder `concept_verwijderen` op
-hetzelfde concept aan. Verwacht: de aanroep wacht tot de eerste klaar is en geeft dan de juiste uitkomst, nooit een half
-resultaat of een kale databasefout. Deze `Bouwbesluiten` 11 wordt daarmee bijgewerkt: de opzet komt nu.
+**Gelijktijdig** (DM-08, DM-23, `Bouwbesluiten` 11): de eerste test met twee sessies komt in deze fase, omdat hier de
+eerste functies met een lock komen. Opzet zonder nieuw pakket: twee sessies via `psql` in de databasecontainer
+(`docker exec`), gestart vanuit een Vitest-test. Sessie B draait met `set local role authenticated` en de claims van een
+beheerder (zo is er geen echte `aal2`-sessie met een TOTP-code nodig).
+- Sessie A **publiceert** het concept (status `gepubliceerd`, met tijden en locatie) in een open transactie en wacht.
+  De test wacht tot `pg_locks` de lock van A toont, niet een vaste tijd.
+- Sessie B roept `concept_verwijderen` aan. Verwacht: B wacht, en krijgt na de commit van A `BK001` /
+  `alleen_concept` **uit de functie**; de activiteit bestaat nog.
+- Hetzelfde met `activiteit_opslaan` in sessie B (een veld van het concept wijzigen). Verwacht: `niet_ondersteund`;
+  de gepubliceerde activiteit is niet stil overschreven. Dit is de test die het hardst faalt zonder lock: de trigger
+  laat een wijziging met dezelfde status gewoon door.
+- Alleen de rij vergrendelen in A bewijst niets: de `delete` wacht daar zelf ook op, met of zonder lock in de functie
+  (nagegaan in de review). Daarom de publicatie in A, en de eigen melding van het vangnet.
 
 **Aanwezigen en beheeroverzicht**
 - Iedereen-activiteit: actieve leden van type lid min afmeldingen; een externe helper en een inactief lid tellen niet
