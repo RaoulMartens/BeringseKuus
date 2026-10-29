@@ -318,15 +318,15 @@ Worker voor de Excel-import.
 | Besluit | Uiterlijk | Aanname tot dan |
 |---|---|---|
 | ~~Hosting: OpenNext of vinext~~ **Besloten 28-10-2026: OpenNext.** Alle drie proefroutes zijn op de echte Workers geslaagd; vinext is niet nodig (3.1) | — | — |
-| Migraties en Auth-instellingen online: een job in de workflow `uitrol`, of `db push` met de hand met een regel in het PR-sjabloon (3.1, review F0-11) | vóór de eerste migratie van fase 1 | Met de hand, zoals in fase 0 |
+| ~~Migraties en Auth-instellingen online~~ **Besloten 29-10-2026: een job `migraties` in de workflow `uitrol`**, vóór de uitrol van de app, met een eigen Supabase-token (3.1, review F0-11; uitvoering: `Fase-1-plan.md` stap A) | — | — |
 | ~~Testopzet voor twee gelijktijdige sessies (bouwgids 14.5)~~ **Besloten 29-10-2026: naar fase 1**, bij de eerste schrijffunctie met een rij-lock (punt 11) | — | — |
 | Wie de tweede beheerder wordt, en de repository naar een organisatie (5.2 punt 5, review F0-12) | vóór fase 1 | Alles op naam van de bouwer |
 | Licentie van de code (8, review F0-13) | vóór fase 1 bekijken; besloten vóór de eerste bijdrage van iemand anders | Geen licentie: alle rechten voorbehouden |
-| Pilotmoment (V8 13.3): A rond 14–22 nov, of B op 3 jan 2027 | vóór fase 1 | B, tenzij fase 0 t/m 2 in de eerste week van november af zijn |
+| ~~Pilotmoment (V8 13.3)~~ **Besloten 29-10-2026: A, rond 14–22 november 2026**, met de opdrachtgever af te stemmen. Wat het naast de code vraagt en het voorgestelde beslismoment (6 november, anders B): `Fase-1-plan.md` 2.7 en 3 | — | — |
 | Versie van de activiteit en doelgroepconflict: welke foutcode, welk scherm (5.1) | vóór fase 2 | Zie 5.1 |
 | BA-6: roltypen als tabel | vóór fase 2 | Tabel `roltypen` |
 | Kosten (±€25–30 per maand) en de herstelafspraak (3.4): akkoord van de opdrachtgever | vóór de pilot | Niet gevraagd; in de vrijdag-update meenemen |
-| Iconen voor de app, nu de repo publiek is: open iconenset (afwijking van het ontwerp) of de Central-iconen buiten de repo houden en in de build binnenhalen | vóór fase 1 (componenten) | Fase 0 heeft geen iconen nodig |
+| ~~Iconen voor de app~~ **Besloten 29-10-2026: de Central-iconen, buiten de publieke repo**, bij de uitrol binnengehaald uit een privébron; alleen als de licentie uitleveren door een site toestaat en de vereniging ze na de stage mag houden, anders een open set (`Fase-1-plan.md` 2.8) | vóór stap E van fase 1: de licentie nagaan | — |
 | Licentie Central-iconen (V8 14.7): op wiens naam, mag een site ze uitleveren, blijft het na de stage toegestaan | vóór de eerste echte uitrol | Alleen in prototype en ontwikkelomgeving |
 | ~~Is het programma 2026/2027 openbaar?~~ **Besloten 27-10-2026:** het mag in de publieke repo (bouwgids 13.5 en de seed). De vereniging zet haar programma elk seizoen zelf op haar website (2025/2026 staat op beringsekuus.nl/fotos/, nagekeken 27-10-2026); het bevat alleen data en namen van openbare activiteiten, geen personen | — | — |
 | Logo en foto's: toestemming van de opdrachtgever (V8 14.7) | vóór de eerste echte uitrol | Alleen in prototype |
