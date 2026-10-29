@@ -24,8 +24,7 @@ doet als er iets misgaat.
    naar `https://`, en of `/mijn` een bezoeker zonder sessie doorstuurt naar `/inloggen`. Dat laatste bewijst alleen
    dat `SUPABASE_URL` en `SUPABASE_PUBLISHABLE_KEY` bij de Worker staan, niet dat ze kloppen: zonder sessie belt de
    Worker Supabase niet (review F0-14). Een typfout in het adres of een ingetrokken sleutel zie je pas bij het
-   inloggen (stap 8). Ook: het publieke testtoken van de agenda-feed geeft het kale "Niet gevonden" van de route. Dat
-   de feed met het echte token werkt, bewijst alleen stap 11 (met de hand): het echte token hoort niet in GitHub.
+   inloggen (stap 8). Ook: `/__scheduled` (het startpunt van een taak in `wrangler dev`) bestaat online niet.
 
 De **browsertests** (`npm run test:e2e`) draaien tegen dezelfde build in workerd, de runtime van Cloudflare
 (`wrangler dev`), en niet tegen `next start`. Zo test de poort wat er online gaat. Alle browsertests slagen daar,
@@ -145,7 +144,8 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
     *previous* is het oude gedeelde geheim (HS256), dat alleen nog oudere tokens controleert. Lokaal is het nog
     HS256, dus de tests doen per pagina één aanroep meer dan online. Later bekijken: lokaal ook ECC, en of de oude
     sleutel kan worden ingetrokken (eerst nagaan dat niets hem nog gebruikt).
-11. **Agenda-feed (proefroute 1).** **Gedaan 28-10-2026:** eigen token gezet, op een iPhone geabonneerd via "Voeg
+11. **Agenda-feed (proefroute 1).** *Geschiedenis: de proefroute is weg sinds fase 1 stap A (29-10-2026). Dit draaiboek
+    blijft staan als voorbeeld voor de echte feed in fase 7.* **Gedaan 28-10-2026:** eigen token gezet, op een iPhone geabonneerd via "Voeg
     agenda-abonnement toe" (niet CalDAV); de afspraak staat in de agenda.
     - **Token maken:** `openssl rand -hex 32` in de Ubuntu-terminal (64 tekens). Gebruik nooit het testtoken uit
       `scripts/agenda-testtoken.ts`: dat staat in de publieke repository, en de controle na de uitrol wordt rood als
@@ -170,7 +170,9 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       abonnementen opnieuw. **Proef klaar** (afronding fase 0, review F0-06): verwijder het geheim
       `PROEF_AGENDA_TOKEN` bij `ledenplatform` en het abonnement op de telefoon; de feed geeft dan voor elk token een
       404. De route zelf gaat weg in fase 1.
-12. **Geplande taak (proefroute 3).** **Gedaan 28-10-2026:** migraties met `db push`, eigen secret key, vijf
+12. **Geplande taak (proefroute 3).** *Geschiedenis: de proeftaak en haar tabellen zijn weg sinds fase 1 stap A
+    (29-10-2026). Dit draaiboek blijft staan als voorbeeld voor de dagmelding in fase 7; deel A (migraties met de hand)
+    geldt tot de job `migraties` er is.* **Gedaan 28-10-2026:** migraties met `db push`, eigen secret key, vijf
     geheimen bij de taken-Worker; elke minuut één rij `gelukt`, precies één testbericht, de gedwongen fout gaf een
     rij `mislukt`. Daarna stilgezet met `"crons": []`. De geheimen gaan weg bij de afronding van fase 0 (zie
     "Proef klaar" hieronder, review F0-06): een sleutel die om alle rechten heen gaat, hoort niet te blijven staan bij
@@ -242,8 +244,9 @@ tweede beheerder komt er vóór de pilot (`Bouwbesluiten` 5.2), en wie dat wordt
 | `PROEF_AGENDA_TOKEN` | Worker `ledenplatform` | De proef-feed geeft voor elk token een 404 (zo hoort het na de proef) | Stap 11 | Verwijderd 29-10-2026 |
 | `SUPABASE_SECRET_KEY` (sleutel `proef_taak`), `RESEND_API_KEY`, `RESEND_AFZENDER`, `PROEF_TAAK_ONTVANGER`, `SUPABASE_URL` | Worker `ledenplatform-taken` | De taak meldt "niet ingesteld" (zo hoort het na de proef) | Stap 12 | Verwijderd 29-10-2026 |
 
-Lokaal schrijft `npm run env:lokaal` de sleutels van de lokale Supabase in `.env.local`, `.dev.vars` en
-`taken/.dev.vars` (niet in git). Dat zijn de vaste sleutels van de ontwikkelomgeving in Docker, geen online sleutels.
+Lokaal schrijft `npm run env:lokaal` de sleutels van de lokale Supabase in `.env.local` en `.dev.vars` (niet in
+git). Dat zijn de vaste sleutels van de ontwikkelomgeving in Docker, geen online sleutels. Staat er nog een oud
+`taken/.dev.vars` (met de lokale geheime sleutel, van vóór fase 1), dan mag dat weg.
 
 ## Als er iets misgaat
 
@@ -317,13 +320,10 @@ npm run env:lokaal                            # schrijft .env.local en .dev.vars
 npm run build:worker && npm run preview:worker # de Worker in workerd op http://127.0.0.1:8787
 ```
 
-Lokaal werkt de agenda-feed met het testtoken uit `scripts/agenda-testtoken.ts` (`env:lokaal` zet het):
-`http://127.0.0.1:8787/proef/agenda/<testtoken>.ics`. Http mag alleen op de eigen computer.
-
-De geplande taak start je lokaal met de hand in de taken-Worker: `npx wrangler dev -c taken/wrangler.jsonc --port
-8788 --test-scheduled` (leest `taken/.dev.vars`, die `env:lokaal` schrijft) en dan
-`curl "http://127.0.0.1:8788/__scheduled?cron=*+*+*+*+*"`. Online bestaat `/__scheduled` niet, en de taken-Worker
-heeft geen adres.
+De agenda-feed en de geplande taak van de proef zijn weg (Fase-1-plan stap A, 29-10-2026). De taken-Worker staat
+er nog, zonder taken. Een taak start je lokaal met de hand: `npx wrangler dev -c taken/wrangler.jsonc --port 8788
+--test-scheduled` en dan `curl "http://127.0.0.1:8788/__scheduled?cron=*+*+*+*+*"`. Online bestaat `/__scheduled`
+niet, en de taken-Worker heeft geen adres.
 
 Een lokale build neemt waarden uit `.env.local` op in de bundel (`.open-next/cloudflare/next-env.mjs`). Daarom rolt
 alleen GitHub uit, en controleert de job **bouw** dat die bundel leeg is. Zet in `.env.local` nooit een sleutel die

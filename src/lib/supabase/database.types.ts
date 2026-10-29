@@ -6,50 +6,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
-      proef_taak: {
-        Row: {
-          gemaakt: string;
-          melding: string | null;
-          minuut: string;
-          status: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          gemaakt?: string;
-          melding?: string | null;
-          minuut: string;
-          status: string;
-        };
-        Update: {
-          gemaakt?: string;
-          melding?: string | null;
-          minuut?: string;
-          status?: string;
-        };
-        Relationships: [];
-      };
-      proef_taak_bericht: {
-        Row: {
-          fout: string | null;
-          geclaimd: string;
-          id: number;
-          status: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          fout?: string | null;
-          geclaimd?: string;
-          id: number;
-          status?: string;
-        };
-        Update: {
-          fout?: string | null;
-          geclaimd?: string;
-          id?: number;
-          status?: string;
-        };
-        Relationships: [];
-      };
+      [_ in never]: never;
     };
     Views: {
       [_ in never]: never;

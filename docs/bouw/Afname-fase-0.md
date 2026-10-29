@@ -109,8 +109,8 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 | Wat | Bron | Wie |
 |---|---|---|
 | Datamodel en rechten uitgewerkt en gereviewd (identiteit, privé en publiek, rechten, rolstructuur) | `Bouwbesluiten` 4 | Bouwer, review door een schone chat |
-| Besluit: migraties en Auth-instellingen online via een job in `uitrol`, of met de hand met een regel in het PR-sjabloon | `Bouwbesluiten` 3.1 en 6 (F0-11) | Bouwer |
-| Proefcode opruimen: `src/app/proef/`, `PROEF_AGENDA_TOKEN` in de code en `scripts/schrijf-env-lokaal.ts`, `scripts/agenda-testtoken.ts` en die controle in `controleer-online.ts`, `src/taken/proef-taak.ts` met zijn tests (`e2e/geplande-taak.spec.ts`, `supabase/tests/database/proef_taak.test.sql`), en een migratie die `proef_taak` en `proef_taak_bericht` verwijdert. `taken/worker.ts` blijft als lege taken-Worker tot fase 7 | `Fase-0-plan.md` 4 (F0-06) | Bouwer |
+| ~~Besluit: migraties en Auth-instellingen online~~ **Besloten 29-10-2026: een job `migraties` in `uitrol`**; de job volgt in een eigen pull request | `Bouwbesluiten` 3.1 en 6 (F0-11) | Bouwer |
+| **Gedaan (PR 19, 29-10-2026).** Proefcode opruimen: `src/app/proef/`, `PROEF_AGENDA_TOKEN` in de code en `scripts/schrijf-env-lokaal.ts`, `scripts/agenda-testtoken.ts` en die controle in `controleer-online.ts`, `src/taken/proef-taak.ts` met zijn tests (`e2e/geplande-taak.spec.ts`, `supabase/tests/database/proef_taak.test.sql`), en een migratie die `proef_taak` en `proef_taak_bericht` verwijdert. `taken/worker.ts` blijft als lege taken-Worker tot fase 7. Ook `src/lib/agenda/` en `ical.js` zijn weg (review PR19-03): ongebruikte code mag niet blijven staan (14.2). Voor fase 7 terug te halen uit commit `6a5d8e1` | `Fase-0-plan.md` 4 (F0-06) | Bouwer |
 | Pilotmoment kiezen | `Bouwbesluiten` 6 | Bouwer |
 
 **Vóór fase 1 (of bij het begin)**
@@ -144,9 +144,9 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 
 | Wat | Bron |
 |---|---|
-| Leesrechten van `authenticated` per tabel toetsen, met een lijst van bewust toegestane tabellen, en de tests per rol uit 14.4 (een beleid `using (true)` valt nu nergens op) | Review PR14-02 |
-| De rechtentests lopen alleen over `public`: in `controle:poort` eisen dat `[api] schemas` in `supabase/config.toml` niet verandert, of de tests over die lijst laten lopen | Review PR14-02 |
-| Eén fabriek per soort Supabase-client in `src/lib/supabase/`, en een ESLint-regel die `createClient` en `createServerClient` daarbuiten verbiedt, zodat elke client de databasetypen gebruikt | Review PR14-08 |
+| **Deels gedaan (PR 19):** leesrechten van `authenticated` per tabel, met een lijst van bewust toegestane tabellen. **Nog:** de tests per rol uit 14.4 (een beleid `using (true)` valt nu nergens op), en reeksen en andere schema's (review PR19-04) | Review PR14-02 |
+| **Gedaan (PR 19):** `controle:poort` eist dat `[api] schemas` alleen `public` en `graphql_public` is. **Nog:** die controle geldt alleen lokaal; online kijken of het project hetzelfde openzet (Settings, Data API), en `[remotes]` als die er komen (review PR19-05) | Review PR14-02 |
+| **Gedaan (PR 19):** Supabase-clients alleen in `src/lib/supabase/`; ESLint verbiedt elke import uit `@supabase/*` daarbuiten (behalve `import type`), ook dynamisch. **Nog:** binnen die map dwingt niets `<Database>` af; let erop in de review (review PR19-01) | Review PR14-08 |
 
 **Vóór de pilot (echte leden)**
 
@@ -166,7 +166,7 @@ Alles wat uit fase 0 nog moet gebeuren, op één plek (review F0-07). De bron st
 | Wat | Bron |
 |---|---|
 | De override van `glob` weghalen zodra de adapter het zelf goed heeft | `hosting.md`, Versies |
-| Een droge bundel van de taken-Worker in de poort (`wrangler deploy --dry-run` vanuit alleen de sparse paden), als de importcontrole te krap blijkt | Review F0-19 en PR14-04 |
+| Een droge bundel van de taken-Worker in de poort (`wrangler deploy --dry-run` vanuit alleen de sparse paden), als de importcontrole te krap blijkt. Sinds PR 19 start de poort de taken-Worker niet meer; een fout in `taken/wrangler.jsonc` zie je pas bij de uitrol (review PR19-07). Uiterlijk in fase 7 | Review F0-19, PR14-04 en PR19-07 |
 | Bij een update van Next.js of OpenNext: "Als een update de middleware breekt" | `hosting.md` |
 | De echte agenda-feed (fase 7) en de dagmelding (fase 7): de lessen uit de proef | `Fase-0-plan.md` 4, route 1 en 3; `Bouwbesluiten` 5.4 |
 | Bouwgids V9, bij voorkeur na fase 1 | `Bouwbesluiten` 7 |

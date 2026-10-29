@@ -3,7 +3,7 @@
 // noInlineConfig en de andere controles beschermen de broncode, maar niet hun eigen instellingen: een pull
 // request kan een regel uitzetten in eslint.config.mjs, strict uitzetten in tsconfig.json of een stap uit het
 // check-script halen. Deze controle toetst de werkelijke instellingen aan het minimum uit hoofdstuk 14, en laat
-// ESLint drie foute voorbeelden lezen die moeten worden afgekeurd.
+// ESLint foute voorbeelden lezen die moeten worden afgekeurd.
 //
 // Grens (review PR1-03): een pull request kan ook dit bestand wijzigen. Deze controle maakt een verzwakking
 // zichtbaar en dwingt af dat ze bewust gebeurt; ze vervangt de review niet. Een wijziging aan de poort hoort in
@@ -296,6 +296,21 @@ export function controleerUitrolBestanden(
   return problemen;
 }
 
+/**
+ * De Data API maakt alleen public en graphql_public bereikbaar (supabase/config.toml). De rechtentests lopen alleen
+ * over public; een extra schema zou buiten alle tests vallen (review PR14-02). Komt er een bij, pas dan eerst de
+ * tests aan en daarna deze controle.
+ */
+export function controleerApiSchemas(config: string): string[] {
+  const api = /^\[api\]\s*$([\s\S]*?)(?=^\[)/m.exec(config)?.[1] ?? '';
+  const schemas = /^schemas\s*=\s*(\[[^\]]*\])/m.exec(api)?.[1]?.replace(/\s/g, '');
+  return schemas === '["public","graphql_public"]'
+    ? []
+    : [
+        'supabase/config.toml: [api] schemas moet precies ["public", "graphql_public"] zijn (de rechtentests dekken alleen public)',
+      ];
+}
+
 /** Beide Workers draaien op dezelfde versie van het platform (review F0-19). */
 export function controleerCompatibiliteitsdatum(app: string, taken: string): string[] {
   const datum = (tekst: string): string | undefined =>
@@ -333,7 +348,7 @@ export function controleerTestinstellingen(vitest: string, playwright: string): 
     problemen.push('playwright.config.ts: forbidOnly moet true zijn');
   if (!playwright.includes('`npm run preview:worker'))
     problemen.push('playwright.config.ts: de browsertests moeten de Worker starten (npm run preview:worker)');
-  // Bij elke server (de app en de taken-Worker): nooit een al draaiende, mogelijk oude server hergebruiken.
+  // Bij elke server: nooit een al draaiende, mogelijk oude server hergebruiken.
   const hergebruik = [...playwright.matchAll(/reuseExistingServer:\s*([^,\s}]+)/g)].map((m) => m[1]);
   if (hergebruik.length === 0 || hergebruik.some((waarde) => waarde !== 'false'))
     problemen.push('playwright.config.ts: reuseExistingServer moet bij elke server false zijn');
@@ -348,7 +363,7 @@ const isFout = (instelling: unknown): boolean => {
   return niveau === 2 || niveau === 'error';
 };
 
-/** De werkelijke ESLint-instellingen, en drie foute voorbeelden die moeten worden afgekeurd. */
+/** De werkelijke ESLint-instellingen, en foute voorbeelden die moeten worden afgekeurd. */
 export async function controleerEslint(root: string): Promise<string[]> {
   const eslint = new ESLint({ cwd: root });
   const problemen: string[] = [];
@@ -373,6 +388,20 @@ export async function controleerEslint(root: string): Promise<string[]> {
       code: "const bron = JSON.parse('{}');\nexport const r: string = bron.bestaatNiet();\n",
     },
     { naam: 'regel uitzetten met commentaar', code: `${uit}\nexport const y: any = 2;\n` },
+    // Een Supabase-client buiten src/lib/supabase/ zou ongetypeerd kunnen zijn (review PR14-08 en PR19-02): elke
+    // vorm moet worden afgekeurd, niet alleen de eerste.
+    {
+      naam: 'Supabase-client uit @supabase/ssr buiten src/lib/supabase/',
+      code: "import { createServerClient } from '@supabase/ssr';\nexport const maak = createServerClient;\n",
+    },
+    {
+      naam: 'Supabase-client uit @supabase/supabase-js buiten src/lib/supabase/',
+      code: "import { SupabaseClient } from '@supabase/supabase-js';\nexport const maak = SupabaseClient;\n",
+    },
+    {
+      naam: 'Supabase met een dynamische import buiten src/lib/supabase/',
+      code: "export const laad = () => import('@supabase/postgrest-js');\n",
+    },
   ];
   for (const v of voorbeelden) {
     const [resultaat] = await eslint.lintText(v.code, { filePath: path.join(root, 'src', 'poortproef.ts') });
@@ -402,6 +431,7 @@ export async function controleerPoort(root: string): Promise<string[]> {
       sparsePaden(lees('.github/workflows/uitrol.yml')),
     ),
     ...controleerCompatibiliteitsdatum(lees('wrangler.jsonc'), lees('taken/wrangler.jsonc')),
+    ...controleerApiSchemas(lees('supabase/config.toml')),
     ...['wrangler.jsonc', 'taken/wrangler.jsonc'].flatMap((pad) =>
       controleerWranglerZonderBuild(pad, lees(pad)),
     ),

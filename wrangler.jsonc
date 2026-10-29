@@ -22,7 +22,7 @@
   "observability": {
     "enabled": false,
   },
-  // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SITE_URL en PROEF_AGENDA_TOKEN staan als geheim bij Cloudflare
-  // (docs/hosting.md stap 5 en 11), niet hier: deze repository is publiek en per omgeving verschillen ze. De
+  // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY en SITE_URL staan als geheim bij Cloudflare
+  // (docs/hosting.md stap 5), niet hier: deze repository is publiek en per omgeving verschillen ze. De
   // geheime sleutel van Supabase hoort hier nooit bij: die staat alleen bij de taken-Worker.
 }
