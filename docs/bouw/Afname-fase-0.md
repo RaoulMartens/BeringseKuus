@@ -1,11 +1,10 @@
 # Afname fase 0
 
-Stand 28-10-2026. Bewijs per afrondingscriterium (bouwgids 14.6, `Fase-0-plan.md` punt 5), de review van fase 0 als
+Stand 29-10-2026. Bewijs per afrondingscriterium (bouwgids 14.6, `Fase-0-plan.md` punt 5), de review van fase 0 als
 geheel met wat ermee is gedaan, en de lijst "Van fase 0 naar fase 1". Wie fase 1 begint, leest dit bestand eerst.
 
-**Stand:** fase 0 is af zodra de open vakjes in "Nog door de bouwer" zijn afgevinkt (het opruimen van de
-proefgeheimen en het Dependabot-geheim; de handmatige doorloop, de adviseur en `Bouwbesluiten` 11 zijn gedaan). De
-techniek zelf staat: de review van fase 0 vond niets dat de hostingkeuze of de opzet ter
+**Stand (29-10-2026): fase 0 is af.** Alle vijf criteria zijn gehaald en alle vakjes in "Nog door de bouwer" zijn
+afgevinkt. Wat nog moet gebeuren, staat in punt 4 "Van fase 0 naar fase 1". De techniek zelf staat: de review van fase 0 vond niets dat de hostingkeuze of de opzet ter
 discussie stelt.
 
 ## 1. De vijf criteria
@@ -16,7 +15,7 @@ discussie stelt.
 | 2 | Drie proefroutes geslaagd en gemeten; hostingkeuze in `Bouwbesluiten` | Route 1 (agenda-feed op een iPhone), route 2 (inloggen op een telefoon, na een uur nog ingelogd, uitloggen zonder cookie), route 3 (elke minuut één rij, één testbericht, gedwongen fout zichtbaar): `Fase-0-plan.md` punt 4. Metingen: `docs/hosting.md`, Metingen (mediaan 218 ms CPU per aanvraag, 0 fouten; taken-Worker 0,24 ms). Besluit: `Bouwbesluiten` 3.1 en 6 (OpenNext) | Gehaald |
 | 3 | Een schone chat heeft de fase gereviewd tegen hoofdstuk 14, bevindingen in de pull request | Review van fase 0 als geheel (28-10-2026, een nieuwe Claude-subagent zonder het bouwgesprek): 21 bevindingen, oordeel "af na kleine punten". De afhandeling per bevinding staat in punt 3 hieronder en in de pull request van deze afronding. Daarnaast een eigen review per pull request: PR 1, 8, 10, 11, 12 en 14 (PR 14: 9 bevindingen, verwerkt in die pull request of hieronder op de lijst) | Gehaald |
 | 4 | Het lege scherm met toetsenbord en op 375 px doorlopen | Geautomatiseerd: axe (WCAG 2.2 AA) op `/`, `/inloggen` (vier toestanden), `/auth/bevestigen` en `/mijn`, op 1200 en 375 px, zonder opzij scrollen; zichtbare focus op de eerste link. Met de hand (28-10-2026): toetsenbord, telefoon en VoiceOver, punt 2.1 | Gehaald |
-| 5 | `docs/hosting.md` en de README beschrijven vorm, versies, adapter, geheimen, plek van de taak, lokaal draaien en uitrollen | `docs/hosting.md` (Hoe het werkt, Versies, Keuzes, Metingen, Eenmalig instellen, Geheimen, Als er iets misgaat, Lokaal); README (Lokaal draaien in de juiste volgorde, met een testlid; Uitrollen) | Gehaald na PR 14 en deze afronding |
+| 5 | `docs/hosting.md` en de README beschrijven vorm, versies, adapter, geheimen, plek van de taak, lokaal draaien en uitrollen | `docs/hosting.md` (Hoe het werkt, Versies, Keuzes, Metingen, Eenmalig instellen, Geheimen, Als er iets misgaat, Lokaal); README (Lokaal draaien in de juiste volgorde, met een testlid; Uitrollen) | Gehaald |
 
 ## 2. Met de hand
 
@@ -63,12 +62,15 @@ bij de overstap naar Pro zetten we hem aan (Authentication, Attack Protection), 
 - [x] Doorloop 2.1 ingevuld (28-10-2026).
 - [x] Adviseur 2.2 ingevuld (28-10-2026).
 - [x] `Bouwbesluiten` 11 (gelijktijdigheid naar fase 1) bevestigd (29-10-2026).
-- [ ] `VERBODEN_WOORDEN` ook als **Dependabot-geheim** (GitHub, Settings, Secrets and variables, Dependabot), zodat een
-      Dependabot-PR groen kan worden (review F0-04).
-- [ ] Bij de Worker `ledenplatform-taken` alle geheimen en variabelen weg (ook `PROEF_TAAK_FORCEER_FOUT`); in Supabase
+- [x] `VERBODEN_WOORDEN` ook als **Dependabot-geheim** (GitHub, Settings, Secrets and variables, Dependabot), zodat een
+      Dependabot-PR groen kan worden (review F0-04). Gezet 29-10-2026; de naam is nagekeken met de GitHub-API.
+- [x] Bij de Worker `ledenplatform-taken` alle geheimen en variabelen weg (ook `PROEF_TAAK_FORCEER_FOUT`); in Supabase
       de secret key `proef_taak` weg; in Resend de sleutel van de proef weg (review F0-06, `docs/hosting.md` stap 12).
-- [ ] Bij de Worker `ledenplatform` het geheim `PROEF_AGENDA_TOKEN` weg, en het abonnement op de telefoon (stap 11).
-- [ ] In `proef_taak` geen nieuwe rijen na het stilzetten (28-10-2026, rond 15:47 UTC): de trigger is echt weg.
+      Gedaan 29-10-2026.
+- [x] Bij de Worker `ledenplatform` het geheim `PROEF_AGENDA_TOKEN` weg, en het abonnement op de telefoon (stap 11).
+      Gedaan 29-10-2026; daarna werkt de site nog (inloggen, doorverwijzingen) en geeft de proef-feed 404.
+- [x] In `proef_taak` geen nieuwe rijen na het stilzetten (28-10-2026, rond 15:47 UTC): de trigger is echt weg.
+      Nagekeken 29-10-2026.
 
 ## 3. De review van fase 0: bevindingen en afhandeling
 
