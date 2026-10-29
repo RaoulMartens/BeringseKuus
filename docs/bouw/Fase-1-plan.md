@@ -1,6 +1,7 @@
 # Fase 1: plan
 
-Stand 29-10-2026. **Voorstel, wacht op het akkoord van de bouwer** (de beslissingen in punt 2). Bron: bouwgids V8
+Stand 29-10-2026. **De bouwer heeft beslissing 2.1 tot en met 2.4 genomen** (29-10-2026); 2.5 en 2.6 zijn nog
+voorstellen. Bron: bouwgids V8
 hoofdstuk 3, 10 en 14; `Bouwbesluiten-2026-10-27.md` punt 1, 4 en 6; `Afname-fase-0.md` punt 4 ("Van fase 0 naar
 fase 1"); `Design-overdracht.md`.
 
@@ -93,31 +94,62 @@ met het visuele ontwerp.
 
 ## 2. Beslissingen van de bouwer
 
-| # | Beslissing | Opties | Voorstel |
+| # | Beslissing | Opties | Uitkomst |
 |---|---|---|---|
-| 2.1 | Pilotmoment (V8 13.3) | A: rond 14–22 november 2026; B: zondag 3 januari 2027 (Verlovingsbal), mét afmelden en ruilen | **B.** A vraagt fase 0 tot en met 2 gereviewd vóór 14 november: twee weken voor twee fasen, waarvan één met MFA en het hele datamodel. Met de opdrachtgever afstemmen |
-| 2.2 | Migraties online (review F0-11) | a: een job `migraties` in de workflow `uitrol`, vóór de uitrol van de app, met een eigen Supabase-token in de omgeving `ontwikkel`; b: met de hand `db push` vóór het samenvoegen, met een regel in het PR-sjabloon | **a.** Vanaf fase 1 komt er bij bijna elke pull request een migratie. Met de hand gaat het een keer mis: dan staat er code online die een tabel verwacht die er nog niet is. Prijs: één geheim erbij |
-| 2.3 | Iconen (`Bouwbesluiten` 6) | a: een open set (bijvoorbeeld Lucide, ISC-licentie), wijkt af van het ontwerp; b: de Central-iconen buiten de publieke repo houden en bij het bouwen binnenhalen uit een privébron | **a**, tenzij de licentie van Central uitleveren door een site toestaat én de vereniging ze na de stage mag houden. b maakt de bouw afhankelijk van een privébron en van jouw licentie |
-| 2.4 | Invoer met een vast schema (14.4, review F0-07) | a: Zod (nieuw pakket, MIT, veel gebruikt, werkt in de Worker); b: een eigen klein patroon per serveractie | **a.** Eén schema per serveractie geeft dezelfde controle en dezelfde foutvorm overal; zelf bouwen wordt snel slordig. Het pakket wordt eerst nagekeken (licentie, grootte, onderhoud) |
+| 2.1 | Pilotmoment (V8 13.3) | A: rond 14–22 november 2026; B: zondag 3 januari 2027 (Verlovingsbal), mét afmelden en ruilen | **Besluit (de bouwer, 29-10-2026): A.** Het voorstel was B. A vraagt fase 0 tot en met 2 gereviewd vóór 14 november, plus alles uit de pilotcheck (punt 2.7). Met de opdrachtgever afstemmen. Voorstel: op vrijdag 6 november een beslismoment (punt 3) |
+| 2.2 | Migraties online (review F0-11) | a: een job `migraties` in de workflow `uitrol`, vóór de uitrol van de app, met een eigen Supabase-token in de omgeving `ontwikkel`; b: met de hand `db push` vóór het samenvoegen, met een regel in het PR-sjabloon | **Besluit (de bouwer, 29-10-2026): a.** Vanaf fase 1 komt er bij bijna elke pull request een migratie; met de hand gaat het een keer mis. Prijs: één geheim erbij |
+| 2.3 | Iconen (`Bouwbesluiten` 6) | a: een open set (bijvoorbeeld Lucide, ISC-licentie), wijkt af van het ontwerp; b: de Central-iconen buiten de publieke repo houden en bij het bouwen binnenhalen uit een privébron | **Besluit (de bouwer, 29-10-2026): b, de Central-iconen.** Het voorstel was a. Voorwaarden en aanpak: punt 2.8 |
+| 2.4 | Invoer met een vast schema (14.4, review F0-07) | a: Zod (nieuw pakket, MIT, veel gebruikt, werkt in de Worker); b: een eigen klein patroon per serveractie | **Besluit (de bouwer, 29-10-2026): a, Zod.** Het pakket wordt vóór het toevoegen nagekeken (licentie, grootte in de bundel, onderhoud) |
 | 2.5 | Ontwerpgaten vóór de schermen | MFA instellen en code invoeren; de inlogschermen; 404 en foutpagina; melding bij een storing (`UX-FLOWS.md`, "Ontwerpgaten uit de bouw") | De ontwerper (de bouwer) maakt de wireframes vóór stap D en F. Daarvoor kan Claude een eerste versie in de stijl van de andere wireframes klaarzetten, die de ontwerper beoordeelt en aanpast |
 | 2.6 | Grote update van TypeScript 7 en ESLint 10 (`Bouwbesluiten` 9) | Nu, of na de pilot | **Na de pilot.** Next.js 16 en de typebewuste lintregels zijn met de huidige versies getest; midden in de bouw een nieuwe compiler is risico zonder winst voor de gebruiker. Kleine updates komen gewoon binnen |
+
+### 2.7 Wat pilot A vraagt naast de code
+
+Een pilot met echte leden vraagt de pilotcheck uit `Bouwbesluiten` 5.2, ook bij een klein testgroepje. Met pilot A
+moet dit vóór 14 november klaar zijn:
+
+| Wat | Waarom | Wie |
+|---|---|---|
+| Akkoord van de opdrachtgever op de kosten (±€25–30 per maand) | `Bouwbesluiten` 3.2: vóór de pilot | De bouwer, met de opdrachtgever |
+| Een nieuw Supabase-project op Pro in Frankfurt | Nooit echte persoonsgegevens op het gratis plan; regio EU (`Bouwbesluiten` 3.2, 10) | De bouwer |
+| Workers betaald plan ($5) | Rekentijd (`Bouwbesluiten` 3.1) | De bouwer |
+| Een eigen domein met mail via Resend | Zonder eigen domein stuurt Resend alleen naar het adres van het account; leden krijgen dan geen inloglink | De bouwer, met de vereniging (wiens domein?) |
+| MFA voor het bestuur, een teruggezette back-up, twee beheerders | `Bouwbesluiten` 5.2 | De bouwer (stap D), de tweede beheerder |
+| De leden van het testgroepje in het systeem | Ledenimport is fase 4; voor een klein groepje zet de beheerder ze er met de hand in, met hun toestemming (AVG) | De bouwer |
+| Fase 2 af (indelen en tonen wie waar staat) | Pilot A toont het programma en de indeling, zonder afmelden en ruilen (V8 13.3) | De bouwer |
+
+### 2.8 De Central-iconen buiten de publieke repository
+
+**Eerst nagaan (de bouwer), vóór stap E:** de licentie van Iconists. Mag een website de iconen uitleveren aan
+bezoekers (ze staan dan als bestand op de site, en iedereen kan ze downloaden)? Op wiens naam staat de licentie, en mag
+de vereniging ze na de stage blijven gebruiken (V8 14.7)? Is het antwoord op een van de twee nee, dan valt het terug op
+optie a.
+
+**Aanpak (voorstel, uit te werken in stap E):** de app verwijst naar iconen in `public/iconen/` (bijvoorbeeld via een
+CSS-masker), maar de bestanden zelf staan **niet** in de publieke repo. Ze staan in een privérepository met alleen de
+iconen die de app gebruikt. De job `uitrol` haalt ze daar op met een token dat alleen die repository mag lezen, en zet
+ze bij de vaste bestanden vóór `wrangler deploy`. De poort en de browsertests draaien zonder iconen; een ontbrekend
+icoon laat geen gat in de lay-out (vaste maat) en heeft altijd een tekst of een `aria-label` ernaast. `controle:repo`
+blijft afkeuren als er toch een Central-icoon in de publieke repo komt.
 
 Niet nu, wel vóór fase 1 klaar is (`Afname-fase-0.md` punt 4): de tweede beheerder en de repository naar een
 organisatie, en de licentie van de code. Die raken de bouw niet, maar het is de goedkoopste fase om ze te regelen.
 
 ## 3. Planning
 
-Uitgaande van pilot B (3 januari 2027) en de bouwdeadline van fase 3 vóór 10 januari 2027 (V8 13.3):
+Pilot A (2.1) laat ruim twee weken voor fase 1 én fase 2, met reviews, plus punt 2.7. Dat lukt alleen als er
+onderweg niets tegenvalt. Daarom stap A en B tegelijk met de voorbereiding van de pilot:
 
 | Wat | Streefdatum |
 |---|---|
-| Stap A en B (met review) | week 45 (2–8 november) |
-| Stap C en D | week 46 |
-| Stap E en F | week 47–48 |
-| Afname fase 1 | eind november |
-| Fase 2 en 3 | december, met het laagseizoen (22 november – 3 januari) als buffer (V8 13.2) |
+| Stap A en B (met review); kosten, domein en Pro-project geregeld | zondag 1 november |
+| Stap C, D en E | woensdag 4 november |
+| Stap F en afname fase 1 | zaterdag 7 november |
+| **Beslismoment: haalt fase 2 de 13e?** Zo niet, dan pilot B en de opdrachtgever laten weten | vrijdag 6 november (voorstel) |
+| Fase 2 en de pilotcheck | woensdag 11 november |
+| Pilot | 14–22 november |
 
-Dit is een schatting, geen afspraak; elke vrijdag in de statusupdate bijstellen.
+Dit is een schatting, geen afspraak. Fase 3 (afmelden en ruilen) moet daarna nog vóór 10 januari 2027 (V8 13.3).
 
 ## 4. Risico's
 
