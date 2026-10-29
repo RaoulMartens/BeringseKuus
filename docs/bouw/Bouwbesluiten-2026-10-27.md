@@ -417,7 +417,11 @@ gelijktijdige sessies" (bouwgids 14.5). Die is er niet, om twee redenen:
   `ruil_dienst`, `meld_af`, `activiteit_opslaan` en de andere schrijffuncties (bouwgids 4.4). Die bestaan nog niet;
   een opzet tegen een proeftabel zou opnieuw moeten bij de eerste echte functie.
 
-**Plan:** bij de eerste schrijffunctie met een rij-lock (fase 1 of 2) een Vitest-test die twee aanroepen tegelijk via
+**Bijgewerkt 29-10-2026 (review van het datamodel, DM-08):** de eerste functies met een rij-lock komen al in fase 1
+(`activiteit_opslaan`, `concept_verwijderen`), dus de opzet ook: één sessie houdt via `psql` in de databasecontainer de
+lock vast, de andere roept de functie aan via `supabase-js`, zonder nieuw pakket (`Datamodel-fase-1.md` punt 9).
+
+**Plan (oorspronkelijk):** bij de eerste schrijffunctie met een rij-lock (fase 1 of 2) een Vitest-test die twee aanroepen tegelijk via
 de Data API van de lokale Supabase doet (`supabase-js`, dat er al is), met een vertraging in de eerste, en controleert
 dat de tweede wacht of `slot_gewijzigd` krijgt. Is dat te grof, dan een eigen testhelper met twee directe
 databaseverbindingen; daarvoor is een pakket nodig (bijvoorbeeld `pg`), en dat wordt dan eerst voorgelegd.
