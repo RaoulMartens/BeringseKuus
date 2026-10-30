@@ -7,10 +7,6 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(89);
 
--- Deze tests zetten een beheerder_sinds in de toekomst (een app die nu wordt ingesteld is dan "van vóór"). Dat weigert de
--- database normaal (review F1-02); fase1_afname.test.sql toetst dat zonder deze instelling.
-set local app.beheerder_toekomst_toegestaan = 'ja';
-
 -- Gebruikers en leden, als postgres. De naam is de sleutel in de tests.
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
 
@@ -73,8 +69,8 @@ select pg_temp.maak('t_geen', p_met_lid => false);
 select pg_temp.maak('t_weg', p_actief => false);
 select pg_temp.maak('t_els', p_admin => true, p_factor_na => true);
 select pg_temp.maak('t_na', p_admin => true, p_factor_na => true);
--- Een app van een uur geleden, beheerder_sinds in de toekomst: voor de code van vóór de app (review PR23-01).
-select pg_temp.maak('t_vers', p_admin => true, p_sinds => now() + interval '1 day', p_factor_op => now() - interval '1 hour');
+-- Een app van een uur geleden, bevestigd een half uur geleden: voor de code van vóór de app (review PR23-01).
+select pg_temp.maak('t_vers', p_admin => true, p_sinds => now() - interval '30 minutes', p_factor_op => now() - interval '1 hour');
 select pg_temp.maak('t_piet', p_admin => true);
 select pg_temp.maak('t_oud', p_actief => false, p_admin => true);
 select pg_temp.maak('t_zonder', p_admin => true, p_factor => 'geen');

@@ -6,7 +6,14 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { psql } from './database-hulp.ts';
 import { nieuwAdres } from './inloggen-hulp.ts';
-import { bevestigAdresVoor, logInZonderBrowser, maakLidMetRol, ruimLidOp, schrijfAppIn } from './mfa-hulp.ts';
+import {
+  bevestigAdresVoor,
+  bevestigBeheerder,
+  logInZonderBrowser,
+  maakLidMetRol,
+  ruimLidOp,
+  schrijfAppIn,
+} from './mfa-hulp.ts';
 import { WCAG, wachtTotStil } from './normen.ts';
 import { totpCode } from './totp.ts';
 
@@ -53,8 +60,9 @@ async function logInAlsLid(page: Page): Promise<void> {
 /** Een beheerder met een app, in de browser ingelogd en met de code bevestigd (aal2). */
 async function logInAlsBeheerder(page: Page): Promise<void> {
   const email = nieuwAdres();
-  aangemaakt.push(await maakLidMetRol(email, "timestamptz '2099-01-01'"));
+  aangemaakt.push(await maakLidMetRol(email, 'now()'));
   const { geheim } = await schrijfAppIn(await logInZonderBrowser(email));
+  bevestigBeheerder(email);
   await page.goto(await bevestigAdresVoor(email));
   await page.getByRole('button', { name: 'Inloggen' }).click();
   await expect(page).toHaveURL(/\/mijn$/);

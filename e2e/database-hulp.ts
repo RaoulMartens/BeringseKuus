@@ -14,10 +14,6 @@ if (!container) throw new Error('de lokale Supabase draait niet (npm run supabas
 export const PSQL = [
   'exec',
   '-i',
-  // De tests zetten een beheerder_sinds in de toekomst (een app die nu wordt ingesteld is dan "van vóór"). Dat weigert de
-  // database normaal (review F1-02); alleen deze testverbinding staat het toe, via de instelling bij het verbinden.
-  '-e',
-  'PGOPTIONS=-c app.beheerder_toekomst_toegestaan=ja',
   container,
   'psql',
   '-U',

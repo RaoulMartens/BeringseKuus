@@ -14,7 +14,7 @@ export const beheerClient = createClient<Database>(lokaal.apiUrl, lokaal.secretK
 
 /**
  * Een lid met een inlogaccount en een rij in leden en leden_prive. Met `beheerderSinds` is het een beheerder (is_admin);
- * de waarde is een SQL-uitdrukking, bijvoorbeeld `timestamptz '2000-01-01'`. Zonder is het een gewoon lid.
+ * de waarde is een SQL-uitdrukking in het verleden of nu, bijvoorbeeld `timestamptz '2000-01-01'` of `now()`. Zonder is het een gewoon lid.
  */
 export async function maakLidMetRol(email: string, beheerderSinds?: string): Promise<string> {
   const gemaakt = await beheerClient.auth.admin.createUser({ email, email_confirm: true });
@@ -28,6 +28,14 @@ export async function maakLidMetRol(email: string, beheerderSinds?: string): Pro
     select id, '${email}', ${beheerderSinds ? 'true' : 'false'}, ${beheerderSinds ?? 'null'} from l;
   `);
   return uid;
+}
+
+/**
+ * Wat een beheerder doet nadat hij heeft gecontroleerd dat de app echt van het lid is (Beheerders.md, "Bevestigen"):
+ * beheerder_sinds op het moment van nu, dus ná de app. Een toekomstige waarde weigert de database (review F1-02).
+ */
+export function bevestigBeheerder(email: string): void {
+  psql(`update public.leden_prive set beheerder_sinds = clock_timestamp() where email = '${email}';`);
 }
 
 /** Ruimt een met maakLidMetRol aangemaakt lid op (de rij in leden en het account). */

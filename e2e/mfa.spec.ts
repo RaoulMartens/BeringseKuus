@@ -6,7 +6,14 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { psql } from './database-hulp.ts';
 import { inlogcodeVoor, logInMetCode, nieuwAdres, vraagCodeAan } from './inloggen-hulp.ts';
-import { bevestigAdresVoor, logInZonderBrowser, maakLidMetRol, ruimLidOp, schrijfAppIn } from './mfa-hulp.ts';
+import {
+  bevestigAdresVoor,
+  bevestigBeheerder,
+  logInZonderBrowser,
+  maakLidMetRol,
+  ruimLidOp,
+  schrijfAppIn,
+} from './mfa-hulp.ts';
 import { WCAG, wachtTotStil } from './normen.ts';
 import { totpCode } from './totp.ts';
 
@@ -96,9 +103,10 @@ test.describe('MFA voor het bestuur', () => {
   test('een nieuwe sessie vraagt de code; een foute wordt geweigerd', async ({ page }) => {
     const email = nieuwAdres();
     // De app staat er al (van vóór beheerder_sinds): de bevestiging is gedaan.
-    const uid = await maakLidMetRol(email, "timestamptz '2099-01-01'");
+    const uid = await maakLidMetRol(email, 'now()');
     aangemaakt.push(uid);
     const { geheim } = await schrijfAppIn(await logInZonderBrowser(email));
+    bevestigBeheerder(email);
 
     await logInZonderMail(page, email);
     await page.goto('/beheer');
@@ -165,8 +173,9 @@ test.describe('MFA voor het bestuur', () => {
 
   test('de codepagina heeft geen toegankelijkheidsfouten', async ({ page }) => {
     const email = nieuwAdres();
-    aangemaakt.push(await maakLidMetRol(email, "timestamptz '2099-01-01'"));
+    aangemaakt.push(await maakLidMetRol(email, 'now()'));
     await schrijfAppIn(await logInZonderBrowser(email));
+    bevestigBeheerder(email);
     await logInZonderMail(page, email);
 
     for (const pad of ['/mfa/code', '/mfa/code?fout=code', '/mfa/code?fout=druk']) {
