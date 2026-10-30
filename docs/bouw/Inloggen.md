@@ -1,70 +1,77 @@
-# Inloggen met een link per mail (fase 0 stap D2)
+# Inloggen met een code per mail
 
-Leden loggen in zonder wachtwoord: ze vullen hun e-mailadres in en krijgen een link (bouwgids 2 en 3).
-Dit bestand legt vast hoe dat werkt, waarom zo, en wat online nog moet worden ingesteld.
+Een lid vult zijn e-mailadres in, ontvangt een cijfercode en voert die op de website in. Een wachtwoord is niet nodig.
+De code vervangt de normale inloglink: de mail bevat geen URL die Outlook kan blokkeren. Dit verandert de extra
+beveiligingsstap voor het bestuur niet.
+
+**Besluit 30-10-2026:** de bouwer kiest voor mailcodes en tijdelijk de bestaande Gmail-mailbox als afzender, zodat een
+kijkproef zonder eigen verzenddomein mogelijk is. De geldigheid is op verzoek 24 uur voor het ontwikkelproject. Deze
+Supabase-instelling geldt ook voor andere e-maillinks, zoals herstellen en bevestigen; het is geen uitzondering per lid.
 
 ## Hoe het werkt
 
-1. `/inloggen`: het lid vult het adres in. De server controleert de vorm en vraagt Supabase een link te sturen,
-   met `shouldCreateUser: false`: alleen wie het bestuur heeft uitgenodigd, kan inloggen.
-2. Het antwoord is altijd hetzelfde ("Als dit e-mailadres bij ons bekend is …"), ook bij een onbekend adres. Zo
-   verraadt de pagina niet wie lid is. Het adres komt niet in de URL en niet in het log.
-3. De link in de mail gaat naar `/auth/bevestigen?token_hash=…`. Die pagina toont een knop **Inloggen**; pas de
-   klik logt in (`verifyOtp`) en stuurt naar `/mijn`.
-4. Uitloggen geldt alleen voor dit apparaat (`scope: 'local'`).
-5. Bij elke pagina ververst `src/middleware.ts` een verlopen sessie (proefroute 2). Een lid blijft zo ingelogd,
-   ook na een uur zonder actie, zolang de sessie bij Supabase geldig is.
+1. `/inloggen`: de server normaliseert en controleert het adres en roept `signInWithOtp` aan met
+   `shouldCreateUser: false`. Alleen bestaande accounts kunnen inloggen.
+2. Een bekend en een onbekend adres krijgen dezelfde buitenkant: "Als dit e-mailadres bij ons bekend is ...".
+   Een fout van de maildienst wordt met alleen de foutsoort gelogd. Adres, code en sleutels staan niet in het log.
+3. Het formulier gaat naar de codestap en behoudt het ingevulde adres. Het adres staat in formulierstaat, niet in de URL.
+   De mailtekst `supabase/templates/inloglink.html` gebruikt `{{ .Token }}` en bevat geen link.
+4. De server controleert het adres en de code en roept `verifyOtp({ email, token, type: 'email' })` aan. Codes bestaan
+   uit 6 tot 10 cijfers, afhankelijk van de instelling bij Supabase. Witruimte bij het kopieren wordt verwijderd;
+   voorloopnullen blijven behouden.
+5. Een goede code geeft een gewone sessie en stuurt altijd naar `/mijn`. Een foute, verlopen of gebruikte code geeft
+   dezelfde melding en geen sessie. Te veel verificaties geven een melding om te wachten; Supabase bewaakt de limiet.
+6. `/inloggen?code=1` laat een code op een ander apparaat invullen, met het bijbehorende e-mailadres.
+7. Uitloggen geldt alleen voor dit apparaat (`scope: 'local'`). De middleware ververst geldige sessies. Beheer blijft
+   de bestaande MFA- en rechtencontroles vragen.
 
-## Waarom zo
+De formulieren gebruiken dezelfde onderdelen en vormgeving als de rest van de app. De route werkt ook zonder
+JavaScript. Bestaande handmatig gemaakte links blijven werken via `/auth/bevestigen?token_hash=...`; de GET verbruikt
+zo'n link niet, alleen de bevestigingsknop.
 
-| Keuze | Reden |
-|---|---|
-| Link met `token_hash` naar de eigen site, niet de standaardlink van Supabase | De standaardlink (PKCE) werkt alleen in de browser waar hij is aangevraagd. Leden vragen hem op de laptop aan en openen de mail op de telefoon. |
-| Eerst een knop, dan pas inloggen | Mailprogramma's (bijvoorbeeld de linkcontrole van Outlook) openen links vooraf. Een link die één keer werkt, zou dan al op zijn. Een knop drukt zo'n controle niet in. |
-| Vaste `SITE_URL` voor de link in de mail | Het adres uit de aanvraag halen (Host-header) laat een aanvaller een inloglink naar zijn eigen site sturen. |
-| Na inloggen altijd naar `/mijn` | Een doeladres uit de link volgen is een open doorverwijzing. |
-| `getUser()` op `/mijn`, niet alleen de cookie lezen | `getUser` vraagt Supabase of de sessie echt geldig is. |
-| Geen Supabase-client in de browser | Alle aanroepen gaan via de server; de sleutels staan alleen in de serveromgeving. |
+## Online instellen
 
-## Nog niet (bewust)
+`supabase/config.toml` geldt lokaal. Controleer de instellingen in het online project afzonderlijk.
 
-- **Uitnodigen.** Leden aanmaken en uitnodigen is fase 1. In de tests maakt de beheer-API het lid aan.
-- **MFA voor beheerders** (bouwgids 14.4): fase 1, met de rollen.
+- **Authentication, Sign In / Providers, Email:** de emailprovider aan; geen openbare accountregistratie.
+- **Email OTP expiration:** 86400 seconden (24 uur), zoals voor deze ontwikkelproef afgesproken. Kies voor productie
+  de geldigheid opnieuw. De codestap kan de ingestelde lengte van 6 tot 10 cijfers verwerken.
+- **Authentication, Emails, Templates, Magic link or OTP:** onderwerp `Je inlogcode voor het ledenplatform`, inhoud
+  uit `supabase/templates/inloglink.html`. De oude bestandsnaam blijft behouden voor de bestaande configuratie.
+- **Authentication, Emails, SMTP Settings:** een werkende SMTP-provider. De standaardmail van Supabase is alleen
+  voor organisatieleden en is geen algemene verzending naar leden.
 
-## Online instellen (na stap E, in het Supabase-dashboard of met `supabase config push`; zie `docs/hosting.md`)
+### Tijdelijk via een bestaande Gmail-mailbox
 
-`supabase/config.toml` geldt alleen lokaal. In het online project moet hetzelfde staan. Zo ingesteld op
-28-10-2026; inloggen werkte daarna online.
+Een eigen domein is hiervoor niet nodig. De eigenaar van de Gmail-mailbox maakt zelf een Google-appwachtwoord aan
+(tweestapsverificatie vereist) en vult dit rechtstreeks in Supabase in. Het wachtwoord komt nooit in de repository,
+logs of chats.
 
-1. **Authentication → Sign In / Providers:** *Allow new users to sign up* **uit** (`enable_signup = false` onder
-   `[auth]`). De provider **Email** zelf blijft aan, anders werkt inloggen per mail niet.
-2. **URL Configuration:** Site URL = het adres op Workers; Redirect URLs = precies `<site>/auth/bevestigen`.
-3. **Mailserver (SMTP), vóór de mailtekst.** Zonder eigen SMTP laat Supabase de mailtekst niet aanpassen (gezien
-   28-10-2026: "Set up custom SMTP to edit templates"), en de standaardmail gebruikt een link via Supabase die
-   `/auth/bevestigen` niet kent en die een linkscanner opmaakt. Dus eerst Resend (bouwgids 2):
-   - Resend: een API-sleutel met alleen *Sending access*.
-   - Supabase, Authentication → Emails → *Set up SMTP*: host `smtp.resend.com`, poort `465`, gebruiker `resend`,
-     wachtwoord = die sleutel, afzendernaam `Ledenplatform`.
-   - **Zonder eigen domein** is de afzender het testadres dat Resend zelf aanbiedt (`onboarding` op het domein
-     `resend.dev`), en stuurt Resend alleen naar het adres van het Resend-account. Genoeg voor de proef (de bouwer logt in als zichzelf), niet voor de pilot: dan een domein van
-     de vereniging, geverifieerd in Resend, en een afzender op dat domein.
-4. **Emails → Templates → Magic Link:** onderwerp `Je inloglink voor het ledenplatform`, tekst uit
-   `supabase/templates/inloglink.html` (de link met `token_hash`).
-5. **Users:** één testaccount, het eigen adres van de bouwer (zie 3). Er staan geen gegevens van leden in.
-6. De standaardgrenzen voor aantallen (rate limits) laten staan; de hoge waarden in `config.toml` zijn voor de
-   browsertests.
+| Instelling | Waarde |
+| --- | --- |
+| Sender email address | Het bestaande Gmail-adres |
+| Sender name | Ledenplatform |
+| Host | smtp.gmail.com |
+| Port | 465 |
+| Username | Het volledige Gmail-adres |
+| Password | Het Google-appwachtwoord |
 
-## Lokaal proberen
+Gmail is hier voor een kleine ontwikkelproef, met de verzendgrenzen en afleverbaarheid van die mailbox. Voor breder
+gebruik wordt de verzenddienst opnieuw gekozen. Resend blijft ook mogelijk: de testafzender op `resend.dev` mag
+alleen naar het eigen account mailen; voor andere ontvangers vraagt Resend een geverifieerd verzenddomein.
 
-```bash
-npm run supabase:start   # database, inloggen en Mailpit in Docker
-npm run env:lokaal       # schrijft .env.local (niet in git)
-npm run dev              # http://127.0.0.1:3000/inloggen
-```
+## Controleren
 
-Inloggen kan alleen met een bestaand (verzonnen) testlid: `npm run lid:lokaal -- iemand@example.com` (Studio staat
-bij `supabase:start` uit om geheugen te sparen). De mail komt aan in Mailpit: <http://127.0.0.1:54324>.
+De browsertests gaan tegen de lokale Supabase en Mailpit door de hele route: mail ontvangen, eenmalig gebruik,
+verlopen en foute codes, een code bij een ander adres, een ander apparaat, zonder JavaScript, bestaande handmatige
+links en axe op desktop en telefoonbreedte. De serveractietests controleren onder meer `shouldCreateUser: false`,
+de vaste bestemming, invoercontrole, behoud van voorloopnullen en foutlogs zonder adres of code.
 
-Let op: `lid:lokaal` maakt alleen een auth-gebruiker. Heeft het e-mailadres geen rij in `leden` en `leden_prive` (de
-seed heeft verzonnen leden), dan kun je inloggen maar lees je niets: wie geen actief lid is, krijgt van de rechten
-niets te zien (Datamodel DM-02).
+Na uitrol: vraag via de echte website een code voor een bestaand testaccount aan, controleer ontvangst van de mail
+en log met die code in. Controleer ook de MFA-stap voor het bestuur; alleen het zien van het ontvangstscherm bewijst
+niet dat de mail daadwerkelijk is afgeleverd.
+
+Bronnen: [Supabase passwordless](https://supabase.com/docs/guides/auth/auth-email-passwordless),
+[Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
+[Gmail SMTP](https://support.google.com/a/answer/176600),
+[Google-appwachtwoorden](https://support.google.com/accounts/answer/185833).

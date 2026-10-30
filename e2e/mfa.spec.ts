@@ -5,7 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 import { psql } from './database-hulp.ts';
-import { inloglinkVoor, logInMet, nieuwAdres, vraagLinkAan } from './inloggen-hulp.ts';
+import { inlogcodeVoor, logInMetCode, nieuwAdres, vraagCodeAan } from './inloggen-hulp.ts';
 import { bevestigAdresVoor, logInZonderBrowser, maakLidMetRol, ruimLidOp, schrijfAppIn } from './mfa-hulp.ts';
 import { WCAG, wachtTotStil } from './normen.ts';
 import { totpCode } from './totp.ts';
@@ -22,13 +22,13 @@ async function logInZonderMail(page: Page, email: string): Promise<void> {
   await expect(page).toHaveURL(/\/mijn$/);
 }
 
-/** Een bestuurslid dat in deze pagina is ingelogd via de link in de mail. */
+/** Een bestuurslid dat in deze pagina is ingelogd via de code in de mail. */
 async function ingelogdAls(page: Page, beheerderSinds?: string): Promise<{ email: string; uid: string }> {
   const email = nieuwAdres();
   const uid = await maakLidMetRol(email, beheerderSinds);
   aangemaakt.push(uid);
-  await vraagLinkAan(page, email);
-  await logInMet(page, await inloglinkVoor(email));
+  await vraagCodeAan(page, email);
+  await logInMetCode(page, email, await inlogcodeVoor(email));
   await expect(page).toHaveURL(/\/mijn$/);
   return { email, uid };
 }

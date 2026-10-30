@@ -4,7 +4,7 @@ Een ledenplatform voor een carnavalsvereniging: leden zien het programma, dragen
 zich af; het bestuur maakt activiteiten aan, deelt mensen in en publiceert.
 
 **Status:** fase 0 (project opzetten) is af (29-10-2026, `docs/bouw/Afname-fase-0.md`); fase 1 is bezig
-(`docs/bouw/Fase-1-plan.md`). Er is een app met de kwaliteitspoort, inloggen met een link per mail en de uitrol naar
+(`docs/bouw/Fase-1-plan.md`). Er is een app met de kwaliteitspoort, inloggen met een code per mail en de uitrol naar
 Cloudflare Workers. De wegwerpcode van de proefroutes is weg; de taken-Worker (`taken/`) staat klaar zonder taken.
 De functies voor leden en bestuur komen in fase 1 en verder.
 
@@ -21,11 +21,11 @@ npm ci                                  # afhankelijkheden, precies volgens pack
 npx playwright install chromium         # eenmalig: de browser voor de browsertests
 npm run supabase:start                  # lokale database en inlog in Docker (Docker moet draaien)
 npm run env:lokaal                      # schrijft .env.local en .dev.vars met de lokale adressen en sleutels
-npm run dev                             # ontwikkelserver: open http://127.0.0.1:3000 (de inloglink wijst daarheen)
+npm run dev                             # ontwikkelserver: open http://127.0.0.1:3000 (de inlogcode vul je daar in)
 ```
 
 Inloggen kan alleen als lid; aanmelden bestaat niet. Maak lokaal een verzonnen lid aan en vraag op `/inloggen`
-een link aan. De mail komt in Mailpit, de lokale postbus (het adres staat in `npx supabase status`):
+een code aan. De mail komt in Mailpit, de lokale postbus (het adres staat in `npx supabase status`):
 
 ```bash
 npm run lid:lokaal -- iemand@example.com
@@ -62,7 +62,7 @@ is, is openbaar.
 
 De database (Supabase) draait lokaal in Docker; `npm run test:db` zet hem schoon op uit de migraties en de seed
 (`supabase/seed.sql`: het programma 2026/2027 en verzonnen leden, alleen lokaal) en draait
-de databasetests. Inloggen werkt met een link per mail (`docs/bouw/Inloggen.md`).
+de databasetests. Inloggen werkt met een code per mail (`docs/bouw/Inloggen.md`).
 
 ## Uitrollen
 

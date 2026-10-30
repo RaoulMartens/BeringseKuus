@@ -100,8 +100,8 @@ afspraken met het bestuur.
 
 ## Iemand laten inloggen zonder mailserver (tijdelijk)
 
-Zolang Resend geen eigen domein heeft, mailt het alleen naar het adres van het eigen account: een lid dat zich aanvraagt
-krijgt dan geen mail. Voor een kijkdag met de opdrachtgever kan de beheerder een eenmalige inloglink maken en privé
+Als de normale mailverzending nog niet werkt, kan een beheerder voor de ontwikkelproef een link maken zonder mail.
+Een werkende SMTP-provider, ook een bestaande Gmail-mailbox, gebruikt de normale codestap (zie `Inloggen.md`). Voor een kijkdag met de opdrachtgever kan de beheerder een eenmalige inloglink maken en privé
 doorsturen. **Alleen voor het ontwikkelproject en alleen voor een lid dat je kent; dit is geen vervanging van de mail.**
 
 1. Het lid bestaat: Supabase, Authentication, Users, *Add user* (met *Auto Confirm*) en de rij in `leden` en `leden_prive`
@@ -109,7 +109,7 @@ doorsturen. **Alleen voor het ontwikkelproject en alleen voor een lid dat je ken
 2. In Ubuntu, in de map van de repository: `node scripts/maak-inloglink.ts naam@example.com`. Het programma vraagt om
    het adres van het project, het adres van de site en de geheime sleutel (*API Keys* in Supabase). De sleutel typ je
    verborgen in; hij komt nergens terecht. Sluit het venster daarna.
-3. Het toont een link die één keer en een uur werkt. Stuur hem **privé** aan dat ene lid (een berichtje, geen groep en geen
+3. Het toont een link die één keer werkt, binnen de geldigheid die bij Auth is ingesteld. Stuur hem **privé** aan dat ene lid (een berichtje, geen groep en geen
    mail). Wie de link opent, is dat lid; een mailprogramma of chat dat de link vooraf opent, verbruikt hem niet (de pagina
    wacht op een klik op **Inloggen**).
 4. Na het inloggen blijft het lid op dat apparaat ingelogd. Voor een nieuw apparaat, of na uitloggen, maak je een nieuwe
