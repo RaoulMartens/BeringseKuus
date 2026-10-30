@@ -139,6 +139,11 @@ Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, 
   `?thema=blauw`, `roze`, `geel`, `paars`): leg een scherm daar naast `docs/visueel`. De pagina is niet gelinkt en
   `noindex`, maar wel openbaar bereikbaar: er staat niets gevoeligs op. `e2e/ontwerp.spec.ts` controleert axe (ook het
   contrast) in elk thema op 1200 en 375 px.
+- **Een scherm voor wie is ingelogd** staat in `Schermkader` (`src/components/schermkader`): bovenbalk, kopvlak met de
+  `<h1>` en de inhoud. De pagina's die nog niet in het echte ontwerp zijn (inloggen, de MFA-schermen, de foutpagina's)
+  staan in `Eenvoudig`; de gedeelde lay-out heeft geen kop meer, omdat een scherm in het ontwerp over de volle breedte
+  loopt. Wat een scherm laat zien, bepaalt de database (RLS): lees met een kolomlijst en filter niet nog eens op de
+  pagina. Het eerste echte scherm is `/programma` (`src/lib/programma.ts` is de zuivere logica, met tests).
 - **`vereniging_id` op elke tabel met eigen verenigingsgegevens** (`Bouwbesluiten` 1), standaardwaarde De
   Beringse Kuus. RLS en functies houden er in de pilot nog geen rekening mee; bouw die scheiding niet half
   in, die komt in een eigen fase. Geen tweede vereniging in de database vóór die fase is geaccepteerd.

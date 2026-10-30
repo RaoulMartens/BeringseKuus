@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { maakSupabase } from '@/lib/supabase/server';
+import { Eenvoudig } from '@/components/eenvoudig/eenvoudig';
 
 import { logUit } from './acties';
 
@@ -16,14 +17,16 @@ export default async function MijnAccount() {
   if (!user) redirect('/inloggen');
 
   return (
-    <main>
-      <h1>Mijn account</h1>
-      <p>
-        Je bent ingelogd als <strong>{user.email}</strong>.
-      </p>
-      <form action={logUit}>
-        <button type="submit">Uitloggen</button>
-      </form>
-    </main>
+    <Eenvoudig>
+      <main>
+        <h1>Mijn account</h1>
+        <p>
+          Je bent ingelogd als <strong>{user.email}</strong>.
+        </p>
+        <form action={logUit}>
+          <button type="submit">Uitloggen</button>
+        </form>
+      </main>
+    </Eenvoudig>
   );
 }

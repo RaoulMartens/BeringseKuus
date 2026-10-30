@@ -1,0 +1,8 @@
+/* De inhoud onder het kopvlak (docs/visueel/stijl.css, sectie 5): ruimte boven en onder, de zijmarge uit de tokens, en
+   de blokken met 24 px ertussen. */
+.inhoud {
+  padding: var(--gap-section) var(--marge) 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}

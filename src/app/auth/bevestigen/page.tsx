@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 
 import { bevestigInloggen } from './acties';
 
+import { Eenvoudig } from '@/components/eenvoudig/eenvoudig';
+
 export const metadata: Metadata = { title: 'Inloggen bevestigen – Ledenplatform' };
 
 type Zoekparameters = Promise<Record<string, string | string[] | undefined>>;
@@ -16,14 +18,16 @@ export default async function InloggenBevestigen({ searchParams }: { searchParam
   if (typeof sleutel !== 'string' || sleutel === '') redirect('/inloggen?fout=link');
 
   return (
-    <main>
-      <h1>Inloggen bevestigen</h1>
-      <form action={bevestigInloggen}>
-        <input type="hidden" name="token_hash" value={sleutel} />
-        <p>
-          <button type="submit">Inloggen</button>
-        </p>
-      </form>
-    </main>
+    <Eenvoudig>
+      <main>
+        <h1>Inloggen bevestigen</h1>
+        <form action={bevestigInloggen}>
+          <input type="hidden" name="token_hash" value={sleutel} />
+          <p>
+            <button type="submit">Inloggen</button>
+          </p>
+        </form>
+      </main>
+    </Eenvoudig>
   );
 }
