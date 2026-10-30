@@ -1,0 +1,27 @@
+/* Lettertypen, als bestanden in de repository (bouwgids 14.7; licenties in public/fonts en docs/licenties.md).
+   Libron (titels): SIL Open Font License 1.1, Nico Verbruggen, ongewijzigd (de gereserveerde naam Libron geldt voor
+   aangepaste versies). Nunito (tekst): SIL Open Font License 1.1, The Nunito Project Authors; de Latijnse set, met één
+   variabel bestand voor alle gewichten. font-display: swap: de tekst is meteen leesbaar in het terugvallettertype. */
+@font-face {
+  font-family: 'Libron';
+  src: url('/fonts/Libron-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Libron';
+  src: url('/fonts/Libron-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-latin-variabel.woff2') format('woff2');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}

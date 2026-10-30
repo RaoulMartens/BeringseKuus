@@ -12,3 +12,5 @@ next-env.d.ts
 testuitkomsten/
 # Lokaal bestand van supabase link (welk project gekoppeld is); staat via supabase/.gitignore niet in git.
 supabase/.temp/
+# Gegenereerd door scripts/maak-iconen.ts; de test eist dat het precies is wat het script schrijft.
+src/components/icoon/data.ts

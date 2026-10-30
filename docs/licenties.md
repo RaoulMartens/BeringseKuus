@@ -12,7 +12,10 @@ spreadsheets of csv.
 
 | Bestand of onderdeel | Soort | Bron | Licentie | Licentiehouder | Toestemming gegeven door |
 |---|---|---|---|---|---|
-| (nog niets) | | | | | |
+| `public/fonts/Libron-*.woff2` | lettertype (titels) | github.com/nicoverbruggen/libron, release v0.32 (`Libron_Web.zip`), ongewijzigd | SIL Open Font License 1.1 (`public/fonts/LICENSE-Libron.txt`) | Nico Verbruggen (afgeleid van Newsreader, The Newsreader Project Authors) | n.v.t. (open licentie) |
+| `public/fonts/Nunito-latin-variabel.woff2` | lettertype (tekst) | npm `@fontsource-variable/nunito` 5.3.0 (github.com/googlefonts/nunito), de Latijnse set | SIL Open Font License 1.1 (`public/fonts/LICENSE-Nunito.txt`) | The Nunito Project Authors | n.v.t. (open licentie) |
+| `src/iconen/phosphor/regular/*.svg` | iconen | github.com/phosphor-icons/core, map `assets`, commit `2b75f3a` | MIT (`src/iconen/phosphor/LICENSE.txt`) | Phosphor Icons | n.v.t. (open licentie) |
+| `src/iconen/phosphor/bold/*.svg` | iconen | github.com/phosphor-icons/core, map `assets`, commit `2b75f3a` | MIT (`src/iconen/phosphor/LICENSE.txt`) | Phosphor Icons | n.v.t. (open licentie) |
 
-Niet in deze repository, bewust: de Central-iconen (licentie Iconists), foto's van de website van de
+Niet in deze repository, bewust: de Central-iconen (licentie Iconists, vervangen door Phosphor, besluit 30-10-2026), foto's van de website van de
 vereniging, het Excel-sjabloon met testgegevens.
