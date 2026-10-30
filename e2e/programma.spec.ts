@@ -85,6 +85,8 @@ test('een lid ziet gepubliceerde activiteiten, geen concept en niets voor een an
   // De rij toont tijd en plaats; het geweest-deel heeft zijn eigen kop.
   const rij = page.getByRole('listitem').filter({ hasText: naam('komend') });
   await expect(rij).toContainText('18:30 · Testlocatie');
+  // Een rij loopt niet over de hele pagina: de hoofdkolom is hooguit 680 px (ontwerpregel: geen volle breedte).
+  expect((await rij.boundingBox())?.width ?? Infinity).toBeLessThanOrEqual(680);
   await expect(page.getByRole('heading', { level: 2, name: 'Geweest dit seizoen' })).toBeVisible();
 
   // De bovenbalk: het menu van een lid heeft geen Beheer, en het rondje noemt de naam.
