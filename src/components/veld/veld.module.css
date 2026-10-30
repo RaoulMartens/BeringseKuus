@@ -1,0 +1,68 @@
+/* Velden, overgenomen uit docs/visueel/stijl.css sectie 7. */
+.veld {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.label {
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.invoer {
+  position: relative;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+/* een rode rand van 1 px zoals elk veld, met een rode vulling; de melding eronder maakt de fout duidelijk */
+.fout {
+  border-color: var(--status-fout);
+  background: var(--status-fout-tint);
+}
+
+.foutTekst {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  font-weight: 600;
+  color: var(--status-fout-tekst);
+}
+
+.hulp {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* niet opgeslagen: een kleine stip in let-op-kleur met een zachte ring */
+.invoer:has(.gewijzigd)::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--status-let-op);
+  box-shadow: 0 0 0 3px var(--status-let-op-tint);
+  pointer-events: none;
+}
+
+@supports (corner-shape: squircle) {
+  .input {
+    corner-shape: squircle;
+  }
+}

@@ -97,6 +97,12 @@ lettertypes Libron en Nunito met hun licentie, en de componenten die deze fase n
 Bovenbalk, Veld met label en fout, Melding, Lijstrij, Tijdlijnkaartje, Statuspaneel, Keuzelijst met aankruisvakjes),
 in alle toestanden. Iconen: beslissing 2.3.
 
+**Gedaan (PR 25 en 26, 30-10-2026):** tokens uit `stijl.css`, Libron en Nunito met licentie, Phosphor Icons in plaats van de
+Central-iconen (beslissing 2.3: een open set), en de onderdelen Knop, Veld, Melding, Statuslabel, Kaart, Lijst en
+Lijstrij, Bovenbalk en Kopvlak met een voorbeeldpagina `/ontwerp`. **Nog te doen:** Tijdlijnkaartje, Statuspaneel,
+Keuzelijst met aankruisvakjes, Stappenbalk en Schakelaar (komen bij de schermen die ze nodig hebben), de WebGL-confetti
+in het kopvlak (nu CSS-stippen) en de beoordeling van de iconen naast het ontwerp.
+
 ### Stap F: schermen
 
 De schermen uit stap B, met de teksten uit de wireframes en het uiterlijk uit de componenten. Per scherm: axe op 1200
@@ -115,7 +121,7 @@ met het visuele ontwerp.
 |---|---|---|---|
 | 2.1 | Pilotmoment (V8 13.3) | A: rond 14–22 november 2026; B: zondag 3 januari 2027 (Verlovingsbal), mét afmelden en ruilen | **Besluit (de bouwer, 29-10-2026): A.** Het voorstel was B. A vraagt fase 0 tot en met 2 gereviewd vóór 14 november, plus alles uit de pilotcheck (punt 2.7). Met de opdrachtgever afstemmen. Voorstel: op vrijdag 6 november een beslismoment (punt 3) |
 | 2.2 | Migraties online (review F0-11) | a: een job `migraties` in de workflow `uitrol`, vóór de uitrol van de app, met een eigen geheim in een eigen omgeving (uitgevoerd met `SUPABASE_DB_URL` in `ontwikkel-database`, `Bouwbesluiten` 6); b: met de hand `db push` vóór het samenvoegen, met een regel in het PR-sjabloon | **Besluit (de bouwer, 29-10-2026): a.** Vanaf fase 1 komt er bij bijna elke pull request een migratie; met de hand gaat het een keer mis. Prijs: één geheim erbij |
-| 2.3 | Iconen (`Bouwbesluiten` 6) | a: een open set (bijvoorbeeld Lucide, ISC-licentie), wijkt af van het ontwerp; b: de Central-iconen buiten de publieke repo houden en bij het bouwen binnenhalen uit een privébron | **Besluit (de bouwer, 29-10-2026): b, de Central-iconen.** Het voorstel was a. Voorwaarden en aanpak: punt 2.8 |
+| 2.3 | Iconen (`Bouwbesluiten` 6) | a: een open set (bijvoorbeeld Lucide, ISC-licentie), wijkt af van het ontwerp; b: de Central-iconen buiten de publieke repo houden en bij het bouwen binnenhalen uit een privébron | **Besluit (de bouwer, 29-10-2026): b, de Central-iconen.** Het voorstel was a. Voorwaarden en aanpak: punt 2.8. **Omgekeerd op 30-10-2026: a, Phosphor Icons (MIT).** De licentie (1 seat voor individuen) staat het publiek delen van de bestanden niet toe en laat open of de vereniging ze na de stage mag blijven gebruiken; een open set vraagt geen licentievragen en het uiterlijk is vergeleken met het ontwerp |
 | 2.4 | Invoer met een vast schema (14.4, review F0-07) | a: Zod (nieuw pakket, MIT, veel gebruikt, werkt in de Worker); b: een eigen klein patroon per serveractie | **Besluit (de bouwer, 29-10-2026): a, Zod.** Het pakket wordt vóór het toevoegen nagekeken (licentie, grootte in de bundel, onderhoud) |
 | 2.5 | Ontwerpgaten vóór de schermen | MFA instellen en code invoeren; de inlogschermen; 404 en foutpagina; melding bij een storing (`UX-FLOWS.md`, "Ontwerpgaten uit de bouw") | De ontwerper (de bouwer) maakt de wireframes vóór stap D en F. Daarvoor kan Claude een eerste versie in de stijl van de andere wireframes klaarzetten, die de ontwerper beoordeelt en aanpast |
 | 2.6 | Grote update van TypeScript 7 en ESLint 10 (`Bouwbesluiten` 9) | Nu, of na de pilot | **Na de pilot.** Next.js 16 en de typebewuste lintregels zijn met de huidige versies getest; midden in de bouw een nieuwe compiler is risico zonder winst voor de gebruiker. Kleine updates komen gewoon binnen |

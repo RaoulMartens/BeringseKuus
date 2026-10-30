@@ -131,6 +131,14 @@ Draai `npm run check` voordat je zegt dat iets af is. Meld de uitkomst eerlijk, 
   nog steeds (`geen_admin`), maar de gebruiker ziet dan een foutmelding in plaats van het goede scherm. Beheer eist een
   code van hooguit 12 uur oud en van ná het instellen van de geldende app (`CODE_GELDIG_UUR` in `src/lib/mfa.ts` en `intern.code_recent()` in de database; een test
   houdt ze gelijk). Hoe iemand beheerder wordt of hersteld: `docs/bouw/Beheerders.md`.
+- **Schermen worden gebouwd met de onderdelen uit `src/components/`** (Knop, Veld, Melding, Statuslabel, Kaart, Lijst en
+  Lijstrij, Bovenbalk, Kopvlak, Icoon), met kleuren, maten en lettertypen uit `src/styles/tokens.css`. Geen eigen stijl
+  per scherm en geen kleur of maat hard in een onderdeel; ontbreekt er een onderdeel, voeg het aan de set toe. Het zijn
+  echte elementen (knop, kop, lijst, landmark), geen div's zoals in het ontwerp-HTML. Iconen alleen via `Icoon`, met een
+  Nederlandse naam (`scripts/maak-iconen.ts`). Alle onderdelen in al hun toestanden staan op `/ontwerp` (ook met
+  `?thema=blauw`, `roze`, `geel`, `paars`): leg een scherm daar naast `docs/visueel`. De pagina is niet gelinkt en
+  `noindex`, maar wel openbaar bereikbaar: er staat niets gevoeligs op. `e2e/ontwerp.spec.ts` controleert axe (ook het
+  contrast) in elk thema op 1200 en 375 px.
 - **`vereniging_id` op elke tabel met eigen verenigingsgegevens** (`Bouwbesluiten` 1), standaardwaarde De
   Beringse Kuus. RLS en functies houden er in de pilot nog geen rekening mee; bouw die scheiding niet half
   in, die komt in een eigen fase. Geen tweede vereniging in de database vóór die fase is geaccepteerd.

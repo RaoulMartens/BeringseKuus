@@ -1,0 +1,79 @@
+/* Lijsten, overgenomen uit docs/visueel/stijl.css sectie 9: rijen over de volle breedte van de kaart, hover en markering
+   van rand tot rand, de scheidingslijn is een gewone rand van 1 pixel. De laatste rij volgt de onderhoeken van de kaart. */
+.lijst {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  margin: 0;
+}
+
+.rij {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px var(--padding-card);
+  border-top: 1px solid var(--neutraal-lijn);
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst);
+  text-decoration: none;
+}
+
+/* geen lijn boven de eerste rij: onder een kop, of als eerste in een kaart */
+.item:first-child > .rij {
+  border-top-color: transparent;
+}
+
+.item:last-child > .rij {
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+}
+
+.zonderKop > .item:first-child > .rij {
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+
+.zonderKop > .item:first-child:last-child > .rij {
+  border-radius: var(--radius-card);
+}
+
+/* hover: iets donkerder dan de pagina (neutraal/vlak was dezelfde kleur als de pagina, waardoor de rij leek weg te vallen) */
+.link:hover {
+  background: var(--neutraal-hover);
+}
+
+.uitgeschakeld {
+  color: var(--neutraal-tekst-zacht);
+}
+
+.gemarkeerd {
+  background: var(--thema-primair-tint);
+  color: var(--neutraal-tekst);
+}
+
+.link.gemarkeerd:hover {
+  background: color-mix(in oklch, var(--thema-primair-tint), var(--thema-primair) 8%);
+}
+
+/* het pijltje aan het eind: laat zien dat je erop kunt klikken */
+.chevron {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--neutraal-tekst-zacht);
+  transition: transform 0.12s;
+}
+
+.link:hover .chevron {
+  color: var(--neutraal-tekst);
+  transform: translateX(2px);
+}
+
+@supports (corner-shape: squircle) {
+  .item:first-child > .rij,
+  .item:last-child > .rij {
+    corner-shape: squircle;
+  }
+}

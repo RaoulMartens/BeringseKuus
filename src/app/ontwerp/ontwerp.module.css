@@ -1,0 +1,108 @@
+/* De pagina met alle onderdelen: alleen indeling om ze te laten zien. Alle kleuren en maten komen uit de tokens. */
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--padding-page);
+}
+
+.paginaTitel {
+  margin: 0;
+  font: 700 1.75rem/1.2857 var(--font-titel);
+  color: var(--thema-primair-tekst);
+}
+
+.themakeuze {
+  margin-right: 12px;
+  color: var(--thema-primair-tekst);
+}
+
+.blok {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.blok > h2 {
+  margin: 0;
+  font: 700 1.25rem/1.4 var(--font-titel);
+  color: var(--neutraal-tekst);
+  border-bottom: 1px solid var(--neutraal-lijn);
+  padding-bottom: 8px;
+}
+
+.blok > h3 {
+  margin: 8px 0 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.rij {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.stapel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 680px;
+}
+
+.smal {
+  display: flex;
+  max-width: 320px;
+}
+
+.velden {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 420px;
+}
+
+.kolommen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.afstand {
+  margin-top: 16px;
+  display: flex;
+}
+
+/* een kader om de balk en het kopvlak, zodat hun volle breedte te zien is */
+.kader {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--neutraal-vlak);
+  box-shadow: 0 0 0 1px var(--neutraal-lijn);
+}
+
+.iconen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.iconen li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+.iconen svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}

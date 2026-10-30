@@ -1,6 +1,14 @@
 /* De basis van het ontwerp (docs/visueel/stijl.css, sectie 2): lettertype, maat, kleuren en een zichtbare focus voor wie met
    het toetsenbord werkt (WCAG 2.2, 2.4.7). Alle waarden komen uit src/styles/tokens.css. */
 
+/* Breedte en hoogte tellen opvulling en rand mee (docs/visueel/stijl.css, sectie 2): anders is een veld van 100% breder
+   dan zijn vak en schuift een telefoonscherm opzij. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 1rem;

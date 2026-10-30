@@ -1,0 +1,138 @@
+/* Bovenbalk, overgenomen uit docs/visueel/stijl.css sectie 4. */
+.balk {
+  background: var(--thema-balk, var(--neutraal-vlak));
+  height: 64px;
+  padding: 0 var(--marge);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.merk {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap; /* de naam breekt nooit over meer regels */
+}
+
+.naam {
+  font: 700 1.125rem/1 var(--font-titel);
+  letter-spacing: -0.01em;
+  color: var(--thema-merk, var(--thema-primair));
+}
+
+.menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 4px;
+}
+
+.onderdeel {
+  position: relative;
+  display: block;
+  padding: 10px 12px 10px 28px; /* links ruimte voor de stip (8 px), 12 px van de rand */
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--thema-op-balk-zacht, var(--neutraal-tekst-zacht));
+  text-decoration: none;
+  border-radius: var(--radius-control);
+}
+
+.onderdeel:hover,
+.actief {
+  color: var(--thema-op-balk, var(--neutraal-tekst));
+}
+
+/* elk onderdeel heeft een stip (grijs); actief of hover geeft hem de kleur van het onderdeel. Als decoratie haalt de stip
+   geen contrast-eis: de tekst draagt de betekenis. */
+.onderdeel::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--neutraal-tekst-zacht) 35%, white);
+}
+
+.onderdeel:hover::after,
+.actief::after {
+  background: var(--nav-stip, var(--thema-primair));
+}
+
+.stip1 {
+  --nav-stip: var(--thema-stip-1);
+}
+.stip2 {
+  --nav-stip: var(--thema-stip-2);
+}
+.stip3 {
+  --nav-stip: var(--thema-stip-3);
+}
+
+.ruimte {
+  flex: 1 1 0;
+}
+
+.gebruikersnaam {
+  white-space: nowrap;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--thema-op-balk, var(--neutraal-tekst));
+}
+
+.rondje {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--thema-primair);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 0.9375rem/1 var(--font-tekst);
+  color: var(--thema-op-primair);
+  text-decoration: none;
+}
+
+/* een telefoon: compacte balk zonder merk en naam (ontwerpbesluit) */
+@media (max-width: 700px) {
+  .merk,
+  .gebruikersnaam {
+    display: none;
+  }
+
+  .ruimte {
+    display: none;
+  }
+
+  .balk {
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  /* smaller onderdelen, zodat Start, Programma, Beheer en het rondje op 375 px naast elkaar passen */
+  .menu {
+    gap: 0;
+  }
+
+  .onderdeel {
+    padding: 10px 6px 10px 22px;
+  }
+
+  .onderdeel::after {
+    left: 8px;
+  }
+}
+
+@supports (corner-shape: squircle) {
+  .onderdeel {
+    corner-shape: squircle;
+  }
+  .onderdeel::after,
+  .rondje {
+    corner-shape: round;
+  }
+}

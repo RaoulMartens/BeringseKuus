@@ -1,0 +1,74 @@
+/* Kopvlak, overgenomen uit docs/visueel/stijl.css sectie 4 en 13f. Effen tot 45%, dan naar de eindkleur; 108%, zodat de
+   rand nooit het volle groen wordt (donkere tekst op het volle groen haalt maar 4,4:1). */
+.kop {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, var(--thema-kop) 45%, var(--thema-kop-eind) 108%);
+  background: linear-gradient(in oklch 90deg, var(--thema-kop) 45%, var(--thema-kop-eind) 108%);
+  color: var(--thema-titel-op-kop, var(--thema-primair-tekst));
+  /* hoogte = 2 x --kop-ruimte + de regelhoogte van de titel (36): een titel met een datumregel erboven blijft even hoog */
+  padding: 12px var(--marge);
+  min-height: calc(var(--kop-ruimte) * 2 + 36px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.kop > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* simpele confetti als terugval voor de WebGL-versie: stippen en streepjes in de themakleuren, rechts */
+.kop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 58% 74%, var(--thema-confetti-1) 0 3.5px, transparent 4px) no-repeat,
+    radial-gradient(circle at 74% 30%, var(--thema-confetti-3) 0 4px, transparent 4.5px) no-repeat,
+    radial-gradient(circle at 88% 66%, var(--thema-confetti-1) 0 3px, transparent 3.5px) no-repeat,
+    radial-gradient(circle at 96% 24%, var(--thema-confetti-3) 0 3.5px, transparent 4px) no-repeat,
+    linear-gradient(var(--thema-confetti-1), var(--thema-confetti-1)) 66% 40% / 10px 4px no-repeat,
+    linear-gradient(var(--thema-confetti-3), var(--thema-confetti-3)) 82% 80% / 9px 4px no-repeat;
+}
+
+.tekst {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.datum {
+  margin: 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--thema-op-kop);
+}
+
+.titel {
+  margin: 0;
+  font: 700 1.75rem/1.2857 var(--font-titel);
+  letter-spacing: -0.01em;
+}
+
+/* de begroeting is groter, maar het kopvlak is even hoog als op elk ander scherm */
+.titelGroot {
+  margin: 0;
+  font: 700 2.5rem/0.9 var(--font-titel-groot);
+  letter-spacing: -0.01em;
+}
+
+.actie {
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--thema-op-kop);
+}
+
+.actie a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
