@@ -2,7 +2,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 import {
+  ingelogdLid,
   inloglinkVoor,
+  maakAccountZonderLid,
   logInMet,
   mailsAan,
   maakLid,
@@ -103,6 +105,30 @@ test.describe('inloggen met een link per mail', () => {
 
     await logInMet(page, '/auth/bevestigen?token_hash=bestaat-niet');
     await expect(page).toHaveURL(/\/inloggen\?fout=link$/);
+  });
+
+  test('een lid dat inlogt komt op het programma als hij de voorpagina opent', async ({ page }) => {
+    await ingelogdLid(page);
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/programma$/);
+  });
+
+  test('een inlogaccount zonder lid krijgt een melding en wordt niet teruggestuurd naar inloggen', async ({
+    page,
+  }) => {
+    const email = nieuwAdres();
+    await maakAccountZonderLid(email);
+    await vraagLinkAan(page, email);
+    await logInMet(page, await inloglinkVoor(email));
+
+    await expect(page).toHaveURL(/\/mijn$/);
+    await expect(page.getByRole('main').getByRole('status')).toContainText('staat nog niet bij de leden');
+    expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+    // De voorpagina stuurt dit account naar dezelfde melding in plaats van naar het programma.
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/mijn$/);
+    await page.getByRole('button', { name: 'Uitloggen' }).click();
+    await expect(page).toHaveURL(/\/inloggen\?uitgelogd=1$/);
   });
 
   test('mijn account is alleen te zien na inloggen', async ({ page }) => {

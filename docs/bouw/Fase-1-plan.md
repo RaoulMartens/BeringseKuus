@@ -1,7 +1,6 @@
 # Fase 1: plan
 
-Stand 29-10-2026. **De bouwer heeft beslissing 2.1 tot en met 2.4 genomen** (29-10-2026); 2.5 en 2.6 zijn nog
-voorstellen. Bron: bouwgids V8
+Stand 30-10-2026. **De bouwer heeft beslissing 2.1 tot en met 2.6 genomen.** Bron: bouwgids V8
 hoofdstuk 3, 10 en 14; `Bouwbesluiten-2026-10-27.md` punt 1, 4 en 6; `Afname-fase-0.md` punt 4 ("Van fase 0 naar
 fase 1"); `Design-overdracht.md`.
 
@@ -9,6 +8,16 @@ fase 1"); `Design-overdracht.md`.
 het programma en het welkomscherm (leden). Daarbij: groepen en doelgroep (3.6), verenigingsinstellingen (3.8), een
 concept verwijderen (4.6), het beheeroverzicht met tellers en taken (5.6) en het programma 2026/2027 als seed (13.5).
 Resultaat volgens V8: *leden zien het rooster.*
+
+**Versmald op 30-10-2026 (besluit van de bouwer, na de review van fase 1 als geheel, F1-01).** Fase 1 is: het datamodel
+en de rechten, MFA voor het bestuur, de seed, de componentenset, het inloggen en het programma (`/programma`). Het
+welkomscherm, het beheeroverzicht met tellers en taken, activiteit aanmaken als concept en concept verwijderen schuiven
+naar fase 2, waar ze samen met indelen en publiceren één beheerscherm vormen: het scherm voor aanmaken is hetzelfde
+scherm als het bewerkscherm (UX-FLOWS, "Rolbezetting op het activiteitscherm zelf"), dus apart bouwen kost dubbel werk.
+De databasekant (`activiteit_opslaan`, `concept_verwijderen`, `beheeroverzicht`) staat wel en is getest met pgTAP en de
+lock-test; wat ontbreekt is de browserkant. Regels uit de dekkingsmatrix die daar nog aan hangen (V8 4.6 en 5.6) krijgen
+hun browsertest in fase 2 (`Afname-fase-1.md`, "Van fase 1 naar fase 2"). Reden: het beslismoment van 6 november en
+pilot A op 14 november laten geen ruimte om beide in fase 1 te bouwen.
 
 **Wat `Bouwbesluiten` daaraan toevoegt** (gaat voor bij tegenspraak met V8):
 
@@ -111,6 +120,11 @@ ziet geen concept en niets voor een andere groep; een beheerder met een code zie
 afmelding per rij, de wisselaar naar Mijn diensten en de agendakaart (die hangen aan fase 2 en 3). Voor het
 ontwikkelproject staat het programma van 2026/2027 klaar in `docs/bouw/Programma-ontwikkelproject.sql`.
 
+**Gedaan (PR 32 en 33, 30-10-2026): de inlog- en beveiligingsschermen** in het echte ontwerp, met de teksten letterlijk uit de
+wireframes: inloggen (vier toestanden), bevestigen, Mijn account, de MFA-schermen, geen toegang, 404 en de foutpagina, en
+(PR 33) het scherm bij een storing en een melding voor een account zonder lid. Gebouwd rond `Schermkader` en `Kader`. De
+schermen die hierboven naar fase 2 zijn verschoven (welkom, beheeroverzicht, aanmaken) staan niet in dit stuk.
+
 De schermen uit stap B, met de teksten uit de wireframes en het uiterlijk uit de componenten. Per scherm: axe op 1200
 en 375 px, een screenshot naast `docs/visueel/<scherm>.html`, afwijkingen in het pull request (`Design-overdracht.md`
 4, `Bouwbesluiten` 4.8). Serveracties met invoer volgen beslissing 2.4.
@@ -128,8 +142,8 @@ met het visuele ontwerp.
 | 2.1 | Pilotmoment (V8 13.3) | A: rond 14–22 november 2026; B: zondag 3 januari 2027 (Verlovingsbal), mét afmelden en ruilen | **Besluit (de bouwer, 29-10-2026): A.** Het voorstel was B. A vraagt fase 0 tot en met 2 gereviewd vóór 14 november, plus alles uit de pilotcheck (punt 2.7). Met de opdrachtgever afstemmen. Voorstel: op vrijdag 6 november een beslismoment (punt 3) |
 | 2.2 | Migraties online (review F0-11) | a: een job `migraties` in de workflow `uitrol`, vóór de uitrol van de app, met een eigen geheim in een eigen omgeving (uitgevoerd met `SUPABASE_DB_URL` in `ontwikkel-database`, `Bouwbesluiten` 6); b: met de hand `db push` vóór het samenvoegen, met een regel in het PR-sjabloon | **Besluit (de bouwer, 29-10-2026): a.** Vanaf fase 1 komt er bij bijna elke pull request een migratie; met de hand gaat het een keer mis. Prijs: één geheim erbij |
 | 2.3 | Iconen (`Bouwbesluiten` 6) | a: een open set (bijvoorbeeld Lucide, ISC-licentie), wijkt af van het ontwerp; b: de Central-iconen buiten de publieke repo houden en bij het bouwen binnenhalen uit een privébron | **Besluit (de bouwer, 29-10-2026): b, de Central-iconen.** Het voorstel was a. Voorwaarden en aanpak: punt 2.8. **Omgekeerd op 30-10-2026: a, Phosphor Icons (MIT).** De licentie (1 seat voor individuen) staat het publiek delen van de bestanden niet toe en laat open of de vereniging ze na de stage mag blijven gebruiken; een open set vraagt geen licentievragen en het uiterlijk is vergeleken met het ontwerp |
-| 2.4 | Invoer met een vast schema (14.4, review F0-07) | a: Zod (nieuw pakket, MIT, veel gebruikt, werkt in de Worker); b: een eigen klein patroon per serveractie | **Besluit (de bouwer, 29-10-2026): a, Zod.** Het pakket wordt vóór het toevoegen nagekeken (licentie, grootte in de bundel, onderhoud) |
-| 2.5 | Ontwerpgaten vóór de schermen | MFA instellen en code invoeren; de inlogschermen; 404 en foutpagina; melding bij een storing (`UX-FLOWS.md`, "Ontwerpgaten uit de bouw") | De ontwerper (de bouwer) maakt de wireframes vóór stap D en F. Daarvoor kan Claude een eerste versie in de stijl van de andere wireframes klaarzetten, die de ontwerper beoordeelt en aanpast |
+| 2.4 | Invoer met een vast schema (14.4, review F0-07) | a: Zod (nieuw pakket, MIT, veel gebruikt, werkt in de Worker); b: een eigen klein patroon per serveractie | **Besluit (de bouwer, 29-10-2026): a, Zod.** Het pakket wordt vóór het toevoegen nagekeken (licentie, grootte in de bundel, onderhoud). **Uitgesteld (30-10-2026):** fase 1 heeft geen serveractie met echte invoer (alleen een inlogtoken, een factor-id en een code, die elk eigen controles hebben); Zod komt bij de eerste echte invoer in fase 2 (review F1-13) |
+| 2.5 | Ontwerpgaten vóór de schermen | MFA instellen en code invoeren; de inlogschermen; 404 en foutpagina; melding bij een storing (`UX-FLOWS.md`, "Ontwerpgaten uit de bouw") | De ontwerper (de bouwer) maakt de wireframes vóór stap D en F. Daarvoor kan Claude een eerste versie in de stijl van de andere wireframes klaarzetten, die de ontwerper beoordeelt en aanpast. **Stand 30-10-2026:** de 18 wireframes uit de ontwerpgaten staan er (`docs/ux-flows/wireframes`); de beoordeling door de ontwerper is nog open |
 | 2.6 | Grote update van TypeScript 7 en ESLint 10 (`Bouwbesluiten` 9) | Nu, of na de pilot | **Na de pilot.** Next.js 16 en de typebewuste lintregels zijn met de huidige versies getest; midden in de bouw een nieuwe compiler is risico zonder winst voor de gebruiker. Kleine updates komen gewoon binnen |
 
 ### 2.7 Wat pilot A vraagt naast de code

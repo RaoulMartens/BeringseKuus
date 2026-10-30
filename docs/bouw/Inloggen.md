@@ -28,8 +28,9 @@ Dit bestand legt vast hoe dat werkt, waarom zo, en wat online nog moet worden in
 
 ## Nog niet (bewust)
 
-- **Uitnodigen.** Leden aanmaken en uitnodigen is fase 1. In de tests maakt de beheer-API het lid aan.
-- **MFA voor beheerders** (bouwgids 14.4): fase 1, met de rollen.
+- **Uitnodigen.** Een lid aanmaken kan tot fase 4 (ledenbeheer) alleen met SQL: zie `Beheerders.md`, "Een lid aanmaken".
+  Lokaal doet `npm run lid:lokaal` het. In de tests maakt `maakLidMetRol` (`e2e/mfa-hulp.ts`) het lid aan.
+- **MFA voor beheerders** (bouwgids 14.4): gebouwd in fase 1 (`Beheerders.md`).
 
 ## Online instellen (na stap E, in het Supabase-dashboard of met `supabase config push`; zie `docs/hosting.md`)
 
