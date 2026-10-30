@@ -80,8 +80,8 @@ export async function vraagSleutel(project: string, geheim: string, email: strin
   return sleutel;
 }
 
-function vraag(vraagTekst: string, verborgen = false): Promise<string> {
-  // Bij verborgen invoer gaat wat je typt niet naar het scherm.
+function stelVraag(vraagTekst: string, verborgen: boolean): Promise<string> {
+  // Bij verborgen invoer gaat wat je typt niet naar het scherm, en wordt de vraag zelf apart getoond.
   const uit = verborgen
     ? new Writable({
         write(_stuk, _codering, klaar) {
@@ -91,13 +91,26 @@ function vraag(vraagTekst: string, verborgen = false): Promise<string> {
     : process.stdout;
   const regel = createInterface({ input: process.stdin, output: uit, terminal: true });
   return new Promise((klaar) => {
-    process.stdout.write(vraagTekst);
-    regel.question('', (antwoord) => {
+    if (verborgen) process.stdout.write(vraagTekst);
+    // Bij zichtbare invoer geeft readline de vraag zelf mee: een vraag die ervoor wordt geschreven, wordt door readline gewist.
+    regel.question(verborgen ? '' : vraagTekst, (antwoord) => {
       regel.close();
       if (verborgen) process.stdout.write('\n');
       klaar(antwoord);
     });
   });
+}
+
+/**
+ * Stelt een vraag en wacht op een antwoord. Een leeg antwoord telt niet: wie een opdracht plakt, plakt vaak een extra Enter
+ * mee, en die komt hier als een leeg antwoord binnen.
+ */
+async function vraag(vraagTekst: string, verborgen = false): Promise<string> {
+  for (let poging = 0; poging < 5; poging += 1) {
+    const antwoord = (await stelVraag(vraagTekst, verborgen)).trim();
+    if (antwoord) return antwoord;
+  }
+  throw new Error('geen antwoord gekregen');
 }
 
 async function hoofd(): Promise<void> {
@@ -109,7 +122,7 @@ async function hoofd(): Promise<void> {
     await vraag('Adres van de site (https://ledenplatform.….workers.dev): '),
     'Het adres van de site',
   );
-  const geheim = (await vraag('Geheime sleutel (sb_secret_…, je ziet niets terwijl je typt): ', true)).trim();
+  const geheim = await vraag('Geheime sleutel (sb_secret_…, je ziet niets terwijl je typt): ', true);
   if (!/^sb_secret_[A-Za-z0-9_-]{10,}$/.test(geheim))
     throw new Error('Dat is geen geheime sleutel (sb_secret_…)');
 
