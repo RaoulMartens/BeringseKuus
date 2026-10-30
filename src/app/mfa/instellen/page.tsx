@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Kaart } from '@/components/kaart/kaart';
+import { Schermkader } from '@/components/schermkader/schermkader';
 import { maakSupabase } from '@/lib/supabase/server';
-import { Eenvoudig } from '@/components/eenvoudig/eenvoudig';
 
 import { InstellenFormulier } from './formulier';
 
@@ -43,24 +43,18 @@ export default async function BeheerBeveiligen() {
   const { id, totp } = ingeschreven.data;
 
   return (
-    <Eenvoudig>
-      <main>
-        <p>
-          <Link href="/">← Terug naar start</Link>
-        </p>
-        <h1>Beheer beveiligen</h1>
-        <p>
-          Voor beheer heb je een extra code nodig. Zo kan niemand beheer overnemen met alleen je mailbox. Je
-          stelt dit één keer in en het duurt een paar minuten. Daarna bevestigt een andere beheerder je
-          toegang.
-        </p>
-        <h2>1. Installeer een authenticator-app</h2>
+    <Schermkader actief="beheer" titel="Beheer beveiligen" terug={{ href: '/', tekst: 'Terug naar start' }}>
+      <p>
+        Voor beheer heb je een extra code nodig. Zo kan niemand beheer overnemen met alleen je mailbox. Je
+        stelt dit één keer in en het duurt een paar minuten. Daarna bevestigt een andere beheerder je toegang.
+      </p>
+      <Kaart titel="1. Installeer een authenticator-app">
         <p>
           Dat is een gratis app die elke halve minuut een nieuwe code van 6 cijfers laat zien, bijvoorbeeld
           Google Authenticator of Microsoft Authenticator. Heb je zo’n app al? Ga dan naar stap 2.
         </p>
-        <InstellenFormulier factorId={id} qr={totp.qr_code} geheim={inGroepjes(totp.secret)} />
-      </main>
-    </Eenvoudig>
+      </Kaart>
+      <InstellenFormulier factorId={id} qr={totp.qr_code} geheim={inGroepjes(totp.secret)} />
+    </Schermkader>
   );
 }

@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { psql } from './database-hulp.ts';
 import { inloglinkVoor, logInMet, nieuwAdres, vraagLinkAan } from './inloggen-hulp.ts';
 import { bevestigAdresVoor, logInZonderBrowser, maakLidMetRol, ruimLidOp, schrijfAppIn } from './mfa-hulp.ts';
-import { WCAG } from './normen.ts';
+import { WCAG, wachtTotStil } from './normen.ts';
 import { totpCode } from './totp.ts';
 
 const aangemaakt: string[] = [];
@@ -152,6 +152,7 @@ test.describe('MFA voor het bestuur', () => {
     await page.getByLabel('Code uit de app').fill('000000');
     await page.getByRole('button', { name: 'Bevestigen' }).click();
     await expect(page.locator('#code-fout')).toBeVisible();
+    await wachtTotStil(page);
     expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
 
     const geheim = (await page.locator('code').innerText()).replace(/\s/g, '');

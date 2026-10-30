@@ -42,7 +42,7 @@ interface Gedeeld {
 
 type Eigenschappen = Gedeeld &
   (
-    | { href: string; type?: never; disabled?: never; naam?: never; waarde?: never }
+    | { href: string; type?: never; disabled?: never; naam?: never; waarde?: never; onClick?: never }
     | {
         href?: never;
         type?: 'button' | 'submit';
@@ -50,6 +50,8 @@ type Eigenschappen = Gedeeld &
         /** Voor een formulier met meer dan één knop: welke knop is gebruikt. */
         naam?: string;
         waarde?: string;
+        /** Alleen in een onderdeel dat in de browser draait (bijvoorbeeld de foutpagina). */
+        onClick?: () => void;
       }
   );
 
@@ -75,6 +77,7 @@ export function Knop(eigenschappen: Eigenschappen) {
       type={eigenschappen.type ?? 'button'}
       className={klasse}
       disabled={eigenschappen.disabled}
+      onClick={eigenschappen.onClick}
       name={eigenschappen.naam}
       value={eigenschappen.waarde}
     >

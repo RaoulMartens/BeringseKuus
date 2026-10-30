@@ -38,27 +38,29 @@ export function Bovenbalk({ merk, logo, onderdelen, gebruiker }: Eigenschappen) 
         {logo}
         <span className={stijl.naam}>{merk}</span>
       </div>
-      <nav aria-label="Hoofdmenu">
-        <ul className={stijl.menu}>
-          {onderdelen.map((onderdeel) => (
-            <li key={onderdeel.href}>
-              <Link
-                href={onderdeel.href}
-                className={[
-                  stijl.onderdeel,
-                  STIP[onderdeel.stip],
-                  onderdeel.actief ? stijl.actief : undefined,
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-current={onderdeel.actief ? 'page' : undefined}
-              >
-                {onderdeel.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {onderdelen.length > 0 && (
+        <nav aria-label="Hoofdmenu">
+          <ul className={stijl.menu}>
+            {onderdelen.map((onderdeel) => (
+              <li key={onderdeel.href}>
+                <Link
+                  href={onderdeel.href}
+                  className={[
+                    stijl.onderdeel,
+                    STIP[onderdeel.stip],
+                    onderdeel.actief ? stijl.actief : undefined,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-current={onderdeel.actief ? 'page' : undefined}
+                >
+                  {onderdeel.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
       <div className={stijl.ruimte} />
       {gebruiker && (
         <>
