@@ -6,16 +6,14 @@
 import { redirect } from 'next/navigation';
 
 import { type Beheerstatus, leesBeheerstatus, routeVoorBeheerstatus } from '@/lib/mfa';
+import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { maakSupabase } from '@/lib/supabase/server';
 
 /** De beheerstatus van wie nu is ingelogd, of null zonder sessie. Een fout van de database is een fout, geen status. */
 export async function haalBeheerstatus(): Promise<Beheerstatus | null> {
+  if (!(await huidigeAuthGebruiker())) return null;
+
   const supabase = await maakSupabase();
-  // getUser controleert de sessie bij Supabase zelf; alleen de cookie lezen is niet genoeg om te vertrouwen.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
 
   const { data, error } = await supabase.rpc('beheerstatus');
   if (error) throw new Error(`beheerstatus niet te lezen: ${error.code ?? error.message}`);

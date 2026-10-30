@@ -173,8 +173,13 @@ test.describe('CSP met een nonce (middleware)', () => {
     });
     await controleerNonce(page, '/');
     await controleerNonce(page, '/inloggen');
+    await controleerNonce(page, '/storing');
     await ingelogdLid(page);
     await controleerNonce(page, '/mijn');
+    await controleerNonce(page, '/programma');
+    // De QR-code van het instellen is een data:-afbeelding: de CSP moet die toestaan (review F1-16).
+    await controleerNonce(page, '/mfa/instellen');
+    await controleerNonce(page, '/mfa/toestel-kwijt');
     expect(fouten).toEqual([]);
   });
 });

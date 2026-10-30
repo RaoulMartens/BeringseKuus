@@ -1,10 +1,16 @@
+import { redirect } from 'next/navigation';
+
 import { Kaart } from '@/components/kaart/kaart';
 import { Knop } from '@/components/knop/knop';
 import { Schermkader } from '@/components/schermkader/schermkader';
+import { huidigeGebruiker } from '@/lib/gebruiker';
+import { huidigeAuthGebruiker } from '@/lib/sessie';
 
 // De voorpagina is nog niet de startpagina uit het ontwerp ("Alaaf, [voornaam]"): die komt met de indeling (fase 2). Tot dan
-// een gastscherm dat zegt wat er is en waar je naartoe kunt.
-export default function Startpagina() {
+// stuurt ze een lid door naar het programma, en toont ze een gast wat er is en waar die naartoe kan (review F1-18).
+export default async function Startpagina() {
+  if (await huidigeAuthGebruiker()) redirect((await huidigeGebruiker()) ? '/programma' : '/mijn');
+
   return (
     <Schermkader gast titel="Ledenplatform">
       <Kaart titel="In aanbouw">

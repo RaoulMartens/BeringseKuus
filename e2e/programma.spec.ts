@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { psql } from './database-hulp.ts';
 import { nieuwAdres } from './inloggen-hulp.ts';
 import { bevestigAdresVoor, logInZonderBrowser, maakLidMetRol, ruimLidOp, schrijfAppIn } from './mfa-hulp.ts';
-import { WCAG } from './normen.ts';
+import { WCAG, wachtTotStil } from './normen.ts';
 import { totpCode } from './totp.ts';
 
 const lopende = crypto.randomUUID().slice(0, 8);
@@ -116,6 +116,18 @@ test('een beheerder met een code ziet ook het concept en de activiteit voor het 
   await expect(
     page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }),
   ).toBeVisible();
+
+  // Het programma met een conceptlabel, en Beheer zelf (review F1-16): geen toegankelijkheidsfouten, niets opzij.
+  await wachtTotStil(page);
+  expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+  await page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Beheer' })).toBeVisible();
+  await wachtTotStil(page);
+  expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+  const teBreed = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(teBreed).toBe(false);
 });
 
 test('het programma heeft geen toegankelijkheidsfouten en schuift niet opzij', async ({ page }) => {

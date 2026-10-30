@@ -55,8 +55,8 @@ export default async function WachtOpBevestiging() {
       </Melding>
       <Kaart titel="Wat moet je nu doen?">
         <p>
-          Vraag een andere beheerder om je toegang te bevestigen. Zodra dat gebeurd is, kom je bij Beheer en
-          vraagt het platform om een code uit je app. Je hoeft niets opnieuw in te stellen.
+          Vraag de beheerder van het platform om je toegang te bevestigen. Zodra dat gebeurd is, kom je bij
+          Beheer en vraagt het platform om een code uit je app. Je hoeft niets opnieuw in te stellen.
         </p>
         <p>
           <Knop href="/">Naar Start</Knop>
