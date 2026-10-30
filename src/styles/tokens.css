@@ -1,0 +1,158 @@
+/* Tokens: kleuren, typografie, spacing, hoeken, afmetingen en het thema per vereniging.
+   Overgenomen uit docs/visueel/stijl.css, sectie 1 (30-10-2026), met dezelfde namen, zodat het uiterlijk van het
+   ontwerp en de code dezelfde taal spreken (Design-overdracht.md 3). Geen kleur of maat staat hard in een component:
+   alles komt uit deze variabelen. Een vereniging kiest een thema met het attribuut data-thema op <html> (de eerste,
+   Beringse, is de standaard); de overige themas hier zijn voorbeelden uit het ontwerp. */
+:root {
+  /* typografie */
+  /* Libron voor alle titels (besluit 08-10-2026), Nunito voor de rest; de bestanden staan in public/fonts (lettertypen.css). */
+  --font-titel: 'Libron', 'Nunito', system-ui, sans-serif;
+  --font-titel-groot: var(--font-titel);
+  --font-tekst: 'Nunito', system-ui, sans-serif;
+
+  /* neutraal */
+  --neutraal-vlak: #f7f5f2;
+  --neutraal-kaart: #ffffff;
+  --neutraal-lijn: #e3ddd6;
+  --neutraal-hover: #f0ece7;
+  --neutraal-lijn-sterk: #9a918b;
+  --neutraal-tekst: #26211f;
+  --neutraal-tekst-zacht: #5e5753;
+
+  /* status */
+  --status-succes: #1f7a33;
+  --status-succes-tint: #e3f3e6;
+  --status-succes-tekst: #175c27;
+  --status-fout: #c62828;
+  --status-fout-tint: #fbe9e7;
+  --status-fout-tekst: #a31f1f;
+  --status-let-op: #b45309;
+  --status-let-op-tint: #ffece0;
+  --status-let-op-tekst: #7a3a06;
+  --status-info: #1d5fa8;
+  --status-info-tint: #e4eef9;
+  --status-info-tekst: #154a85;
+
+  /* thema: Beringse (standaard) */
+  --thema-primair: #d80018;
+  --thema-primair-hover: #b30014;
+  --thema-op-primair: #ffffff;
+  --thema-primair-tint: #fde8e5;
+  --thema-primair-tekst: #9e0012;
+  --thema-kop: #e50000;
+  --thema-op-kop: #ffffff;
+  --thema-titel-op-kop: #ffffff;
+  --thema-merk: var(
+    --thema-primair-tekst
+  ); /* verenigingsnaam in de balk: zelfde donkerrood als de titels (7:1 op wit) */
+  --thema-balk: #ffffff;
+  --thema-op-balk: var(--neutraal-tekst);
+  --thema-op-balk-zacht: var(--neutraal-tekst-zacht);
+  --thema-balk-hover: var(--neutraal-vlak);
+  /* optioneel verloop in het kopvlak: begint bij thema/kop en loopt naar rechts naar de eindkleur.
+       Is de eindkleur gelijk aan thema/kop, dan is het kopvlak effen. */
+  --thema-kop-eind: #b80000;
+  --thema-confetti-1: #fff000;
+  --thema-confetti-2: #78a860;
+  /* stippen in de navigatie: Vandaag, Programma, Beheer (afgeleid van bestaande themakleuren, geen nieuwe variabelen) */
+  --thema-stip-1: var(--thema-primair);
+  --thema-stip-2: #ffd83d;
+  --thema-stip-3: var(--thema-confetti-2);
+  --thema-confetti-3: #ffffff;
+
+  /* spacing */
+  --gap-inline: 8px;
+  --gap-field: 8px;
+  --gap-group: 16px;
+  --gap-section: 32px;
+  --padding-control-x: 16px;
+  --padding-card: 24px;
+  --padding-page: 24px;
+
+  /* radius, borders, focus */
+  --radius-small: 4px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-dialog: 16px;
+  --radius-full: 9999px;
+  --focus-offset: 4px;
+
+  /* afmetingen */
+  --control-compact: 32px;
+  --control-default: 40px;
+  --control-comfortable: 48px;
+
+  /* elevation */
+  --elevation-subtle: 0 4px 8px 0 rgba(38, 33, 31, 0.08);
+  --elevation-floating: 0 8px 24px 0 rgba(38, 33, 31, 0.14);
+
+  /* ruimte boven en onder de titel in het kopvlak (spacing-schaal: 32, 40, 48) */
+  --kop-ruimte: 40px;
+
+  /* paginamarge: de inhoud is maximaal 1200px breed en staat in het midden */
+  --marge: max(var(--padding-page), calc(50% - 576px));
+}
+
+[data-thema='blauw'] {
+  --thema-primair: #364fc7;
+  --thema-primair-hover: #2b3e9f;
+  --thema-primair-tint: #edf2ff;
+  --thema-primair-tekst: #364fc7;
+  --thema-kop: #bac8ff;
+  --thema-op-kop: #1b2147;
+  --thema-kop-eind: #bac8ff;
+  --thema-confetti-1: #364fc7;
+  --thema-confetti-2: #ff8a1f;
+  --thema-confetti-3: #ffffff;
+}
+[data-thema='roze'] {
+  --thema-primair: #a61e4d;
+  --thema-primair-hover: #85183d;
+  --thema-primair-tint: #fff0f2;
+  --thema-primair-tekst: #a61e4d;
+  --thema-kop: #fcc2d7;
+  --thema-op-kop: #3b0a1e;
+  --thema-kop-eind: #fcc2d7;
+  --thema-confetti-1: #a61e4d;
+  --thema-confetti-2: #ffd43b;
+  --thema-confetti-3: #ffffff;
+}
+[data-thema='geel'] {
+  --thema-kop: #ffd83d;
+  --thema-op-kop: #26211f;
+  --thema-titel-op-kop: #9e0012;
+  --thema-kop-eind: #2e9b3a;
+  --thema-balk: var(--neutraal-vlak);
+  --thema-op-balk: var(--neutraal-tekst);
+  --thema-op-balk-zacht: var(--neutraal-tekst-zacht);
+  --thema-balk-hover: var(--neutraal-hover);
+  --thema-confetti-1: #d80018;
+  --thema-confetti-2: #2e9b3a;
+  --thema-stip-1: var(--thema-primair);
+  --thema-stip-2: var(--thema-kop);
+  --thema-stip-3: var(--thema-confetti-2);
+}
+[data-thema='paars'] {
+  --thema-primair: #5b2a86;
+  --thema-primair-hover: #47206b;
+  --thema-primair-tint: #efe7f7;
+  --thema-primair-tekst: #47206b;
+  --thema-kop: #f2b705;
+  --thema-op-kop: #26211f;
+  --thema-kop-eind: #f2b705;
+  --thema-confetti-1: #5b2a86;
+  --thema-confetti-2: #ffffff;
+  --thema-confetti-3: #c2255c;
+  --thema-stip-3: var(--thema-confetti-3); /* confetti-2 is hier wit: onzichtbaar op de pagina */
+}
+
+@media (max-width: 700px) {
+  :root {
+    --padding-card: 16px;
+    --padding-page: 16px;
+    --control-compact: 40px;
+    --control-default: 48px;
+    --kop-ruimte: 24px;
+    --marge: var(--padding-page);
+  }
+}

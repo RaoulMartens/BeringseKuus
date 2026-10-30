@@ -1,3 +1,5 @@
+import '@/styles/tokens.css';
+import '@/styles/lettertypen.css';
 import './globals.css';
 
 import type { Metadata } from 'next';

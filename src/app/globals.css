@@ -1,16 +1,21 @@
-/* Basis tot het visuele ontwerp in fase 1 komt: leesbare tekst en een zichtbare focus voor wie met het
-   toetsenbord werkt (WCAG 2.2, 2.4.7). De browserstandaard is op sommige achtergronden nauwelijks te zien. */
+/* De basis van het ontwerp (docs/visueel/stijl.css, sectie 2): lettertype, maat, kleuren en een zichtbare focus voor wie met
+   het toetsenbord werkt (WCAG 2.2, 2.4.7). Alle waarden komen uit src/styles/tokens.css. */
 
 body {
   margin: 0;
   padding: 1rem;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-tekst);
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  font-weight: 400;
+  color: var(--neutraal-tekst);
+  background: var(--neutraal-vlak);
+  -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 3px solid currentColor;
-  outline-offset: 3px;
+  outline: 2px solid var(--thema-primair);
+  outline-offset: var(--focus-offset);
 }
 
 /* De QR-code is voor wie op een andere computer scant; op een telefoon staat de app op hetzelfde toestel (wireframe
