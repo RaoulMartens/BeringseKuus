@@ -7,6 +7,10 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(89);
 
+-- Deze tests zetten een beheerder_sinds in de toekomst (een app die nu wordt ingesteld is dan "van vóór"). Dat weigert de
+-- database normaal (review F1-02); fase1_afname.test.sql toetst dat zonder deze instelling.
+set local app.beheerder_toekomst_toegestaan = 'ja';
+
 -- Gebruikers en leden, als postgres. De naam is de sleutel in de tests.
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
 

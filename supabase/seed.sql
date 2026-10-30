@@ -7,6 +7,10 @@
 
 update public.verenigingsinstellingen set bus_vertrekplaats = 'Parkeerplaats Sporthal';
 
+-- Een beheerder_sinds in de toekomst weigert de database (review F1-02), behalve met deze instelling. Alleen de seed en de
+-- tests zetten hem; een echte database nooit. De instelling geldt voor deze sessie.
+select set_config('app.beheerder_toekomst_toegestaan', 'ja', false);
+
 -- ===== Verzonnen leden =====
 -- Mark is lid én bestuurslid; is_admin staat aan. Een echte tweede factor (MFA) stel je lokaal zelf in (stap D, daarvoor
 -- zet je TOTP aan in config.toml). Zonder factor krijgt hij geen beheerrechten. beheerder_sinds staat ver in de toekomst:
