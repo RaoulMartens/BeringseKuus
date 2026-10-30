@@ -1,0 +1,32 @@
+/* De rij van een activiteit: naam met daaronder de tijd en de plaats (docs/visueel/stijl.css, sectie 13h). */
+.tekst {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.naam {
+  font: 700 1rem/1.5 var(--font-tekst);
+  overflow-wrap: anywhere; /* een lang woord loopt niet onder het label */
+}
+
+.regel {
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+  font-variant-numeric: tabular-nums;
+}
+
+.telling {
+  margin: 0;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.geweest {
+  margin: 16px 0 0;
+  font: 700 1.25rem/1.4 var(--font-titel);
+  color: var(--neutraal-tekst);
+}

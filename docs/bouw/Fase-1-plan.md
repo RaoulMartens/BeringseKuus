@@ -105,6 +105,12 @@ in het kopvlak (nu CSS-stippen) en de beoordeling van de iconen naast het ontwer
 
 ### Stap F: schermen
 
+**Gedaan (PR 27, 30-10-2026): `/programma`**, het eerste scherm in het echte ontwerp: de maandkaarten met het datumblok, het
+seizoen in het kopvlak, "komende" en "geweest dit seizoen". Het leest de activiteiten via de rechten van de database (een lid
+ziet geen concept en niets voor een andere groep; een beheerder met een code ziet alles). Nog niet: je eigen dienst of
+afmelding per rij, de wisselaar naar Mijn diensten en de agendakaart (die hangen aan fase 2 en 3). Voor het
+ontwikkelproject staat het programma van 2026/2027 klaar in `docs/bouw/Programma-ontwikkelproject.sql`.
+
 De schermen uit stap B, met de teksten uit de wireframes en het uiterlijk uit de componenten. Per scherm: axe op 1200
 en 375 px, een screenshot naast `docs/visueel/<scherm>.html`, afwijkingen in het pull request (`Design-overdracht.md`
 4, `Bouwbesluiten` 4.8). Serveracties met invoer volgen beslissing 2.4.

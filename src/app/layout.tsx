@@ -3,7 +3,6 @@ import '@/styles/lettertypen.css';
 import './globals.css';
 
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 
@@ -17,14 +16,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   await connection();
   return (
     <html lang="nl">
-      <body>
-        <header>
-          <nav aria-label="Hoofdmenu">
-            <Link href="/">Ledenplatform</Link> · <Link href="/inloggen">Inloggen</Link>
-          </nav>
-        </header>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

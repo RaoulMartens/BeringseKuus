@@ -1,0 +1,50 @@
+/* Datumblok, overgenomen uit docs/visueel/stijl.css sectie 13h: dag groot, weekdag klein in hoofdletters. */
+.blok {
+  position: relative;
+  flex: none;
+  width: 66px;
+  height: 60px;
+  padding: 7px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutraal-vlak);
+  border-radius: var(--radius-control);
+}
+
+.dag {
+  font: 700 1.25rem/1.1 var(--font-titel);
+  color: var(--neutraal-tekst);
+}
+
+.weekdag {
+  font: 600 0.75rem/1 var(--font-tekst);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.vandaag {
+  background: var(--thema-primair);
+}
+
+.vandaag .dag,
+.vandaag .weekdag {
+  color: var(--thema-op-primair);
+}
+
+.alleenSchermlezer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@supports (corner-shape: squircle) {
+  .blok {
+    corner-shape: squircle;
+  }
+}
