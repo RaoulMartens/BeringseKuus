@@ -9,7 +9,7 @@
 // verborgen in en komt nergens terecht: niet in een bestand, niet in de geschiedenis van je terminal, niet in de uitvoer.
 // Het lid moet al bestaan (Authentication, Users, Add user, met Auto Confirm); dit programma maakt geen leden.
 //
-// De link werkt één keer en een uur. Daarna logt het lid in op dat apparaat en blijft ingelogd, net als na een mail.
+// De link werkt één keer, binnen de geldigheid die bij Auth is ingesteld. Daarna blijft het lid op dat apparaat ingelogd.
 
 import { createInterface } from 'node:readline';
 import { Writable } from 'node:stream';
@@ -128,7 +128,7 @@ async function hoofd(): Promise<void> {
 
   const link = maakLink(site, await vraagSleutel(project, geheim, email));
   process.stdout.write(
-    `\nDe link voor ${email.replace(/^(.).*(@.*)$/, '$1…$2')} (werkt één keer en een uur; stuur hem alleen privé naar die persoon):\n\n${link}\n\n`,
+    `\nDe link voor ${email.replace(/^(.).*(@.*)$/, '$1…$2')} (werkt één keer, binnen de ingestelde geldigheid; stuur hem alleen privé naar die persoon):\n\n${link}\n\n`,
   );
 }
 
