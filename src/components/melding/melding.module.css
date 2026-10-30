@@ -1,0 +1,58 @@
+/* Meldingen, overgenomen uit docs/visueel/stijl.css sectie 10: een zacht gekleurd vlak, een rand van dezelfde kleur
+   (box-shadow, geen echte rand: 1 px wordt bij sommige schermvergrotingen 0,8 px), icoon links. */
+.melding {
+  position: relative;
+  border-radius: var(--radius-control);
+  padding: 14px 16px 14px 48px;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  background: var(--status-info-tint);
+  color: var(--status-info-tekst);
+  box-shadow: inset 0 0 0 1px var(--status-info);
+}
+
+.icoon {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  width: 20px;
+  height: 20px;
+}
+
+.info {
+  background: var(--status-info-tint);
+  color: var(--status-info-tekst);
+  box-shadow: inset 0 0 0 1px var(--status-info);
+}
+
+.letOp {
+  background: var(--status-let-op-tint);
+  color: var(--status-let-op-tekst);
+  box-shadow: inset 0 0 0 1px var(--status-let-op);
+}
+
+.fout {
+  background: var(--status-fout-tint);
+  color: var(--status-fout-tekst);
+  box-shadow: inset 0 0 0 1px var(--status-fout);
+}
+
+.succes {
+  background: var(--status-succes-tint);
+  color: var(--status-succes-tekst);
+  box-shadow: inset 0 0 0 1px var(--status-succes);
+}
+
+/* "Je bent afgemeld": de kleuren van de afgemeld-rij en het label in de lijst (themakleur), met een zachtere rand dan een
+   fout, zodat het in Beringse (rood) niet op een foutmelding lijkt */
+.afgemeld {
+  background: var(--thema-primair-tint);
+  color: color-mix(in oklch, var(--thema-primair-tekst), black 20%);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--thema-primair-tint), var(--thema-primair) 45%);
+}
+
+@supports (corner-shape: squircle) {
+  .melding {
+    corner-shape: squircle;
+  }
+}

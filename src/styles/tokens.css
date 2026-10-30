@@ -156,3 +156,15 @@
     --marge: var(--padding-page);
   }
 }
+
+/* Een squircle snijdt de hoek dichter bij de rand af dan een cirkelboog: dezelfde straal ziet er strakker uit. Daarom
+   grotere stralen (ongeveer 1,75 keer) zodra de browser squircles kent (corner-shape, Chrome); elke component zet
+   corner-shape: squircle op zijn eigen vormen. Zonder squircle gelden de stralen hierboven (ontwerp: stijl.css, squircle.css). */
+@supports (corner-shape: squircle) {
+  :root {
+    --radius-small: 6px;
+    --radius-control: 14px;
+    --radius-card: 20px;
+    --radius-dialog: 28px;
+  }
+}

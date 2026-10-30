@@ -1,0 +1,45 @@
+/* Kaart, overgenomen uit docs/visueel/stijl.css sectie 3 en 5. */
+.kaart {
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+  padding: var(--padding-card);
+  min-width: 0;
+}
+
+/* een kaart van rijen: geen opvulling rond de rijen; de kop heeft zijn eigen opvulling */
+.lijstkaart {
+  padding: 0;
+}
+
+.kop {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--gap-group);
+}
+
+.lijstKop {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--padding-card) var(--padding-card) 12px;
+}
+
+.titel {
+  margin: 0;
+  font: 700 1.25rem/1.4 var(--font-titel);
+  color: var(--thema-primair-tekst);
+}
+
+.ondertitel {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+@supports (corner-shape: squircle) {
+  .kaart {
+    corner-shape: squircle;
+  }
+}

@@ -1,0 +1,144 @@
+/* Knoppen, overgenomen uit docs/visueel/stijl.css sectie 6. Hover en klik leggen een donkerder tint over de kleur (klik:
+   14% zwart erbij, in oklch). Uitgeschakeld: een grijs vlak, geen hover. */
+.knop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: var(--control-default);
+  padding: 0 var(--padding-control-x);
+  gap: var(--gap-inline);
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  font: 700 0.875rem/1.4286 var(--font-tekst);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.knop svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.vol {
+  align-self: stretch;
+}
+
+.primair {
+  background: var(--thema-primair);
+  border-color: var(--thema-primair);
+  color: var(--thema-op-primair);
+}
+.primair:hover:not(:disabled) {
+  background: var(--thema-primair-hover);
+  border-color: var(--thema-primair-hover);
+}
+.primair:active:not(:disabled) {
+  background: color-mix(in oklch, var(--thema-primair-hover), black 14%);
+  border-color: color-mix(in oklch, var(--thema-primair-hover), black 14%);
+}
+
+/* groen = maken of doorgaan, rood = opgeven: statuskleuren, in elk thema gelijk (wit op groen 5,4:1, op rood 5,6:1) */
+.positief {
+  background: var(--status-succes);
+  border-color: var(--status-succes);
+  color: #ffffff;
+}
+.positief:hover:not(:disabled) {
+  background: var(--status-succes-tekst);
+  border-color: var(--status-succes-tekst);
+}
+.positief:active:not(:disabled) {
+  background: color-mix(in oklch, var(--status-succes-tekst), black 14%);
+  border-color: color-mix(in oklch, var(--status-succes-tekst), black 14%);
+}
+
+.negatief {
+  background: var(--status-fout);
+  border-color: var(--status-fout);
+  color: #ffffff;
+}
+.negatief:hover:not(:disabled) {
+  background: var(--status-fout-tekst);
+  border-color: var(--status-fout-tekst);
+}
+.negatief:active:not(:disabled) {
+  background: color-mix(in oklch, var(--status-fout-tekst), black 14%);
+  border-color: color-mix(in oklch, var(--status-fout-tekst), black 14%);
+}
+
+/* secundair: alleen een rand; hover en klik leggen een doorschijnende donkere tint erover, zodat het op wit en op de
+   paginakleur werkt */
+.secundair {
+  background: transparent;
+  border-color: var(--neutraal-tekst);
+  color: var(--neutraal-tekst);
+}
+.secundair:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--neutraal-tekst) 6%, transparent);
+}
+.secundair:active:not(:disabled) {
+  background: color-mix(in srgb, var(--neutraal-tekst) 12%, transparent);
+}
+
+.gevaar {
+  background: #ffffff;
+  border-color: var(--status-fout);
+  color: var(--status-fout-tekst);
+}
+.gevaar:hover:not(:disabled) {
+  background: var(--status-fout-tint);
+}
+.gevaar:active:not(:disabled) {
+  background: var(--status-fout-tekst);
+  color: #ffffff;
+}
+
+/* Annuleren: een rand, geen vulling */
+.tekst {
+  background: transparent;
+  border-color: var(--neutraal-tekst);
+  color: var(--neutraal-tekst);
+}
+.tekst:hover:not(:disabled) {
+  background: var(--neutraal-vlak);
+}
+.tekst:active:not(:disabled) {
+  background: var(--neutraal-lijn);
+}
+
+/* "Concept verwijderen" is een tekstlink (ontwerpbesluit), geen derde knop: rode tekst, geen rand, geen icoon */
+.tekstGevaar {
+  background: none;
+  border-color: transparent;
+  color: var(--status-fout-tekst);
+}
+.tekstGevaar svg {
+  display: none;
+}
+.tekstGevaar:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tekstGevaar:active:not(:disabled) {
+  color: var(--status-fout);
+}
+
+.knop:disabled {
+  background: var(--neutraal-lijn);
+  border-color: var(--neutraal-lijn);
+  color: var(--neutraal-tekst-zacht);
+  cursor: default;
+}
+
+@supports (corner-shape: squircle) {
+  .knop {
+    corner-shape: squircle;
+  }
+}
