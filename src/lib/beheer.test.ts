@@ -31,6 +31,18 @@ describe('beheer controleert de toegang', () => {
     }
   });
 
+  // Een route handler (route.ts, bijvoorbeeld een download) is geen pagina en geen serveractie, en ontbrak in deze controle
+  // (review F1-16). Elke geëxporteerde handler (GET, POST, ...) moet zelf eisBeheer() aanroepen.
+  it('elke route in beheer roept eisBeheer() aan', () => {
+    for (const pad of alle.filter((p) => /route\.ts$/.test(p))) {
+      const tekst = readFileSync(pad, 'utf8');
+      const handlers =
+        tekst.match(/export async function (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g)?.length ?? 0;
+      const controles = tekst.match(/await eisBeheer\(\)/g)?.length ?? 0;
+      expect(controles, pad).toBeGreaterThanOrEqual(handlers);
+    }
+  });
+
   it('beheer heeft een layout die eisBeheer() aanroept', () => {
     expect(readFileSync(join(map, 'layout.tsx'), 'utf8')).toContain('await eisBeheer()');
   });

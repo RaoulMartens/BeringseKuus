@@ -28,10 +28,10 @@ export default function ToestelKwijt() {
         </p>
         <ol className={stijl.stappen}>
           <li>
-            <strong>Vraag een andere beheerder</strong>
+            <strong>Vraag de beheerder van het platform</strong>
             <br />
-            Vraag een ander bestuurslid dat beheer gebruikt om je oude app los te koppelen. Dat kan
-            persoonlijk, per telefoon of per appje.
+            Vraag de beheerder om je oude app los te koppelen. Dat kan persoonlijk, per telefoon of per appje.
+            Is je telefoon gestolen? Zeg dat er meteen bij, en zorg dat je mailbox is beveiligd.
           </li>
           <li>
             <strong>Stel een nieuwe app in</strong>
@@ -42,7 +42,7 @@ export default function ToestelKwijt() {
           <li>
             <strong>Laat het bevestigen</strong>
             <br />
-            Die andere beheerder bevestigt daarna je toegang. Zodra dat gebeurd is, kom je weer bij Beheer.
+            De beheerder bevestigt daarna je toegang. Zodra dat gebeurd is, kom je weer bij Beheer.
           </li>
         </ol>
         <p>

@@ -47,9 +47,37 @@ moment waarop dat wordt gestopt, en dat werkt alleen als de beheerder iets contr
 
 Zoek een lid altijd op het e-mailadres uit `leden_prive`, niet op naam: twee leden kunnen dezelfde naam hebben.
 
+## Een lid aanmaken
+
+Tot fase 4 (ledenbeheer) kan dat alleen met het dashboard en SQL. Een lid is **drie dingen**: een inlogaccount, een rij
+in `leden` en een rij in `leden_prive`. Een inlogaccount alleen is geen lid: het platform kent het adres dan niet.
+
+Lokaal (verzonnen leden): `npm run lid:lokaal -- iemand@example.com --naam "Voornaam Achternaam"` (README, "Lokaal draaien").
+
+Online:
+
+1. Supabase, Authentication, Users, *Add user* met het e-mailadres, *Auto Confirm* aan, zonder wachtwoord te gebruiken.
+2. SQL Editor, met het e-mailadres en de naam ingevuld (één keer uitvoeren; het faalt als het account ontbreekt):
+
+   ```sql
+   with account as (select id from auth.users where email = '…'),
+        nieuw as (
+          insert into public.leden (auth_user_id, voornaam, achternaam, type)
+          select id, '…', '…', 'lid' from account
+          returning id
+        )
+   insert into public.leden_prive (lid_id, email) select id, '…' from nieuw;
+   ```
+
+3. Controle: `select l.voornaam, l.achternaam, p.email, p.is_admin from public.leden l join public.leden_prive p on p.lid_id = l.id where p.email = '…';` geeft
+   precies één rij.
+
+Echte leden in het ontwikkelproject: nooit, behalve met een schriftelijke uitzondering (doel, toestemming van die persoon
+en einddatum) in `docs/bouw/Afname-fase-1.md`. Het ontwikkelproject is het gratis plan, zonder back-ups.
+
 ## Een nieuwe beheerder activeren
 
-1. Het bestuurslid is lid in het systeem (nu: via de seed of het script voor pilotleden; vanaf fase 4: ledenbeheer).
+1. Het bestuurslid is lid in het systeem: zie "Een lid aanmaken" hieronder (vanaf fase 4: ledenbeheer).
 2. Voer de controle uit zoals hierboven (stap 2), ook als er nog geen app hoort te staan: `/mfa/instellen` is voor elk
    ingelogd lid te openen, en een app die er al staat, telt straks als "van vóór" en heeft dan **geen** bevestiging. Staat
    er een onbekende app, haal die weg (zie "Toestel kwijt", stap 3).
@@ -65,9 +93,30 @@ Zoek een lid altijd op het e-mailadres uit `leden_prive`, niet op naam: twee led
 5. **Bevestigen**, zoals hierboven.
 6. Het bestuurslid opent Beheer opnieuw en vult de code uit zijn app in.
 
+## Nooit een `beheerder_sinds` in de toekomst
+
+De trigger zet `beheerder_sinds` op het moment van nu. Zet het **nooit** met de hand op een tijdstip in de toekomst. Dan
+telt elke app die het lid daarvóór instelt als "van vóór", en is zonder bevestiging door een andere beheerder
+meteen beheer mogelijk: wie de inloglink heeft, stelt zelf een app in en is volledig beheerder (gevonden in de review van
+fase 1, F1-02). De eerste kijkdag met de opdrachtgever gebruikte dit als snelle route voor één account; dat gaat terug naar
+`now()` zodra zijn app is ingesteld en de controle onder "Bevestigen" is gedaan. Alleen lokaal staat in de seed een
+beheerder met een tijdstip in de toekomst, voor de tests. Een database-vangnet hiertegen komt in een eigen migratie; tot
+die er is, controleert de beheerder dit na elke wijziging:
+
+```sql
+select p.email, p.beheerder_sinds from public.leden_prive p where p.beheerder_sinds > now();   -- moet leeg zijn
+```
+
 ## Toestel kwijt of nieuwe telefoon
 
-Het bestuurslid kan zichzelf niet herstellen; dat is bewust (zelfde reden als hierboven). Wie dit uitvoert doet:
+Het bestuurslid kan zichzelf niet herstellen; dat is bewust (zelfde reden als hierboven). Tot fase 4 kan alleen iemand met
+toegang tot het Supabase-dashboard dit uitvoeren; de schermen zeggen daarom "de beheerder van het platform", niet "een
+ander bestuurslid".
+
+**Is de telefoon gestolen, en niet alleen kwijt of kapot?** Dan heeft de dief misschien ook de mailbox. Volg dan eerst
+"Een aanval vermoed" hieronder (`is_admin` uit, mailbox beveiligen) en begin pas daarna met de stappen hier. Anders kan hij
+na stap 3 met een nieuwe inloglink als eerste een nieuwe app instellen; alleen de controle bij "Bevestigen" houdt hem dan
+nog tegen.
 
 1. Controleer dat het echt dit bestuurslid is (bel, of spreek af).
 2. **Beëindig alle sessies van dit lid.** Een gestolen telefoon kan een open sessie met een goede code hebben. Een code

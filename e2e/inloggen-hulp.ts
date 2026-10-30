@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test';
 
 import { leesLokaleSupabase } from '../scripts/lokale-supabase.ts';
 
-import { maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
+import { beheerClient, maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
 
 const lokaal = leesLokaleSupabase();
 const aangemaakt: string[] = [];
@@ -16,6 +16,13 @@ export const wacht = (ms: number): Promise<void> => new Promise((klaar) => setTi
 /** Een gewoon lid: een inlogaccount met een rij in leden en leden_prive, zoals het bestuur ze aanmaakt. */
 export async function maakLid(email: string): Promise<void> {
   aangemaakt.push(await maakLidMetRol(email));
+}
+
+/** Een inlogaccount zonder rij in leden: wat een lid is voordat het bestuur hem toevoegt. */
+export async function maakAccountZonderLid(email: string): Promise<void> {
+  const { data, error } = await beheerClient.auth.admin.createUser({ email, email_confirm: true });
+  if (error) throw error;
+  aangemaakt.push(data.user.id);
 }
 
 /** Verwijdert de leden die dit testbestand heeft aangemaakt; aanroepen in test.afterAll. */

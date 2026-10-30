@@ -3,10 +3,13 @@
 Een ledenplatform voor een carnavalsvereniging: leden zien het programma, dragen hun dienst over en melden
 zich af; het bestuur maakt activiteiten aan, deelt mensen in en publiceert.
 
-**Status:** fase 0 (project opzetten) is af (29-10-2026, `docs/bouw/Afname-fase-0.md`); fase 1 is bezig
-(`docs/bouw/Fase-1-plan.md`). Er is een app met de kwaliteitspoort, inloggen met een link per mail en de uitrol naar
-Cloudflare Workers. De wegwerpcode van de proefroutes is weg; de taken-Worker (`taken/`) staat klaar zonder taken.
-De functies voor leden en bestuur komen in fase 1 en verder.
+**Status:** fase 0 (project opzetten) is af (29-10-2026, `docs/bouw/Afname-fase-0.md`); fase 1 is bijna af
+(`docs/bouw/Fase-1-plan.md`). Er is een app met de kwaliteitspoort, de uitrol naar Cloudflare Workers, het datamodel met
+de rechten (RLS, kolomrechten, vangnet-triggers), de seed met het programma 2026/2027, inloggen met een link per mail,
+een tweede factor voor het bestuur (MFA, `docs/bouw/Beheerders.md`), een componentenset in het ontwerp van de vereniging
+(`/ontwerp`) en twee echte schermen: het programma (`/programma`) en de inlog- en beveiligingsschermen. Indelen,
+publiceren, het welkomscherm en het beheeroverzicht komen in fase 2, afmelden en ruilen in fase 3. De taken-Worker
+(`taken/`) staat klaar zonder taken.
 
 Deze repository is **publiek**. Er staan geen ledengegevens, sleutels, foto's of gelicentieerde iconen in;
 zie `CLAUDE.md` en `docs/licenties.md`. De bronnen staan in `docs/`, te beginnen bij
@@ -25,11 +28,18 @@ npm run dev                             # ontwikkelserver: open http://127.0.0.1
 ```
 
 Inloggen kan alleen als lid; aanmelden bestaat niet. Maak lokaal een verzonnen lid aan en vraag op `/inloggen`
-een link aan. De mail komt in Mailpit, de lokale postbus (het adres staat in `npx supabase status`):
+een link aan. De mail komt in Mailpit, de lokale postbus (het adres staat in `npx supabase status`). Het script maakt
+een inlogaccount **en** de rijen in `leden` en `leden_prive`: zonder die rijen kent het platform je niet, en `/mijn` zegt
+dat dit adres nog niet bij de leden staat.
 
 ```bash
-npm run lid:lokaal -- iemand@example.com
+npm run lid:lokaal -- iemand@example.com                                    # een gewoon lid (Test Lid)
+npm run lid:lokaal -- iemand@example.com --naam "Jan van Dijk" --beheerder  # met beheerrechten, zonder app
 ```
+
+Wie bestuurslid is, volgt voor beheer de procedure uit `docs/bouw/Beheerders.md`: een app instellen en bevestigen. Het
+script slaat die stappen niet over. De seed (`supabase/seed.sql`, na `npm run test:db`) bevat al verzonnen leden en een
+beheerder voor de tests; die inlogt niemand met de hand.
 
 Wijzig je een migratie in `supabase/migrations/`, draai dan `npm run test:db` en `npm run types:db`: de poort
 keurt databasetypen af die niet bij de migraties passen.
