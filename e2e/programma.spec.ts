@@ -103,7 +103,11 @@ test('een beheerder met een code ziet ook het concept en de activiteit voor het 
   page,
 }) => {
   await logInAlsBeheerder(page);
-  await page.goto('/programma');
+
+  // Na de code staat de beheerder op Beheer, met de bovenbalk: van daaruit is het programma te bereiken zonder een adres te typen.
+  await expect(page.getByRole('heading', { level: 1, name: 'Beheer' })).toBeVisible();
+  await page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Programma' }).click();
+  await expect(page).toHaveURL(/\/programma$/);
 
   await expect(page.getByText(naam('komend'))).toBeVisible();
   const concept = page.getByRole('listitem').filter({ hasText: naam('concept') });
