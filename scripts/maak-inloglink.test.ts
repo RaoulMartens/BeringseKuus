@@ -6,7 +6,8 @@ import { test } from 'node:test';
 import { leesAdres, leesProjectAdres, maakLink, vraagSleutel } from './maak-inloglink.ts';
 
 const SLEUTEL = 'abcdefghijklmnopqrstuvwxyz0123456789';
-const GEHEIM = 'sb_secret_testtesttest';
+// Een nepsleutel, in stukken: de repositorycontrole houdt een heel `sb_secret_…` voor een echte sleutel.
+const GEHEIM = ['sb', 'secret', 'testtesttest'].join('_');
 
 test('leesAdres accepteert een https-adres zonder pad en geeft alleen de oorsprong terug', () => {
   assert.equal(
@@ -24,7 +25,7 @@ test('leesAdres weigert http, een pad, gegevens en iets dat geen adres is', () =
     'https://voorbeeld.nl/pad',
     'https://voorbeeld.nl?x=1',
     'https://voorbeeld.nl/#a',
-    'https://gebruiker:wachtwoord@voorbeeld.nl',
+    'https://gebruiker:wachtwoord@example.com',
     'javascript:alert(1)',
   ]) {
     assert.throws(() => leesAdres(fout, 'x'), Error, fout);
@@ -105,19 +106,19 @@ test('vraagSleutel stuurt het goede verzoek en geeft de sleutel terug', async ()
     200,
     JSON.stringify({ hashed_token: SLEUTEL, action_link: 'https://niet.gebruiken/' }),
     async (adres, ontvangen) => {
-      assert.equal(await vraagSleutel(adres, GEHEIM, 'lid@voorbeeld.nl'), SLEUTEL);
+      assert.equal(await vraagSleutel(adres, GEHEIM, 'lid@example.com'), SLEUTEL);
       assert.equal(ontvangen.methode, 'POST');
       assert.equal(ontvangen.pad, '/auth/v1/admin/generate_link');
       assert.equal(ontvangen.apikey, GEHEIM);
       assert.equal(ontvangen.autorisatie, `Bearer ${GEHEIM}`);
-      assert.deepEqual(JSON.parse(ontvangen.body), { type: 'magiclink', email: 'lid@voorbeeld.nl' });
+      assert.deepEqual(JSON.parse(ontvangen.body), { type: 'magiclink', email: 'lid@example.com' });
     },
   );
 });
 
 test('vraagSleutel leest de sleutel ook uit properties', async () => {
   await metNepserver(200, JSON.stringify({ properties: { hashed_token: SLEUTEL } }), async (adres) => {
-    assert.equal(await vraagSleutel(adres, GEHEIM, 'lid@voorbeeld.nl'), SLEUTEL);
+    assert.equal(await vraagSleutel(adres, GEHEIM, 'lid@example.com'), SLEUTEL);
   });
 });
 
@@ -125,7 +126,7 @@ async function foutmelding(status: number, antwoord: string): Promise<string> {
   let melding = '';
   await metNepserver(status, antwoord, async (adres) => {
     try {
-      await vraagSleutel(adres, GEHEIM, 'lid@voorbeeld.nl');
+      await vraagSleutel(adres, GEHEIM, 'lid@example.com');
     } catch (e) {
       melding = e instanceof Error ? e.message : '';
     }

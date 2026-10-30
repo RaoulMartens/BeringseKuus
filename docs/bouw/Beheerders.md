@@ -106,7 +106,7 @@ doorsturen. **Alleen voor het ontwikkelproject en alleen voor een lid dat je ken
 
 1. Het lid bestaat: Supabase, Authentication, Users, *Add user* (met *Auto Confirm*) en de rij in `leden` en `leden_prive`
    (zie "Een nieuwe beheerder activeren", stap 1 en 3).
-2. In Ubuntu, in de map van de repository: `node scripts/maak-inloglink.ts naam@voorbeeld.nl`. Het programma vraagt om
+2. In Ubuntu, in de map van de repository: `node scripts/maak-inloglink.ts naam@example.com`. Het programma vraagt om
    het adres van het project, het adres van de site en de geheime sleutel (*API Keys* in Supabase). De sleutel typ je
    verborgen in; hij komt nergens terecht. Sluit het venster daarna.
 3. Het toont een link die één keer en een uur werkt. Stuur hem **privé** aan dat ene lid (een berichtje, geen groep en geen

@@ -3,7 +3,7 @@
 // account), bijvoorbeeld om de opdrachtgever het platform te laten zien. De link geeft de ontvanger een sessie als dit lid.
 // Stuur hem dus alleen privé naar die ene persoon (bijvoorbeeld een berichtje), nooit in een groep of een mail.
 //
-//   node scripts/maak-inloglink.ts naam@voorbeeld.nl
+//   node scripts/maak-inloglink.ts naam@example.com
 //
 // Het programma vraagt zelf om het adres van het project, het adres van de site en de geheime sleutel. De sleutel typ je
 // verborgen in en komt nergens terecht: niet in een bestand, niet in de geschiedenis van je terminal, niet in de uitvoer.
@@ -102,7 +102,7 @@ function vraag(vraagTekst: string, verborgen = false): Promise<string> {
 
 async function hoofd(): Promise<void> {
   const email = normaliseerEmailadres(process.argv[2]);
-  if (!email) throw new Error('Gebruik: node scripts/maak-inloglink.ts naam@voorbeeld.nl');
+  if (!email) throw new Error('Gebruik: node scripts/maak-inloglink.ts naam@example.com');
 
   const project = leesProjectAdres(await vraag('Adres van het Supabase-project (https://….supabase.co): '));
   const site = leesAdres(
