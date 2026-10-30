@@ -98,6 +98,27 @@ beëindig alle sessies van het lid, haal alle apps weg (stappen 2 en 3 hierboven
 mailbox heeft beveiligd, en begin dan opnieuw. Een bestuurslid meldt zulke mails altijd bij de beheerder; zet dat in de
 afspraken met het bestuur.
 
+## Iemand laten inloggen zonder mailserver (tijdelijk)
+
+Zolang Resend geen eigen domein heeft, mailt het alleen naar het adres van het eigen account: een lid dat zich aanvraagt
+krijgt dan geen mail. Voor een kijkdag met de opdrachtgever kan de beheerder een eenmalige inloglink maken en privé
+doorsturen. **Alleen voor het ontwikkelproject en alleen voor een lid dat je kent; dit is geen vervanging van de mail.**
+
+1. Het lid bestaat: Supabase, Authentication, Users, *Add user* (met *Auto Confirm*) en de rij in `leden` en `leden_prive`
+   (zie "Een nieuwe beheerder activeren", stap 1 en 3).
+2. In Ubuntu, in de map van de repository: `node scripts/maak-inloglink.ts naam@example.com`. Het programma vraagt om
+   het adres van het project, het adres van de site en de geheime sleutel (*API Keys* in Supabase). De sleutel typ je
+   verborgen in; hij komt nergens terecht. Sluit het venster daarna.
+3. Het toont een link die één keer en een uur werkt. Stuur hem **privé** aan dat ene lid (een berichtje, geen groep en geen
+   mail). Wie de link opent, is dat lid; een mailprogramma of chat dat de link vooraf opent, verbruikt hem niet (de pagina
+   wacht op een klik op **Inloggen**).
+4. Na het inloggen blijft het lid op dat apparaat ingelogd. Voor een nieuw apparaat, of na uitloggen, maak je een nieuwe
+   link. Bevestig de beheerder zoals hierboven (de app instellen en daarna `beheerder_sinds`).
+
+De sleutel geeft volledige toegang tot het project: bewaar hem alleen in je wachtwoordmanager, plak hem niet in chats of
+bestanden, en vervang hem (Supabase, API Keys) als hij ooit ergens verkeerd terechtkomt. Zodra de mail naar leden werkt
+(`Fase-1-plan` 2.7: eigen domein), vervalt deze route.
+
 ## Beheer intrekken
 
 `update public.leden_prive set is_admin = false where email = '…';` Dit werkt direct, ook in een lopende sessie (de
