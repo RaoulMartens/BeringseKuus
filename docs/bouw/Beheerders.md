@@ -80,8 +80,8 @@ Het bestuurslid kan zichzelf niet herstellen; dat is bewust (zelfde reden als hi
    ```
 
 3. Haal de oude app los. Het dashboard (Authentication, Users, de gebruiker, MFA-factoren, verwijderen) is de
-   voorkeursroute en beëindigt de sessies van die app zelf. In SQL kan het ook, maar of Supabase dat online toestaat, is
-   nog niet nagegaan (`hosting.md` stap 14):
+   voorkeursroute en beëindigt de sessies van die app zelf. In SQL kan het ook en dat is online geprobeerd en werkt
+   (30-10-2026, `hosting.md` stap 14):
 
    ```sql
    delete from auth.mfa_factors where user_id = (select l.auth_user_id from public.leden l

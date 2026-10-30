@@ -329,17 +329,19 @@ onderschept, kan zelf een factor inschrijven. Daarom:
   IP-adres en een uitdaging blijft na een foute code bruikbaar (de app maakt per poging een nieuwe). Wie de inloglink van
   een bestuurslid heeft, kan buiten de app om gokken. Redenen om het te accepteren: de aanvaller heeft de mailbox al
   nodig, het doelwit is een vereniging met een handvol beheerders, en er zijn drie geldige codes per moment (de vorige,
-  de huidige, de volgende periode). Vóór de pilot: online meten wat de rem is en welk IP GoTrue ziet achter een Worker
-  (`hosting.md` stap 14), en Supabase's MFA-verificatiehook (pogingen per gebruiker tellen) nagaan; mislukte pogingen
-  staan in de auth-logs. Bestuursleden melden verdachte inlogmails (`Beheerders.md`).
+  de huidige, de volgende periode). Schatting met 30 pogingen per 5 minuten per adres (uit de instellingen en een lokale proef)
+  en drie geldige codes per moment: één adres heeft gemiddeld ruim 900 uur nodig, honderd adressen ruim negen uur. Dat is
+  niet veilig tegen iemand met veel adressen, maar die heeft ook de inloglink nodig. Vóór de pilot: Supabase's
+  MFA-verificatiehook (pogingen per gebruiker tellen) nagaan; mislukte pogingen staan in de auth-logs. Bestuursleden melden verdachte inlogmails (`Beheerders.md`).
 - **Sessieduur (besluit 29-10-2026): 12 uur.** Het beheer eist een code-stap van hooguit 12 uur geleden, in de database
   (`intern.code_recent()`) en in de app (`src/lib/mfa.ts`, een test houdt de twee gelijk). Dat werkt op elk plan; een
   `timebox` in Supabase is er alleen op Pro en zou ook de ledenschermen uitloggen. Na 12 uur blijven de ledenschermen
   werken en vraagt alleen beheer opnieuw om een code.
-- **Nog online na te gaan** (proef op de Worker, vóór de pilot): TOTP aan (Authentication, Multi-Factor; volgens
-  Supabase op elk plan beschikbaar), dezelfde stappen als lokaal, `mfa_ip_address_mismatch` in de Worker-logs (GoTrue
-  weigert een goede code als uitdaging en controle van een ander IP-adres komen; dan krijgt de gebruiker online steeds
-  een melding), de rem op codes, en of `delete from auth.mfa_factors` met de SQL Editor online mag.
+- **Online nagegaan (30-10-2026, ontwikkelproject, zie `hosting.md` stap 14):** TOTP staat aan en werkt op het gratis
+  plan; dezelfde stappen als lokaal slagen; `mfa_ip_address_mismatch` kwam niet voor in de proeven; de herstelroute
+  met `delete from auth.sessions` en `delete from auth.mfa_factors` in de SQL Editor werkt online. **Nog open:** de
+  exacte rem op codes (er is geen aparte instelling; *token verifications* staat op 30 per 5 minuten per IP-adres) en een
+  grotere steekproef op `mfa_ip_address_mismatch`.
 
 ## 4. Schrijffuncties in fase 1 (schema `public`)
 

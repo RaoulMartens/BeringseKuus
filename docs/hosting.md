@@ -286,6 +286,21 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
       bestuur daarna nog kan inloggen. De pagina vangt de melding op, maar de grens is lokaal niet na te gaan;
     - of `delete from auth.mfa_factors` in de SQL Editor online mag, anders is het dashboard de herstelroute.
 
+    **Uitkomst van de proef (30-10-2026, ontwikkelproject, gratis plan, één testbeheerder):**
+    - TOTP stond aan en werkt op het gratis plan; alleen telefoon-MFA vraagt Pro.
+    - Inloggen, app instellen (QR-code), bevestigen door een beheerder, en code invoeren bij een nieuwe sessie werken
+      online zoals lokaal. Een foute code geeft "Deze code klopt niet", een goede opent Beheer. `mfa_ip_address_mismatch`
+      is in deze proeven niet voorgekomen (een handvol pogingen van één gebruiker; geen bewijs dat het nooit gebeurt,
+      dus bij een goede code die toch wordt afgewezen eerst hier kijken).
+    - De rem: er is in het dashboard (Authentication, Rate Limits) geen aparte instelling voor MFA-codes. Er staat
+      *token verifications* op 30 per 5 minuten per IP-adres (OTP en magic link); of de codes uit de app daaronder vallen,
+      is niet vastgesteld. Lokaal kwam na ongeveer 30 pogingen per adres een "te vaak". De afweging staat in
+      `Datamodel-fase-1.md` punt 3.
+    - `delete from auth.sessions` en `delete from auth.mfa_factors` in de SQL Editor mogen online. De volledige
+      herstelroute uit `Beheerders.md` is doorlopen: sessies weg, app weg, nieuwe app, controle, bevestigen, beheer.
+    - Het gratis plan stuurt mail alleen naar adressen van mensen in de Supabase-organisatie en max. 30 per uur: voor
+      leden is een eigen mailserver (Resend, eigen domein) nodig, zoals de pilotvoorwaarden al zeggen (`Fase-1-plan` 2.7).
+
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
 URL.
