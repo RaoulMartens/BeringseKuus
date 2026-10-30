@@ -1,0 +1,28 @@
+/* De gegevens van Mijn account als lijst met kopjes, zoals de tabel in het ontwerp (stijl.css, sectie 9: wf-table). */
+.gegevens {
+  margin: 0 0 16px;
+}
+
+.gegevens > div {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--neutraal-lijn);
+}
+
+.gegevens > div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.gegevens dt {
+  flex: 0 0 38%;
+  font-weight: 600;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.gegevens dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

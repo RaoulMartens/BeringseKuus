@@ -3,9 +3,14 @@
 import Image from 'next/image';
 import { useActionState } from 'react';
 
+import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
+import { Veld } from '@/components/veld/veld';
 import { CODE_MELDINGEN } from '@/lib/mfa';
 
 import { bevestigInstellen, type InstellenStaat } from '../acties';
+
+import stijl from './formulier.module.css';
 
 interface Eigenschappen {
   factorId: string;
@@ -21,57 +26,49 @@ export function InstellenFormulier({ factorId, qr, geheim }: Eigenschappen) {
   const [staat, actie, bezig] = useActionState<InstellenStaat, FormData>(bevestigInstellen, { fout: null });
 
   return (
-    <form action={actie}>
+    <form action={actie} className={stijl.stappen}>
       <input type="hidden" name="factor" value={factorId} />
-      <h2>2. Scan deze code met de app</h2>
-      <p>Kies in de app het plusje of ‘Toevoegen’ en richt je camera op de code.</p>
-      <div className="niet-op-mobiel">
-        <Image
-          src={qr}
-          alt="QR-code om je authenticator-app te koppelen"
-          width={200}
-          height={200}
-          unoptimized
-        />
-      </div>
-      <p className="alleen-mobiel">
-        Zit je op de telefoon waarop de app staat? Dan kun je de code niet scannen. Kopieer de code hieronder
-        en plak hem in de app.
-      </p>
-      <p>
-        Lukt scannen niet? Typ deze code over in de app
-        <br />
-        <code>{geheim}</code>
-      </p>
-      <h2>3. Typ de 6 cijfers uit de app</h2>
-      <p>Zie je in de app een code van 6 cijfers bij De Beringse Kuus? Typ die hier.</p>
-      <p>
-        <label htmlFor="code">Code uit de app</label>
-        <br />
-        <input
+      <Kaart titel="2. Scan deze code met de app">
+        <p>Kies in de app het plusje of ‘Toevoegen’ en richt je camera op de code.</p>
+        <div className="niet-op-mobiel">
+          <Image
+            src={qr}
+            alt="QR-code om je authenticator-app te koppelen"
+            width={200}
+            height={200}
+            unoptimized
+          />
+        </div>
+        <p className="alleen-mobiel">
+          Zit je op de telefoon waarop de app staat? Dan kun je de code niet scannen. Kopieer de code
+          hieronder en plak hem in de app.
+        </p>
+        <p>
+          Lukt scannen niet? Typ deze code over in de app
+          <br />
+          <code className={stijl.sleutel}>{geheim}</code>
+        </p>
+      </Kaart>
+      <Kaart titel="3. Typ de 6 cijfers uit de app">
+        <p>Zie je in de app een code van 6 cijfers bij De Beringse Kuus? Typ die hier.</p>
+        <Veld
           id="code"
           name="code"
+          label="Code uit de app"
+          hulp="6 cijfers"
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={7}
           required
-          aria-invalid={staat.fout ? true : undefined}
-          aria-describedby={staat.fout ? 'code-fout' : 'code-hulp'}
+          fout={staat.fout ? CODE_MELDINGEN[staat.fout] : undefined}
         />
-        <br />
-        <small id="code-hulp">6 cijfers</small>
-      </p>
-      {staat.fout && (
-        <p id="code-fout" role="alert">
-          {CODE_MELDINGEN[staat.fout]}
+        <p>
+          <Knop type="submit" disabled={bezig}>
+            Bevestigen
+          </Knop>
         </p>
-      )}
-      <p>
-        <button type="submit" disabled={bezig}>
-          Bevestigen
-        </button>
-      </p>
+      </Kaart>
     </form>
   );
 }

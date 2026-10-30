@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
+import { Lijst, Lijstrij } from '@/components/lijst/lijst';
+import { Melding } from '@/components/melding/melding';
+import { Schermkader } from '@/components/schermkader/schermkader';
+import { Veld } from '@/components/veld/veld';
 import { haalBeheerstatus } from '@/lib/beheer';
 import { CODE_GELDIG_UUR, CODE_MELDINGEN, routeVoorBeheerstatus } from '@/lib/mfa';
 import { maakSupabase } from '@/lib/supabase/server';
-import { Eenvoudig } from '@/components/eenvoudig/eenvoudig';
 
 import { bevestigCode } from '../acties';
 
@@ -29,57 +33,50 @@ export default async function CodeVoorBeheer({ searchParams }: { searchParams: Z
   const opnieuw = niveau.data?.currentLevel === 'aal2';
 
   return (
-    <Eenvoudig>
-      <main>
-        <p>
-          <Link href="/">← Terug naar start</Link>
-        </p>
-        <h1>{opnieuw ? 'Vul opnieuw je code in' : 'Code voor beheer'}</h1>
-        {opnieuw && (
-          <p>
-            Beheer vraagt elke {CODE_GELDIG_UUR} uur om een nieuwe code, ook als je ingelogd blijft. Dat is
-            geen storing. Alles voor leden werkt gewoon door.
-          </p>
-        )}
-        <h2>Vul de code uit je app in</h2>
+    <Schermkader
+      actief="beheer"
+      titel={opnieuw ? 'Vul opnieuw je code in' : 'Code voor beheer'}
+      terug={{ href: '/', tekst: 'Terug naar start' }}
+    >
+      {opnieuw && (
+        <Melding soort="info">
+          Beheer vraagt elke {CODE_GELDIG_UUR} uur om een nieuwe code, ook als je ingelogd blijft. Dat is geen
+          storing. Alles voor leden werkt gewoon door.
+        </Melding>
+      )}
+      <Kaart titel="Vul de code uit je app in">
         <p>
           Open je authenticator-app en typ de 6 cijfers die bij De Beringse Kuus staan. De code verandert elke
           halve minuut.
         </p>
         <form action={bevestigCode}>
-          <p>
-            <label htmlFor="code">Code uit de app</label>
-            <br />
-            <input
-              id="code"
-              name="code"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={7}
-              required
-              aria-invalid={fout ? true : undefined}
-              aria-describedby={fout ? 'code-fout' : 'code-hulp'}
-            />
-            <br />
-            <small id="code-hulp">6 cijfers</small>
-          </p>
-          {fout && (
-            <p id="code-fout" role="alert">
-              {CODE_MELDINGEN[fout]}
-            </p>
-          )}
+          <Veld
+            id="code"
+            name="code"
+            label="Code uit de app"
+            hulp="6 cijfers"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={7}
+            required
+            fout={fout ? CODE_MELDINGEN[fout] : undefined}
+          />
           {fout === 'code' && (
             <p>Blijft het misgaan? Controleer of de tijd op je telefoon automatisch staat ingesteld.</p>
           )}
           <p>
-            <button type="submit">Verder naar beheer</button>
+            <Knop type="submit">Verder naar beheer</Knop>
           </p>
         </form>
-        <p>
-          <Link href="/mfa/toestel-kwijt">Nieuwe telefoon of telefoon kwijt? Lees wat je dan doet →</Link>
-        </p>
-      </main>
-    </Eenvoudig>
+      </Kaart>
+      <Kaart lijst>
+        <Lijst zonderKop>
+          <Lijstrij href="/mfa/toestel-kwijt">
+            Nieuwe telefoon of telefoon kwijt? Lees wat je dan doet
+          </Lijstrij>
+        </Lijst>
+      </Kaart>
+    </Schermkader>
   );
 }

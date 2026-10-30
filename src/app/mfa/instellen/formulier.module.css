@@ -1,0 +1,13 @@
+/* De stappen 2 en 3 onder elkaar, met dezelfde ruimte als de kaarten in een kolom. */
+.stappen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+/* de sleutel om over te typen: vaste breedte van de tekens, en breekt niet midden in een groepje */
+.sleutel {
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  overflow-wrap: anywhere;
+}

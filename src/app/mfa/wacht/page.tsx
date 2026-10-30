@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
+import { Melding } from '@/components/melding/melding';
+import { Schermkader } from '@/components/schermkader/schermkader';
 import { haalBeheerstatus } from '@/lib/beheer';
 import { maakSupabase } from '@/lib/supabase/server';
-import { Eenvoudig } from '@/components/eenvoudig/eenvoudig';
+
+import stijl from './wacht.module.css';
 
 export const metadata: Metadata = { title: 'Je app is ingesteld – Ledenplatform' };
 
@@ -30,58 +34,48 @@ export default async function WachtOpBevestiging() {
 
   if (status === 'geen_beheerder') {
     return (
-      <Eenvoudig>
-        <main>
-          <p>
-            <Link href="/">← Terug naar start</Link>
-          </p>
-          <h1>Je app is ingesteld</h1>
+      <Schermkader titel="Je app is ingesteld" terug={{ href: '/', tekst: 'Terug naar start' }}>
+        <Kaart>
           <p>
             Er is voor jou geen beheer aangezet. Heb je dit niet zelf gedaan? Zeg het dan tegen het bestuur.
           </p>
           <p>
-            <Link href="/">Naar Start</Link>
+            <Knop href="/">Naar Start</Knop>
           </p>
-        </main>
-      </Eenvoudig>
+        </Kaart>
+      </Schermkader>
     );
   }
 
   return (
-    <Eenvoudig>
-      <main>
-        <p>
-          <Link href="/">← Terug naar start</Link>
-        </p>
-        <h1>Je app is ingesteld</h1>
-        <p>
-          Een andere beheerder moet je toegang tot beheer nog bevestigen. Tot die tijd gebruik je het platform
-          als lid.
-        </p>
-        <h2>Wat moet je nu doen?</h2>
+    <Schermkader actief="beheer" titel="Je app is ingesteld" terug={{ href: '/', tekst: 'Terug naar start' }}>
+      <Melding soort="info">
+        Een andere beheerder moet je toegang tot beheer nog bevestigen. Tot die tijd gebruik je het platform
+        als lid.
+      </Melding>
+      <Kaart titel="Wat moet je nu doen?">
         <p>
           Vraag een andere beheerder om je toegang te bevestigen. Zodra dat gebeurd is, kom je bij Beheer en
           vraagt het platform om een code uit je app. Je hoeft niets opnieuw in te stellen.
         </p>
-        {app && (
-          <>
-            <h2>Dit leest de beheerder na</h2>
-            <p>Noem deze twee dingen. De beheerder bevestigt alleen als ze kloppen met wat hij ziet.</p>
-            <ul>
-              <li>
-                Naam van je app: <code>{app.friendly_name}</code>
-              </li>
-              <li>Ingesteld op: {MOMENT.format(new Date(app.created_at))}</li>
-            </ul>
-            <p>
-              Heb je dit niet zelf net gedaan? Vraag dan niet om bevestiging, maar zeg het tegen de beheerder.
-            </p>
-          </>
-        )}
         <p>
-          <Link href="/">Naar Start</Link>
+          <Knop href="/">Naar Start</Knop>
         </p>
-      </main>
-    </Eenvoudig>
+      </Kaart>
+      {app && (
+        <Kaart titel="Dit leest de beheerder na">
+          <p>Noem deze twee dingen. De beheerder bevestigt alleen als ze kloppen met wat hij ziet.</p>
+          <ul className={stijl.gegevens}>
+            <li>
+              Naam van je app: <code>{app.friendly_name}</code>
+            </li>
+            <li>Ingesteld op: {MOMENT.format(new Date(app.created_at))}</li>
+          </ul>
+          <p>
+            Heb je dit niet zelf net gedaan? Vraag dan niet om bevestiging, maar zeg het tegen de beheerder.
+          </p>
+        </Kaart>
+      )}
+    </Schermkader>
   );
 }

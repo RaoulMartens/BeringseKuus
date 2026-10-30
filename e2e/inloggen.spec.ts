@@ -26,11 +26,13 @@ test.describe('inloggen met een link per mail', () => {
     await logInMet(page, await inloglinkVoor(email));
 
     await expect(page).toHaveURL(/\/mijn$/);
-    await expect(page.getByRole('main')).toContainText(`Je bent ingelogd als ${email}.`);
+    await expect(page.getByRole('main')).toContainText(email);
 
     await page.getByRole('button', { name: 'Uitloggen' }).click();
     await expect(page).toHaveURL(/\/inloggen\?uitgelogd=1$/);
-    await expect(page.getByRole('main').getByRole('status')).toHaveText('Je bent uitgelogd.');
+    await expect(page.getByRole('main').getByRole('status')).toHaveText(
+      'Je bent uitgelogd. Tot de volgende keer.',
+    );
     await page.goto('/mijn');
     await expect(page).toHaveURL(/\/inloggen$/);
   });
@@ -71,8 +73,8 @@ test.describe('inloggen met een link per mail', () => {
 
     await logInMet(page, link);
     await expect(page).toHaveURL(/\/inloggen\?fout=link$/);
-    await expect(page.getByRole('main').getByRole('alert')).toHaveText(
-      'De inloglink is verlopen of al gebruikt. Vraag hieronder een nieuwe aan.',
+    await expect(page.getByRole('main').getByRole('alert')).toContainText(
+      'De link uit je mail is verlopen of al gebruikt.',
     );
   });
 
@@ -88,11 +90,11 @@ test.describe('inloggen met een link per mail', () => {
     await page.goto('/inloggen');
     // De browser vindt "a@b" goed; de server niet. Zo wordt de controle op de server getest.
     await page.getByLabel('E-mailadres').fill('a@b');
-    await page.getByRole('button', { name: 'Stuur inloglink' }).click();
+    await page.getByRole('button', { name: 'Stuur mij een inloglink' }).click();
     await expect(page).toHaveURL(/\/inloggen\?fout=ongeldig$/);
     const veld = page.getByLabel('E-mailadres');
     await expect(veld).toHaveAttribute('aria-invalid', 'true');
-    await expect(veld).toHaveAccessibleDescription('Vul een geldig e-mailadres in.');
+    await expect(veld).toHaveAccessibleDescription(/Dit lijkt geen e-mailadres/);
   });
 
   test('een lege of kapotte link geeft een duidelijke melding', async ({ page }) => {

@@ -1,30 +1,32 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
-import { Eenvoudig } from '@/components/eenvoudig/eenvoudig';
+import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
+import { Melding } from '@/components/melding/melding';
+import { Schermkader } from '@/components/schermkader/schermkader';
+
+import stijl from './toestel-kwijt.module.css';
 
 export const metadata: Metadata = { title: 'Telefoon kwijt – Ledenplatform' };
 
 // Hulpscherm (wireframe mfa-toestel-kwijt): geen zelfbediening, bewust. Zie docs/bouw/Beheerders.md voor wat de andere
-// beheerder doet.
+// beheerder doet. Het scherm vraagt niets aan de database: wie zijn telefoon kwijt is, kan hier altijd lezen wat te doen.
 export default function ToestelKwijt() {
   return (
-    <Eenvoudig>
-      <main>
-        <p>
-          <Link href="/mfa/code">← Terug naar de code</Link>
-        </p>
-        <h1>Telefoon kwijt of een nieuwe telefoon?</h1>
-        <p>
-          Je kunt gewoon als lid inloggen. Het programma, ruilen en afmelden werken zoals altijd. Alleen
-          beheer blijft dicht tot je een nieuwe app hebt ingesteld en een andere beheerder je toegang
-          bevestigt.
-        </p>
-        <h2>Zo kom je weer in beheer</h2>
+    <Schermkader
+      gast
+      titel="Telefoon kwijt of een nieuwe telefoon?"
+      terug={{ href: '/mfa/code', tekst: 'Terug naar de code' }}
+    >
+      <Melding soort="info">
+        Je kunt gewoon als lid inloggen. Het programma, ruilen en afmelden werken zoals altijd. Alleen beheer
+        blijft dicht tot je een nieuwe app hebt ingesteld en een andere beheerder je toegang bevestigt.
+      </Melding>
+      <Kaart titel="Zo kom je weer in beheer">
         <p>
           Dit regel je niet zelf, en dat is bewust: zo kan niemand met alleen jouw mailbox beheer overnemen.
         </p>
-        <ol>
+        <ol className={stijl.stappen}>
           <li>
             <strong>Vraag een andere beheerder</strong>
             <br />
@@ -44,9 +46,11 @@ export default function ToestelKwijt() {
           </li>
         </ol>
         <p>
-          <Link href="/">Terug naar start</Link>
+          <Knop href="/" soort="secundair">
+            Terug naar start
+          </Knop>
         </p>
-      </main>
-    </Eenvoudig>
+      </Kaart>
+    </Schermkader>
   );
 }

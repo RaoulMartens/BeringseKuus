@@ -40,3 +40,23 @@
     min-width: 0;
   }
 }
+
+/* "← Terug naar …": een gewone link bovenaan de inhoud, onderstreept zoals elke link in het ontwerp */
+.terug {
+  margin: 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+}
+
+.terug a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--neutraal-tekst);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.terug svg {
+  width: 16px;
+  height: 16px;
+}

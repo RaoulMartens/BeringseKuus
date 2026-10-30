@@ -12,7 +12,8 @@ test.describe('startpagina', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'nl');
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('header')).toHaveCount(1);
-    await expect(page.locator('nav')).toHaveCount(1);
+    // Een gast ziet geen menu: alleen de bovenbalk met de naam en de knop om in te loggen.
+    await expect(page.locator('nav')).toHaveCount(0);
     await expect(page.locator('main')).toHaveCount(1);
   });
 
@@ -33,7 +34,7 @@ test.describe('startpagina', () => {
   test('is met het toetsenbord te bereiken, met een zichtbare focus', async ({ page }) => {
     await page.goto('/');
     await page.keyboard.press('Tab');
-    const link = page.getByRole('link', { name: 'Ledenplatform' });
+    const link = page.getByRole('link', { name: 'Inloggen' });
     await expect(link).toBeFocused();
     // toBeFocused zegt niets over zichtbaarheid (review PR1-08): controleer ook de focusrand zelf.
     const rand = await link.evaluate((element) => {

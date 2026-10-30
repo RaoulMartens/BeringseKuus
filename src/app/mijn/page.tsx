@@ -1,32 +1,56 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
-import { maakSupabase } from '@/lib/supabase/server';
-import { Eenvoudig } from '@/components/eenvoudig/eenvoudig';
+import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
+import { Lijst, Lijstrij } from '@/components/lijst/lijst';
+import { Schermkader } from '@/components/schermkader/schermkader';
+import { huidigeGebruiker } from '@/lib/gebruiker';
 
 import { logUit } from './acties';
+import stijl from './mijn.module.css';
 
 export const metadata: Metadata = { title: 'Mijn account – Ledenplatform' };
 
+// Wie is ingelogd en uitloggen (wireframe mijn-account). Tijdelijk: dit scherm vervalt mogelijk in Start of Mijn diensten.
 export default async function MijnAccount() {
-  const supabase = await maakSupabase();
-  // getUser controleert de sessie bij Supabase zelf; de cookie alleen lezen is niet genoeg om te vertrouwen.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/inloggen');
+  const gebruiker = await huidigeGebruiker();
+  if (!gebruiker) redirect('/inloggen');
 
   return (
-    <Eenvoudig>
-      <main>
-        <h1>Mijn account</h1>
-        <p>
-          Je bent ingelogd als <strong>{user.email}</strong>.
-        </p>
+    <Schermkader titel="Mijn account" terug={{ href: '/', tekst: 'Terug naar start' }}>
+      <Kaart>
+        <dl className={stijl.gegevens}>
+          <div>
+            <dt>Naam</dt>
+            <dd>
+              {gebruiker.voornaam} {gebruiker.achternaam}
+            </dd>
+          </div>
+          <div>
+            <dt>E-mailadres</dt>
+            <dd>{gebruiker.email}</dd>
+          </div>
+          <div>
+            <dt>Je bent</dt>
+            <dd>{gebruiker.isBeheerder ? 'Lid en bestuurslid' : 'Lid'}</dd>
+          </div>
+        </dl>
         <form action={logUit}>
-          <button type="submit">Uitloggen</button>
+          <Knop type="submit" soort="secundair">
+            Uitloggen
+          </Knop>
         </form>
-      </main>
-    </Eenvoudig>
+      </Kaart>
+      {gebruiker.isBeheerder && (
+        <Kaart lijst>
+          <Lijst zonderKop>
+            <Lijstrij href="/mfa/toestel-kwijt">
+              Beheer: nieuwe telefoon of telefoon kwijt? Lees wat je dan doet
+            </Lijstrij>
+          </Lijst>
+        </Kaart>
+      )}
+    </Schermkader>
   );
 }
