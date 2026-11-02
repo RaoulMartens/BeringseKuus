@@ -11,6 +11,7 @@ import { psql } from './database-hulp.ts';
 import {
   beheerClient as beheer,
   logInZonderBrowser as logIn,
+  bevestigBeheerder,
   maakLidMetRol,
   ruimLidOp,
   schrijfAppIn,
@@ -46,8 +47,8 @@ async function claimsVan(
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
-  // beheerder_sinds ver in de toekomst: elke app die nu wordt ingeschreven, is "van vóór" (zoals in de seed).
-  uid = await maakLidMetRol(email, "timestamptz '2099-01-01'");
+  // beheerder_sinds is nu: een app die hierna wordt ingeschreven is "van na" en moet worden bevestigd (bevestigBeheerder).
+  uid = await maakLidMetRol(email, 'now()');
 });
 
 test.afterAll(async () => {
@@ -94,6 +95,10 @@ test('een foute code wordt geweigerd; een goede geeft aal2, een code-stap in amr
     code: totpCode(totp.secret),
   });
   expect(goed.error).toBeNull();
+  expect(await beheerstatus(client), 'een app van na beheerder_sinds: eerst bevestigen').toBe(
+    'wacht_op_bevestiging',
+  );
+  bevestigBeheerder(email);
 
   const claims = await claimsVan(client);
   expect(claims.aal).toBe('aal2');
@@ -152,7 +157,7 @@ test('een app van na beheerder_sinds wacht op bevestiging; uitschrijven geeft we
   expect(await beheerstatus(opnieuw), 'een nieuwe app van na beheerder_sinds: wachten').toBe(
     'wacht_op_bevestiging',
   );
-  psql(`update public.leden_prive set beheerder_sinds = now() + interval '1 hour' where email = '${email}';`);
+  psql(`update public.leden_prive set beheerder_sinds = now() where email = '${email}';`);
   expect(await beheerstatus(opnieuw)).toBe('ok');
   expect(await overzicht(opnieuw)).toBe('ok');
 });
@@ -161,10 +166,11 @@ test('een open sessie met een code van vóór de nieuwe app krijgt na het herste
   // Het scenario van een gestolen telefoon (review PR23-01): de dief heeft een open sessie met een goede code. De
   // beheerder haalt de app los en het bestuurslid stelt een nieuwe in. De oude code hoort bij de oude app.
   const adres = `mfa-${crypto.randomUUID()}@example.com`;
-  const eigenUid = await maakLidMetRol(adres, "timestamptz '2099-01-01'");
+  const eigenUid = await maakLidMetRol(adres, 'now()');
   try {
     const dief = await logIn(adres);
     const { factorId } = await schrijfAppIn(dief);
+    bevestigBeheerder(adres);
     expect(await beheerstatus(dief)).toBe('ok');
 
     // De code telt in hele seconden: wacht tot de nieuwe app zeker later is aangemaakt.
@@ -174,6 +180,7 @@ test('een open sessie met een code van vóór de nieuwe app krijgt na het herste
     psql(`delete from auth.mfa_factors where id = '${factorId}';`);
     const bestuurslid = await logIn(adres);
     await schrijfAppIn(bestuurslid);
+    bevestigBeheerder(adres);
     expect(await beheerstatus(bestuurslid), 'het bestuurslid zelf heeft beheer').toBe('ok');
 
     expect((await dief.auth.refreshSession()).error).toBeNull();
@@ -188,10 +195,11 @@ test('na 12 uur vraagt dezelfde sessie opnieuw een code, en met die code is behe
   // De 12 uur rust erop dat GoTrue het tijdstip van de code in een bestaande sessie vernieuwt als er een nieuwe code
   // wordt ingevoerd (review PR23-05). Het tijdstip komt uit auth.mfa_amr_claims; hier wordt het 13 uur terug gezet.
   const adres = `mfa-${crypto.randomUUID()}@example.com`;
-  const eigenUid = await maakLidMetRol(adres, "timestamptz '2099-01-01'");
+  const eigenUid = await maakLidMetRol(adres, 'now()');
   try {
     const client = await logIn(adres);
     const { factorId, geheim } = await schrijfAppIn(client);
+    bevestigBeheerder(adres);
     expect(await beheerstatus(client)).toBe('ok');
 
     const sessie = (await claimsVan(client)).session_id;
