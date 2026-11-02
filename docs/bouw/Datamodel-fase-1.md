@@ -2,8 +2,9 @@
 
 Stand 29-10-2026, **versie 3**. De review door een schone chat (`Bouwbesluiten` 2; DM-01 t/m DM-19, oordeel "niet
 akkoord, dichtbij") is verwerkt in versie 2, de bouwer heeft de vier vragen beslist (punt 8), en de controle van versie 2
-(DM-20 t/m DM-25, oordeel "akkoord na kleine punten") is verwerkt in deze versie. Wacht op het akkoord van de bouwer;
-daarna komt de eerste migratie (`Fase-1-plan.md` stap C). Bronnen: bouwgids V8 hoofdstuk 3, 4, 5 en 7; `Bouwbesluiten-2026-10-27.md` punt 1 en 4 (gaat
+(DM-20 t/m DM-25, oordeel "akkoord na kleine punten") is verwerkt in deze versie. De bouwer is akkoord en de migraties
+staan er (`Fase-1-plan.md` stap C, PR 20 t/m 23); de review van fase 1 als geheel (30-10-2026) bevestigde de rechten.
+Bronnen: bouwgids V8 hoofdstuk 3, 4, 5 en 7; `Bouwbesluiten-2026-10-27.md` punt 1 en 4 (gaat
 voor); `docs/ux-flows/use-cases.md` (R1–R24, UC-001, UC-004); de wireframes van fase 1.
 
 Dit stuk legt vast: welke tabellen er komen, wie wat mag lezen en schrijven, welke databasefuncties fase 1 bouwt en met

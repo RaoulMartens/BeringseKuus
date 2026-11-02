@@ -248,8 +248,9 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
        to date". Bij een verbindingsfout staan het adres van de pooler en `postgres.<ref>` in de publieke log, het
        wachtwoord niet (review PR20-10).
     5. **Eerste keer dat de fase-1-migraties online komen** (pull request 22), samen controleren in Supabase:
-       - Database, Advisors, *Security Advisor*: drie verwachte meldingen "SECURITY DEFINER executable" voor
-         `activiteit_opslaan`, `concept_verwijderen` en `beheeroverzicht` (bedoeld: ze controleren zelf wie belt).
+       - Database, Advisors, *Security Advisor*: verwachte meldingen "SECURITY DEFINER executable" voor
+         `activiteit_opslaan`, `concept_verwijderen`, `beheeroverzicht` en `beheerstatus` (bedoeld: ze controleren zelf
+         wie belt).
          Elke andere nieuwe melding is een bevinding.
        - SQL Editor: `select has_table_privilege('postgres', 'auth.mfa_factors', 'select');` moet `true` geven. Zo niet,
          dan kan `is_beheerder()` online de factoren niet lezen en is niemand beheerder (Datamodel punt 3).

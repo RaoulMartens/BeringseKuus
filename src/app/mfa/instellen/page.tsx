@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { Kaart } from '@/components/kaart/kaart';
 import { Schermkader } from '@/components/schermkader/schermkader';
+import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { InstellenFormulier } from './formulier';
@@ -17,11 +18,8 @@ function inGroepjes(geheim: string): string {
 // Een authenticator-app instellen (wireframe mfa-instellen). Elk ingelogd lid mag dit: het geeft zelf nog niets, de
 // beheerder bevestigt het (Datamodel-fase-1.md punt 3, docs/bouw/Beheerders.md).
 export default async function BeheerBeveiligen() {
+  if (!(await huidigeAuthGebruiker())) redirect('/inloggen');
   const supabase = await maakSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/inloggen');
 
   const lijst = await supabase.auth.mfa.listFactors();
   if (lijst.error) throw new Error(`apps niet te lezen: ${lijst.error.code ?? lijst.error.name}`);

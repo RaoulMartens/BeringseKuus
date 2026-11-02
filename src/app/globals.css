@@ -25,6 +25,16 @@ body {
   outline-offset: var(--focus-offset);
 }
 
+/* Wie in zijn systeem minder beweging heeft gekozen, krijgt geen overgangen (WCAG 2.3.3, Bouwbesluiten 4.8). De kleuren
+   springen dan direct naar hun hoverstand. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}
+
 /* De QR-code is voor wie op een andere computer scant; op een telefoon staat de app op hetzelfde toestel (wireframe
    mfa-instellen). */
 .alleen-mobiel {

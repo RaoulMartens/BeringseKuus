@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 
 import { leesLokaleSupabase } from '../scripts/lokale-supabase.ts';
 
-import { maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
+import { beheerClient, maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
 
 const lokaal = leesLokaleSupabase();
 const aangemaakt: string[] = [];
@@ -13,6 +13,14 @@ export const wacht = (ms: number): Promise<void> => new Promise((klaar) => setTi
 export async function maakLid(email: string): Promise<void> {
   aangemaakt.push(await maakLidMetRol(email));
 }
+
+/** Een inlogaccount zonder rij in leden: wat een lid is voordat het bestuur hem toevoegt. */
+export async function maakAccountZonderLid(email: string): Promise<void> {
+  const { data, error } = await beheerClient.auth.admin.createUser({ email, email_confirm: true });
+  if (error) throw error;
+  aangemaakt.push(data.user.id);
+}
+
 export async function ruimLedenOp(): Promise<void> {
   for (const uid of aangemaakt.splice(0)) await ruimLidOp(uid);
 }

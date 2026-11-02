@@ -15,6 +15,7 @@ import {
   type Maand,
   type ProgrammaActiviteit,
 } from '@/lib/programma';
+import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { seizoenTitel } from '@/lib/vereniging';
 import { maakSupabase } from '@/lib/supabase/server';
 
@@ -54,11 +55,8 @@ function Maandkaart({ maand, vandaag, kop }: { maand: Maand; vandaag: string; ko
 }
 
 export default async function Programma() {
+  if (!(await huidigeAuthGebruiker())) redirect('/inloggen');
   const supabase = await maakSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/inloggen');
 
   const { data, error } = await supabase
     .from('activiteiten')
