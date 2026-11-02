@@ -81,7 +81,10 @@ begin
   elsif new.is_admin and new.beheerder_sinds is distinct from old.beheerder_sinds then
     -- Ook terugzetten naar vroeger is een wijziging, en geen bevestiging in de gewone zin: daarom de waarden erbij.
     v_actie := 'beheerder_sinds_gewijzigd';
-    v_tekst := format('beheerder_sinds van %s naar %s', old.beheerder_sinds, new.beheerder_sinds);
+    -- In UTC, ongeacht de tijdzone van de sessie: een spoor dat per sessie anders leest, is lastig te vergelijken.
+    v_tekst := format('beheerder_sinds van %s naar %s',
+                      to_char(old.beheerder_sinds at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS "UTC"'),
+                      to_char(new.beheerder_sinds at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS "UTC"'));
   else
     return new;
   end if;
@@ -101,9 +104,12 @@ create trigger beheer_verwijderd_loggen after delete on public.leden_prive
 -- Online staat er één lid met een beheerder_sinds in 2099 (de snelle route voor de eerste kijkdag). De trigger toetst alleen
 -- nieuwe schrijfacties, dus zonder deze stap bleef dat lid zonder bevestiging beheerder voor elke app die hij nog instelt.
 -- Nu: beheerder_sinds wordt het moment van deze migratie. Een app die er al staat telt daarmee als "van vóór" (zoals de
--- bedoeling was); een app die daarna wordt ingesteld, moet worden bevestigd. De wijziging komt in het spoor.
+-- bedoeling was); een app die daarna wordt ingesteld, moet worden bevestigd. De wijziging komt in het spoor. Controleer
+-- vóór het uitrollen of er een app staat die niet van het lid is (Beheerders.md, "Bevestigen: wat je controleert"): wat er
+-- dan staat, telt vanaf deze migratie als bevestigd. Een lid zonder is_admin met een toekomstwaarde krijgt een lege waarde.
+-- Dezelfde regel staat in fase1_afname.test.sql ("De data-stap"); pas ze samen aan.
 update public.leden_prive
-   set beheerder_sinds = clock_timestamp()
+   set beheerder_sinds = case when is_admin then clock_timestamp() else null end
  where beheerder_sinds > clock_timestamp() + interval '5 seconds';
 
 -- ===== 1c. De leeskant negeert een toekomstwaarde =====

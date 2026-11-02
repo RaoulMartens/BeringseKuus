@@ -5,8 +5,9 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
-set local timezone = 'UTC';
+select plan(34);
+-- Bewust niet in UTC: de omschrijving in het spoor moet in elke tijdzone hetzelfde lezen.
+set local timezone = 'Europe/Amsterdam';
 
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
 
@@ -134,6 +135,24 @@ select is(public.beheerstatus(), 'wacht_op_bevestiging',
 select is(intern.is_beheerder(), false, 'en is_beheerder() is onwaar');
 reset role;
 
+-- ===== 1b. De data-stap van de migratie =====
+-- Een toekomstwaarde die er al stond (de rij online met 2099) wordt het moment van nu; bij een lid zonder is_admin leeg.
+-- Dezelfde update als in de migratie; de trigger gaat er even uit om de oude toestand na te maken.
+select pg_temp.maak('t_stap', p_admin => true, p_factor => true);
+select pg_temp.maak('t_stap2');
+alter table public.leden_prive disable trigger beheerder_sinds_zetten;
+update public.leden_prive set beheerder_sinds = timestamptz '2099-01-01'
+ where lid_id in (pg_temp.lid('t_stap'), pg_temp.lid('t_stap2'));
+alter table public.leden_prive enable trigger beheerder_sinds_zetten;
+update public.leden_prive
+   set beheerder_sinds = case when is_admin then clock_timestamp() else null end
+ where beheerder_sinds > clock_timestamp() + interval '5 seconds';
+select is((select count(*) from public.leden_prive where beheerder_sinds > clock_timestamp() + interval '5 seconds'), 0::bigint,
+  'na de data-stap staat er geen enkele beheerder_sinds meer in de toekomst');
+select is(pg_temp.laatste_actie('t_stap'), 'beheerder_sinds_gewijzigd', 'de rechtgezette beheerder staat in het spoor');
+select is((select beheerder_sinds from public.leden_prive where lid_id = pg_temp.lid('t_stap2')), null,
+  'een lid zonder is_admin met een toekomstwaarde krijgt een lege waarde');
+
 -- ===== 2. Auditspoor (F1-07) =====
 select pg_temp.maak('t_drie');
 select is((select count(*) from public.wijzigingen_log where tabel = 'leden_prive' and rij_id = pg_temp.lid('t_drie')), 0::bigint,
@@ -147,9 +166,9 @@ select is(pg_temp.laatste_actie('t_drie'), 'beheer_aangezet', 'beheer aanzetten 
 
 update public.leden_prive set beheerder_sinds = timestamptz '2026-10-01 12:00+00' where lid_id = pg_temp.lid('t_drie');
 select is(pg_temp.laatste_actie('t_drie'), 'beheerder_sinds_gewijzigd', 'beheerder_sinds wijzigen staat in de log');
-select ok((select omschrijving like '%naar 2026-10-01 12:00:00+00' from public.wijzigingen_log
+select ok((select omschrijving like '%naar 2026-10-01 12:00:00 UTC' from public.wijzigingen_log
             where tabel = 'leden_prive' and rij_id = pg_temp.lid('t_drie') order by id desc limit 1),
-  'met de nieuwe waarde erbij (terugzetten naar vroeger is te zien als terugzetten)');
+  'met de nieuwe waarde erbij, in UTC (terugzetten naar vroeger is te zien als terugzetten)');
 
 update public.leden_prive set mag_bob = true where lid_id = pg_temp.lid('t_drie');
 select is((select count(*) from public.wijzigingen_log where tabel = 'leden_prive' and rij_id = pg_temp.lid('t_drie')), 2::bigint,
