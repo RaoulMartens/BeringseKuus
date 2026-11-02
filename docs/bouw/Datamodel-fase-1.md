@@ -243,6 +243,11 @@ schrijft er nog niets in; de seed vult een paar, zodat het aantal aanwezigen klo
 Geen afmeldtoelichtingen of andere privévelden erin (`Bouwbesluiten` 4.6). Wel namen als tekst: bij wissen op verzoek
 moeten die mee (DM-19). Lezen: alleen de beheerder (V8 7.1).
 
+Ook beheerrechten laten een spoor na (F1-07): `beheer_aangezet`, `beheer_uitgezet`, `beheerder_sinds_gewijzigd` (de
+bevestiging) en `beheer_verwijderd`. Daarin staat het lid (id) en de oude en nieuwe waarde van `beheerder_sinds` in UTC,
+geen e-mailadres en geen naam. Het spoor is geen bewijs tegenover wie het dashboard heeft (zie `Beheerders.md`, "Bekende
+grenzen").
+
 ### 2.9 Niet in fase 1
 
 `meldingen` (`Bouwbesluiten` 5.3, fase 7), de agendavelden (fase 7), `wil_ruilen` (V8 4.3, fase 5), `versie` (vóór fase
@@ -308,8 +313,11 @@ onderschept, kan zelf een factor inschrijven. Daarom:
 - **GoTrue-gedrag, lokaal nagegaan (PR 22-review):** een `aal1`-sessie kan geen tweede factor inschrijven als er al een
   geverifieerde is (403); uitschrijven vraagt `aal2`. Gebruik daarom `created_at` van de factor, zoals `is_beheerder()` doet.
 - **`beheerder_sinds` volgt `is_admin` (PR22-08):** een trigger op `leden_prive` zet het bij het aanzetten op het moment
-  van nu en maakt het leeg bij het uitzetten. Een bij het aanmaken meegegeven waarde blijft staan (de seed zet hem lokaal
-  ver in de toekomst, zodat elke lokaal ingeschreven factor telt).
+  van nu en maakt het leeg bij het uitzetten. Een meegegeven waarde blijft staan, maar mag **niet in de toekomst** liggen
+  (meer dan vijf seconden): de database weigert dat met `beheerder_sinds_toekomst` (F1-02). Een toekomstwaarde zou elke
+  app die het lid daarvóór instelt als "van vóór" laten tellen, dus zonder bevestiging door een andere beheerder.
+  `is_beheerder()` en `beheerstatus()` negeren zo'n waarde ook (voor wie de trigger omzeilt), en de migratie van de
+  afname zet een bestaande toekomstwaarde recht. De seed en de tests gebruiken `now()` of een waarde in het verleden.
 - **`service_role`** mag geen tabel leegmaken (`truncate`) en de auditlog niet wijzigen of wissen (PR22-07); de
   rechtentest bewaakt het voor alle tabellen in `public`.
 - **Stap D, lokaal bewezen met de echte GoTrue** (`e2e/mfa-gotrue.spec.ts`, project `database`): een nieuwe sessie is

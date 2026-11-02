@@ -39,6 +39,17 @@ moment waarop dat wordt gestopt, en dat werkt alleen als de beheerder iets contr
 
    Er moet **precies één** bevestigde app (`verified`) staan, met dezelfde naam en (vrijwel) hetzelfde moment. Staat er
    een tweede of een onbekende, bevestig dan niet.
+
+   Staat er ook een **niet-bevestigde** app (`unverified`), haal die dan eerst weg. Hij is er al, en wie hem later alsnog
+   bevestigt, krijgt een app waarvan het aanmaakmoment van vóór de bevestiging is: die telt dan mee zonder dat een
+   beheerder hem heeft gezien.
+
+   ```sql
+   delete from auth.mfa_factors
+    where status = 'unverified'
+      and user_id = (select l.auth_user_id from public.leden l
+                       join public.leden_prive p on p.lid_id = l.id where p.email = '…');
+   ```
 3. Pas dan bevestigen (`beheerder_sinds` ná de app):
 
    ```sql
@@ -196,3 +207,10 @@ geeft het `geen_lid`; controleer dus met de pagina zelf. De statussen:
   de afweging staat in `Datamodel-fase-1.md` punt 3. Vóór de pilot meten we online wat de rem is (`hosting.md` stap 14).
 - **Eén beheerder.** Zolang er één beheerder is, kan die zichzelf niet laten bevestigen door een tweede. De bouwer doet
   het met het dashboard; dat is de afspraak tot er een tweede beheerder is (pilotcheck, `Bouwbesluiten` 5.2).
+- **Geen bevestiging vooruit.** De database weigert een `beheerder_sinds` in de toekomst (`beheerder_sinds_toekomst`):
+  je kunt een bevestiging dus niet "alvast" geven voor een app die nog moet komen. Bevestig altijd ná het instellen.
+- **Het auditspoor van beheerrechten** (`wijzigingen_log`: `beheer_aangezet`, `beheer_uitgezet`,
+  `beheerder_sinds_gewijzigd`, `beheer_verwijderd`) laat zien wat er is gebeurd, maar bewijst niets tegenover wie het
+  dashboard van het project heeft: die kan het spoor ook wissen. Wie het dashboard heeft, wordt dus vertrouwd. Bij een
+  wijziging in het dashboard of met de sleutel van een script is ook niet te zien wie het deed (`door_lid_id` is dan
+  leeg).
