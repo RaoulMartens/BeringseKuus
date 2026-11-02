@@ -367,7 +367,7 @@ gepubliceerde activiteit; die cases worden de nieuwe tests. Aanroepen op een bes
 
 ## 13. Besluiten van de bouwer (02-11-2026) en de review
 
-**Besluiten**
+**Besluiten** (de ontwerper heeft ze op 02-11-2026 bevestigd; open punt O-1 staat nog open)
 
 1. **De versie wordt in de functie verhoogd, één keer per opslag, niet in een trigger.** Een pgTAP-bewaker vangt een
    nieuwe schrijver op. **De acties van een lid (fase 3) verhogen de versie niet**: de plek is al beschermd door
