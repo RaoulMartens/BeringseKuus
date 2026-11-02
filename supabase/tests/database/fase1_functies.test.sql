@@ -4,7 +4,16 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(91);
+select plan(86);
+
+-- De tests van fase 1 roepen activiteit_opslaan aan zonder naar de versie te kijken; deze hulp (alleen in deze
+-- transactie, rolt mee terug) leest de actuele versie en geeft die mee. De versie zelf staat in fase2_opslaan.test.sql.
+create function public.t_os(p_id uuid, p_velden jsonb, p_wijz jsonb, p_publ boolean default false) returns jsonb
+language sql
+as $$
+  select public.activiteit_opslaan(p_id, p_velden, p_wijz, p_publ, (select a.versie from public.activiteiten a where a.id = p_id))
+$$;
+grant execute on function public.t_os(uuid, jsonb, jsonb, boolean) to authenticated;
 
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
 
@@ -90,9 +99,9 @@ select set_config('test.log_voor', (select count(*)::text from public.wijziginge
 -- ===== Een lid mag niets, ook niet met een onbekend id; er is niets aangemaakt =====
 select pg_temp.als('t_truus', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T Nee", "datum": "2099-01-01"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T Nee", "datum": "2099-01-01"}', '[]') $$,
   'BK001', 'geen_admin', 'lid: activiteit_opslaan geeft geen_admin');
-select throws_ok($$ select public.activiteit_opslaan(gen_random_uuid(), '{}', '[]') $$,
+select throws_ok($$ select public.t_os(gen_random_uuid(), '{}', '[]') $$,
   'BK001', 'geen_admin', 'lid: geen_admin gaat voor activiteit_onbekend (eerst wie belt)');
 reset role;
 select is((select count(*)::int from public.activiteiten where naam = 'T Nee'), 0, 'lid: er is niets aangemaakt');
@@ -102,7 +111,7 @@ select is((select count(*)::text from public.wijzigingen_log), current_setting('
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
 select set_config('test.nieuw',
-  (public.activiteit_opslaan(null, '{"naam": "T Avond", "datum": "2027-01-15"}', '[]')->>'activiteit_id'), true);
+  (public.t_os(null, '{"naam": "T Avond", "datum": "2027-01-15"}', '[]')->>'activiteit_id'), true);
 reset role;
 select is((select (a.status, a.type, a.min_aanwezigen, a.seizoen)::text from public.activiteiten a where a.id = current_setting('test.nieuw')::uuid),
   '(concept,seizoen,13,2026)', 'aanmaken met alleen naam en datum: concept, seizoen, minimum 13, seizoen 2026');
@@ -120,23 +129,23 @@ select is((select (begint_om, eindigt_om)::text from public.activiteiten where i
 -- ===== Fouten in de velden =====
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(null, '{"datum": "2099-01-01"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"datum": "2099-01-01"}', '[]') $$,
   'BK001', 'veld_ontbreekt', 'naam ontbreekt: veld_ontbreekt');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": ""}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": ""}', '[]') $$,
   'BK001', 'veld_ontbreekt', 'een lege naam en geen datum: veld_ontbreekt');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "kleur": "rood"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "2099-01-01", "kleur": "rood"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een onbekende sleutel: veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-13-45"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "2099-13-45"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een datum die niet bestaat: veld_ongeldig, geen kale databasefout');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": 5, "datum": "2099-01-01"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": 5, "datum": "2099-01-01"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een getal als naam: veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "20:00", "eindtijd": "20:00"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "20:00", "eindtijd": "20:00"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'eindtijd gelijk aan starttijd: veld_ongeldig (DM-06)');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "min_aanwezigen": 0}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "2099-01-01", "min_aanwezigen": 0}', '[]') $$,
   'BK001', 'veld_ongeldig', 'minimum 0: veld_ongeldig, geen kale 23514');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "groepen": ["00000000-0000-4000-8000-0000000000ff"]}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "2099-01-01", "groepen": ["00000000-0000-4000-8000-0000000000ff"]}', '[]') $$,
   'BK001', 'groep_onbekend', 'een onbekende groep: groep_onbekend');
-select throws_ok($$ select public.activiteit_opslaan(gen_random_uuid(), '{}', '[]') $$,
+select throws_ok($$ select public.t_os(gen_random_uuid(), '{}', '[]') $$,
   'BK001', 'activiteit_onbekend', 'een onbekende activiteit: activiteit_onbekend');
 reset role;
 select is((select count(*)::int from public.activiteiten where naam = 'T X'), 0, 'na al die fouten is er niets aangemaakt');
@@ -144,7 +153,7 @@ select is((select count(*)::int from public.activiteiten where naam = 'T X'), 0,
 -- ===== Plekken toevoegen en weghalen =====
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select set_config('test.plekken', public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
+select set_config('test.plekken', public.t_os(current_setting('test.nieuw')::uuid, '{}',
   '[{"handeling": "plek_toevoegen", "rol_type": "werker", "tijdelijk_id": "a"},
     {"handeling": "plek_toevoegen", "rol_type": "drankhaler", "tijdelijk_id": "b"}]')::text, true);
 reset role;
@@ -159,20 +168,20 @@ select set_config('test.werker', (select id::text from public.rol_slots where ac
 
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}',
   '[{"handeling": "plek_toevoegen", "rol_type": "werker", "tijdelijk_id": "x"}, {"handeling": "plek_toevoegen", "rol_type": "werker", "tijdelijk_id": "x"}]') $$,
   'BK001', 'wijziging_ongeldig', 'een dubbele tijdelijk_id: wijziging_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}', '{"handeling": "plek_toevoegen"}') $$,
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}', '{"handeling": "plek_toevoegen"}') $$,
   'BK001', 'wijziging_ongeldig', 'wijzigingen die geen lijst is: wijziging_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}', '[{"handeling": "opruimen"}]') $$,
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}', '[{"handeling": "opruimen"}]') $$,
   'BK001', 'wijziging_ongeldig', 'een onbekende handeling: wijziging_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}',
   '[{"handeling": "plek_toevoegen", "rol_type": "kapitein", "tijdelijk_id": "k"}]') $$,
   'BK001', 'wijziging_ongeldig', 'een onbekend rol_type: wijziging_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}',
   format('[{"handeling": "plek_weghalen", "rol_slot_id": "%s"}]', current_setting('test.ev'))::jsonb) $$,
   'BK001', 'eindverantwoordelijke_verplicht', 'de eindverantwoordelijke weghalen: eindverantwoordelijke_verplicht');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}',
   format('[{"handeling": "plek_weghalen", "rol_slot_id": "%s"}]', current_setting('test.ander_slot'))::jsonb) $$,
   'BK001', 'plek_onbekend', 'een plek van een andere activiteit weghalen: plek_onbekend (Bouwbesluiten 4.4)');
 reset role;
@@ -184,44 +193,28 @@ update public.rol_slots set bezetter_id = (select lid from pg_temp.gebruikers wh
  where id = current_setting('test.werker')::uuid;
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}',
   format('[{"handeling": "plek_weghalen", "rol_slot_id": "%s"}]', current_setting('test.werker'))::jsonb) $$,
   'BK001', 'plek_niet_leeg', 'een bezette plek weghalen: plek_niet_leeg');
 reset role;
 update public.rol_slots set bezetter_id = null where id = current_setting('test.werker')::uuid;
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{}',
   format('[{"handeling": "plek_weghalen", "rol_slot_id": "%s"}]', current_setting('test.werker'))::jsonb) $$,
   'een lege plek weghalen lukt');
 reset role;
 select is((select count(*)::int from public.rol_slots where activiteit_id = current_setting('test.nieuw')::uuid), 2, 'daarna zijn er twee plekken');
 select is((select count(*)::int from public.wijzigingen_log where actie = 'plek_weggehaald' and omschrijving like '%T Avond%'), 1, 'het weghalen is gelogd');
 
--- ===== Wat nog niet kan in fase 1 =====
-select pg_temp.als('t_mark', 'aal2');
-set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
-  format('[{"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s"}]', current_setting('test.ev'), gen_random_uuid())::jsonb) $$,
-  'BK001', 'niet_ondersteund', 'toewijzen is van fase 2: niet_ondersteund');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}',
-  format('[{"handeling": "leegmaken", "rol_slot_id": "%s"}]', current_setting('test.ev'))::jsonb) $$,
-  'BK001', 'niet_ondersteund', 'leegmaken is van fase 2: niet_ondersteund');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{}', '[]', true) $$,
-  'BK001', 'niet_ondersteund', 'publiceren is van fase 2: niet_ondersteund');
-select throws_ok($$ select public.activiteit_opslaan((select id from public.activiteiten where naam = 'T Pub'), '{"naam": "T Pub 2"}', '[]') $$,
-  'BK001', 'niet_ondersteund', 'een gepubliceerde activiteit wijzigen is van fase 2: niet_ondersteund');
-reset role;
-select is((select naam from public.activiteiten where naam like 'T Pub%'), 'T Pub', 'de gepubliceerde activiteit is niet gewijzigd');
-
 -- ===== Wijzigen van een concept: gedeeltelijk, alles of niets =====
 select set_config('test.bijgewerkt', (select bijgewerkt::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), true);
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid,
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid,
   '{"locatie": "De Kuus", "starttijd": "20:11", "eindtijd": "01:11", "groepen": [], "notitie": "Zaal klaar"}', '[]') $$,
   'een concept wijzigen lukt');
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"naam": "T Avond"}', '[]') $$,
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"naam": "T Avond"}', '[]') $$,
   'een wijziging met alleen een naam');
 reset role;
 select is((select (locatie, starttijd, eindtijd, notitie)::text from public.activiteiten where id = current_setting('test.nieuw')::uuid),
@@ -232,7 +225,7 @@ select is((select eindigt_om::text from public.activiteiten where id = current_s
   'eindtijd 01:11 bij starttijd 20:11: de volgende dag (R16), in Amsterdamse tijd');
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"locatie": null, "datum": "2027-09-01"}', '[]') $$,
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"locatie": null, "datum": "2027-09-01"}', '[]') $$,
   'null maakt een veld leeg');
 reset role;
 select is((select (locatie, seizoen)::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), '(,2027)',
@@ -241,59 +234,59 @@ select is((select (locatie, seizoen)::text from public.activiteiten where id = c
 -- Doelgroep.
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok(format($f$ select public.activiteit_opslaan(%L::uuid, '{"groepen": ["%s"]}', '[]') $f$,
+select lives_ok(format($f$ select public.t_os(%L::uuid, '{"groepen": ["%s"]}', '[]') $f$,
   current_setting('test.nieuw'), current_setting('test.groep_bestuur')), 'de doelgroep instellen');
 reset role;
 select is((select count(*)::int from public.activiteit_groep where activiteit_id = current_setting('test.nieuw')::uuid), 1, 'de doelgroep staat er');
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"groepen": []}', '[]') $$, 'een lege lijst = iedereen');
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"groepen": []}', '[]') $$, 'een lege lijst = iedereen');
 reset role;
 select is((select count(*)::int from public.activiteit_groep where activiteit_id = current_setting('test.nieuw')::uuid), 0, 'de doelgroep is weer leeg');
 
 -- ===== Tijdstippen en invoer (PR22-01, PR22-03) =====
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-02-01T20:00"}', '[]') $$,
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-02-01T20:00"}', '[]') $$,
   'een deadline zonder tijdzone');
 reset role;
 select is((select afmeld_deadline::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), '2099-02-01 19:00:00+00',
   'zonder tijdzone geldt Amsterdamse tijd: 20:00 in de winter is 19:00 UTC (PR22-01)');
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-07-01T20:00"}', '[]') $$,
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-07-01T20:00"}', '[]') $$,
   'een deadline in de zomer zonder tijdzone');
 reset role;
 select is((select afmeld_deadline::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), '2099-07-01 18:00:00+00',
   '20:00 in de zomer is 18:00 UTC');
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select lives_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-02-01T20:00:00+01:00"}', '[]') $$,
+select lives_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "2099-02-01T20:00:00+01:00"}', '[]') $$,
   'een deadline met een tijdzone');
 reset role;
 select is((select afmeld_deadline::text from public.activiteiten where id = current_setting('test.nieuw')::uuid), '2099-02-01 19:00:00+00',
   'met een tijdzone geldt die tijdzone');
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "infinity"}', '[]') $$,
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "infinity"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een deadline infinity: veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "now"}', '[]') $$,
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"afmeld_deadline": "now"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een deadline "now": veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "infinity"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "infinity"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een datum infinity: veld_ongeldig, geen kale 0A000');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "today"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "today"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een datum "today": veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "1970-01-01"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "1970-01-01"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een datum buiten 2000 tot en met 2100: veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "5874897-12-31"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "5874897-12-31"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een datum ver in de toekomst: veld_ongeldig, geen kale 22008');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "now"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "now"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een starttijd "now": veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "24:00"}', '[]') $$,
+select throws_ok($$ select public.t_os(null, '{"naam": "T X", "datum": "2099-01-01", "starttijd": "24:00"}', '[]') $$,
   'BK001', 'veld_ongeldig', 'een starttijd 24:00: veld_ongeldig');
-select throws_ok(format($f$ select public.activiteit_opslaan(null, '{"naam": "%s", "datum": "2099-01-01"}', '[]') $f$, repeat('x', 201)),
+select throws_ok(format($f$ select public.t_os(null, '{"naam": "%s", "datum": "2099-01-01"}', '[]') $f$, repeat('x', 201)),
   'BK001', 'veld_ongeldig', 'een naam van 201 tekens: veld_ongeldig');
-select throws_ok($$ select public.activiteit_opslaan(null, jsonb_build_object('naam', 'T X', 'datum', '2099-01-01', 'notitie', 'a' || chr(1)), '[]') $$,
+select throws_ok($$ select public.t_os(null, jsonb_build_object('naam', 'T X', 'datum', '2099-01-01', 'notitie', 'a' || chr(1)), '[]') $$,
   'BK001', 'veld_ongeldig', 'een notitie met een stuurteken: veld_ongeldig');
 reset role;
 
@@ -302,7 +295,7 @@ select set_config('test.log_voor', (select count(*)::text from public.wijziginge
 select set_config('test.plekken_voor', (select count(*)::text from public.rol_slots where activiteit_id = current_setting('test.nieuw')::uuid), true);
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
-select throws_ok($$ select public.activiteit_opslaan(current_setting('test.nieuw')::uuid, '{"naam": "T Gewijzigd"}',
+select throws_ok($$ select public.t_os(current_setting('test.nieuw')::uuid, '{"naam": "T Gewijzigd"}',
   '[{"handeling": "plek_toevoegen", "rol_type": "werker", "tijdelijk_id": "z"}, {"handeling": "opruimen"}]') $$,
   'BK001', 'wijziging_ongeldig', 'een fout in de laatste regel van wijzigingen');
 reset role;

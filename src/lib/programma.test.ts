@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   dagTekst,
   isActiviteitStatus,
+  isGeweest,
   maakProgramma,
   maandTitel,
   regelOnderNaam,
@@ -11,6 +12,8 @@ import {
   type ProgrammaActiviteit,
 } from './programma';
 
+// Zonder eigen eindmoment eindigt een activiteit aan het einde van de dag in Nederland (winter: 23:00 UTC), zoals de
+// database het doet bij een activiteit zonder eindtijd.
 function activiteit(
   naam: string,
   datum: string,
@@ -23,9 +26,12 @@ function activiteit(
     starttijd: null,
     locatie: null,
     status: 'gepubliceerd',
+    eindigtOm: `${datum}T23:00:00Z`,
     ...rest,
   };
 }
+
+const NU = new Date('2027-01-21T12:00:00Z');
 
 describe('vandaagInNederland', () => {
   it('geeft de dag in Nederland, niet in UTC', () => {
@@ -92,7 +98,7 @@ describe('maakProgramma', () => {
   ];
 
   it('zet de komende op volgorde per maand, en het geweest dat het laatst was eerst', () => {
-    const programma = maakProgramma(lijst, '2027-01-21');
+    const programma = maakProgramma(lijst, NU);
     expect(programma.komende.map((m) => [m.titel, m.activiteiten.map((a) => a.naam)])).toEqual([
       ['Januari 2027', ['Bonte Avond']],
       ['Februari 2027', ['Optocht']],
@@ -106,12 +112,25 @@ describe('maakProgramma', () => {
   });
 
   it('telt vandaag als komend en gisteren als geweest', () => {
-    expect(maakProgramma(lijst, '2027-01-22').komende[0]?.activiteiten[0]?.naam).toBe('Bonte Avond');
-    expect(maakProgramma(lijst, '2027-01-23').geweest[0]?.activiteiten[0]?.naam).toBe('Bonte Avond');
+    const op = (tijdstip: string) => maakProgramma(lijst, new Date(tijdstip));
+    expect(op('2027-01-22T12:00:00Z').komende[0]?.activiteiten[0]?.naam).toBe('Bonte Avond');
+    expect(op('2027-01-23T12:00:00Z').geweest[0]?.activiteiten[0]?.naam).toBe('Bonte Avond');
+  });
+
+  it('laat een activiteit na middernacht nog komend zijn tot het eindmoment (R16)', () => {
+    // De Bonte Avond van vr 22 januari eindigt om 01:11 de volgende dag (Amsterdamse tijd), 00:11 UTC.
+    const bonteAvond = activiteit('Bonte Avond', '2027-01-22', {
+      starttijd: '20:11:00',
+      eindigtOm: '2027-01-23T00:11:00Z',
+    });
+    const komend = (tijdstip: string) => maakProgramma([bonteAvond], new Date(tijdstip)).aantalKomende;
+    expect(komend('2027-01-22T23:59:00Z')).toBe(1); // 00:59 op zaterdag: nog bezig
+    expect(komend('2027-01-23T00:10:59.999Z')).toBe(1);
+    expect(komend('2027-01-23T00:11:00Z')).toBe(0); // het eindmoment zelf telt als geweest
   });
 
   it('is leeg zonder activiteiten', () => {
-    expect(maakProgramma([], '2027-01-21')).toEqual({ komende: [], geweest: [], aantalKomende: 0 });
+    expect(maakProgramma([], NU)).toEqual({ komende: [], geweest: [], aantalKomende: 0 });
   });
 
   it('zet een activiteit zonder tijd na die met een tijd op dezelfde dag, en is stabiel op naam', () => {
@@ -120,23 +139,38 @@ describe('maakProgramma', () => {
       activiteit('Beta', '2027-01-22', { starttijd: '20:00:00' }),
       activiteit('Alfa', '2027-01-22', { starttijd: '20:00:00' }),
     ];
-    const namen = maakProgramma(dag, '2027-01-01').komende[0]?.activiteiten.map((a) => a.naam);
+    const namen = maakProgramma(dag, new Date('2027-01-01T12:00:00Z')).komende[0]?.activiteiten.map(
+      (a) => a.naam,
+    );
     expect(namen).toEqual(['Alfa', 'Beta', 'Zonder tijd']);
   });
 
   it('wijzigt de invoer niet', () => {
     const kopie = [...lijst];
-    maakProgramma(lijst, '2027-01-21');
+    maakProgramma(lijst, NU);
     expect(lijst).toEqual(kopie);
   });
 
-  it('weigert een ongeldige vandaag', () => {
-    expect(() => maakProgramma(lijst, 'vandaag')).toThrow();
+  it('weigert een ongeldig moment of een ongeldig eindmoment', () => {
+    expect(() => maakProgramma(lijst, new Date('geen datum'))).toThrow();
+    expect(() => maakProgramma([activiteit('Stuk', '2027-01-22', { eindigtOm: 'ooit' })], NU)).toThrow();
   });
 
   it('houdt een geannuleerde activiteit in de lijst', () => {
-    const p = maakProgramma([activiteit('Afgelast', '2027-03-01', { status: 'geannuleerd' })], '2027-01-01');
+    const p = maakProgramma(
+      [activiteit('Afgelast', '2027-03-01', { status: 'geannuleerd' })],
+      new Date('2027-01-01T12:00:00Z'),
+    );
     expect(p.komende[0]?.activiteiten[0]?.status).toBe('geannuleerd');
+  });
+});
+
+describe('isGeweest', () => {
+  it('vergelijkt het eindmoment met nu, ook over de zomertijd heen', () => {
+    // Nacht van 27 op 28 maart 2027: de klok gaat om 02:00 naar 03:00. Eindigt om 03:30 zomertijd = 01:30 UTC.
+    const nacht = { eindigtOm: '2027-03-28T01:30:00Z' };
+    expect(isGeweest(nacht, new Date('2027-03-28T01:29:59Z'))).toBe(false);
+    expect(isGeweest(nacht, new Date('2027-03-28T01:30:00Z'))).toBe(true);
   });
 });
 
