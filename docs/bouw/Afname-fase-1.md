@@ -5,8 +5,10 @@ Supabase, en de lijst "Van fase 1 naar fase 2". Wie fase 2 begint, leest dit bes
 
 **Stand (02-11-2026): fase 1 is af voor zover hij is versmald, op één onderdeel na: de doorloop met de hand (punt 2.1)
 is nog niet gedaan.** De fase is op 30-10-2026 versmald (`Fase-1-plan.md`, F1-01): het welkomscherm, het beheeroverzicht,
-activiteit aanmaken en concept verwijderen schuiven naar fase 2. De migratie van de afname (PR 35) staat in `main` maar
-nog niet in het online project; wat daarvoor moet gebeuren, staat in punt 4 onder "Vóór de migratie online gaat".
+activiteit aanmaken en concept verwijderen schuiven naar fase 2. De migratie van de afname (PR 35) is op 02-11-2026 om
+14:09 UTC door de job `migraties` van de uitrol online gezet, direct na het samenvoegen (er is geen aparte stap met de
+hand). De controle van de apps van het lid met de oude 2099-waarde kon dus pas daarna: punt 4, "Na de migratie van de
+afname".
 
 ## 1. Wat fase 1 heeft opgeleverd
 
@@ -80,7 +82,7 @@ code niets lezen of schrijven wat niet mag. Ernst volgens de reviewer.
 | ID | Ernst | Bevinding | Afhandeling |
 |---|---|---|---|
 | F1-01 | blokkerend | Welkomscherm, beheeroverzicht en aanmaken beloofd, maar niet gebouwd | Fase versmald (30-10-2026); de schermen naar fase 2, punt 4 |
-| F1-02 | blokkerend | Een `beheerder_sinds` in de toekomst omzeilt de bevestiging door een tweede beheerder | PR 35: de database weigert het, bestaande waarden worden rechtgezet, de leeskant negeert het; handleiding in `Beheerders.md`. Nog te doen vóór de migratie online gaat (punt 4) |
+| F1-02 | blokkerend | Een `beheerder_sinds` in de toekomst omzeilt de bevestiging door een tweede beheerder | PR 35: de database weigert het, bestaande waarden worden rechtgezet, de leeskant negeert het; handleiding in `Beheerders.md`. De migratie staat online; de controle van de apps van het lid met de oude 2099-waarde moet nog (punt 4) |
 | F1-03 | blokkerend | README verouderd; `lid:lokaal` maakte alleen een inlogaccount | PR 33: README, `lid:lokaal` maakt een volledig lid (optioneel beheerder), melding op `/mijn` |
 | F1-04 | belangrijk | Een lid aanmaken kan niet met alleen de repo | PR 33: hetzelfde script, voorbeeld in `Beheerders.md`, test in de poort |
 | F1-05 | belangrijk | Een netwerkfout lijkt op uitloggen | PR 33: onderscheid "geen sessie" en "Supabase onbereikbaar", scherm `/storing`, test |
@@ -103,11 +105,11 @@ code niets lezen of schrijven wat niet mag. Ernst volgens de reviewer.
 
 ## 4. Van fase 1 naar fase 2
 
-**Vóór de migratie van de afname online gaat** (`supabase db push`, PR 35)
+**Na de migratie van de afname** (online sinds 02-11-2026, 14:09 UTC, via de job `migraties`)
 
 | Wat | Bron | Wie |
 |---|---|---|
-| Nagaan welke apps het lid heeft dat online een `beheerder_sinds` in 2099 heeft. Na de migratie wordt dat het moment van de migratie, en een app die er dan staat telt als bevestigd. Precies één app, door dat lid zelf ingesteld; haal een onbekende of niet-bevestigde weg | `Beheerders.md`, "Bevestigen: wat je controleert" (F1-02) | Bouwer |
+| Nagaan welke apps het lid heeft dat online een `beheerder_sinds` in 2099 had. Sinds de migratie is dat het moment van de migratie, en een app die er toen al stond telt als bevestigd. Moet precies één app zijn, door dat lid zelf ingesteld; staat er een onbekende of niet-bevestigde, haal die weg en laat een andere beheerder opnieuw bevestigen | `Beheerders.md`, "Bevestigen: wat je controleert" (F1-02) | Bouwer |
 
 **Vóór de eerste migratie van fase 2**
 
