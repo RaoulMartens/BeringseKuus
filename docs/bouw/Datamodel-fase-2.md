@@ -22,7 +22,7 @@ de pull request.
 | `public.huidig_seizoen()` | nieuwe functie, `security definer` | Het programma toont het seizoen van vandaag (F1-21) |
 | `public.contact_eindverantwoordelijke(p_activiteit)` | nieuwe functie | R10: het telefoonnummer van de eindverantwoordelijke is voor leden zichtbaar, de rest van `leden_prive` niet |
 | "Geweest" | de app gebruikt de kolom `eindigt_om` in plaats van de datum | F1-10, R16 (punt 5) |
-| Seed en `Programma-ontwikkelproject.sql` | verzonnen telefoonnummers voor de eindverantwoordelijken van gepubliceerde activiteiten | Anders blokkeert R21 elke opslag op de seed (punt 9) |
+| Seed | een verzonnen telefoonnummer voor de eindverantwoordelijke van de gepubliceerde activiteiten | Anders blokkeert R21 elke opslag op de seed (punt 9) |
 
 Niet erbij: een tabel `meldingen` (fase 7), de plek in de bak (beslissing 2.4: `niet_ondersteund`), annuleren (fase 5),
 afmelden en ruilen (fase 3).
@@ -121,9 +121,11 @@ de nieuwe versie over; de rest haalt hij opnieuw op. Bij **aanmaken** staat ook 
 Een ingedeelde **interne** deelnemer (`leden.type = 'lid'`) hoort bij de doelgroep van de activiteit (leeg = iedereen).
 Externe helpers vallen erbuiten. Drie regels, zodat de twee foutcodes elkaar niet overlappen:
 
-- `doelgroep_conflict` geldt **alleen als `groepen` in de aanroep staat**: na de wijziging staat er een ingedeeld lid dat
-  niet in de nieuwe doelgroep zit. De `lid_id`'s staan in `detail.lid_ids` (het scherm zoekt de namen op). Een lid dat in
-  dezelfde aanroep is leeggemaakt, telt niet meer als ingedeeld; de beheerder kan het dus in één opslag oplossen.
+- `doelgroep_conflict` geldt **alleen als de groepen in de aanroep veranderen** (een lijst die gelijk is aan de huidige
+  telt niet): na de wijziging staat er een ingedeeld lid dat niet in de nieuwe doelgroep zit. Wie in dezelfde aanroep is
+  toegewezen, valt onder `lid_buiten_doelgroep`, niet hieronder. De `lid_id`'s staan in `detail.lid_ids` (het scherm
+  zoekt de namen op). Een lid dat in dezelfde aanroep is leeggemaakt, telt niet meer als ingedeeld; de beheerder kan het
+  dus in één opslag oplossen.
 - `lid_buiten_doelgroep` geldt **alleen voor een lid dat in deze aanroep wordt toegewezen** en niet in de doelgroep zit.
 - Een schending die er **al was** vóór de aanroep (een lid dat uit een groep is gehaald) raakt de opslag niet: de toets
   kijkt alleen naar wat deze aanroep doet. Komen beide fouten voor, dan geldt `doelgroep_conflict` eerst.
@@ -152,7 +154,8 @@ rechtstreeks vervangen).
 
 De regel heeft een `handeling`; elke handeling heeft de velden hieronder. Het blijft een lijst: een fout in de opbouw
 (geen lijst, een onbekende `handeling`, een ontbrekend of verkeerd veld, een dubbele `tijdelijk_id`) is `wijziging_ongeldig`
-met de regelindex in `detail`.
+met de regelindex in `detail`; een id-veld dat geen uuid is (`lid_id`, `rol_slot_id`, `verwachte_bezetter`) geeft
+`wijziging_ongeldig` met `{ "veld": … }` en zonder regelindex.
 
 **Verwijzen naar een plek:** met `rol_slot_id` (een bestaande plek) of met `tijdelijk_id` (een plek die eerder in dezelfde
 lijst is toegevoegd). Bij het **aanmaken** bestaat de plek eindverantwoordelijke al; daar verwijst `tijdelijk_id =
@@ -225,12 +228,12 @@ per code, zodat de app er één keer op kan rekenen:
 |---|---|---|---|
 | `versie_verouderd` | `p_verwachte_versie` is niet de actuele | `{ "versie": <actueel> }` | **Ontwerpgat** |
 | `veld_ontbreekt` | Naam of datum leeg; bij een gepubliceerde activiteit een verplicht veld leeg; geen `p_verwachte_versie` bij een bestaande activiteit | `{ "velden": [...] }` (zoals fase 1) | Veld gemarkeerd |
-| `veld_ongeldig` | Zoals fase 1; ook `p_verwachte_versie` gevuld bij aanmaken | `{ "velden": [...] }` | Idem |
+| `veld_ongeldig` | Zoals fase 1; ook `p_verwachte_versie` gevuld bij aanmaken | `{ "veld": … }` (één veld, zoals fase 1) | Idem |
 | `activiteit_niet_open` | Geannuleerd, afgelopen, of na de opslag afgelopen | `{ "reden": "geannuleerd" \| "afgelopen" }` | **Ontwerpgat** |
 | `doelgroep_conflict` | Een groepswijziging laat ingedeelden toegang verliezen | `{ "lid_ids": [...] }` | **Ontwerpgat** |
 | `lid_buiten_doelgroep` | Een toegewezen lid zit niet in de doelgroep | `{ "lid_id": … }` | Geen: de keuzelijst toont ze niet |
 | `publiceren_niet_mogelijk` | Een voorwaarde van R21 ontbreekt | `{ "ontbreekt": [...] }` | Statuspaneel (UC-004 AF-6) |
-| `eindverantwoordelijke_verplicht` | Weghalen, leegmaken of vervangen laat een gepubliceerde activiteit zonder (bruikbare) eindverantwoordelijke | `{ "reden": "leeg" \| "telefoon" }` | Geen: de app laat het niet toe |
+| `eindverantwoordelijke_verplicht` | Weghalen, leegmaken of vervangen laat een gepubliceerde activiteit zonder (bruikbare) eindverantwoordelijke | `{ "reden": "leeg" \| "telefoon" }` bij leegmaken en in de eindtoestand; `{ "regel": <index> }` bij het weghalen van de plek | Geen: de app laat het niet toe |
 | `slot_gewijzigd` | De plek heeft een andere bezetter dan verwacht | `{ "rol_slot_id": …, "bezetter_id": … }` | `admin-fout-slot-gewijzigd` |
 | `lid_inactief`, `lid_afgemeld`, `extern_niet_toegestaan` | Zie punt 4 | `{ "lid_id": … }` | Geen: de keuzelijst voorkomt het |
 | `dubbelboeking` | Een lid staat op twee plekken | `{ "lid_ids": [...] }` | Geen: de keuzelijst voorkomt het |
@@ -257,10 +260,11 @@ plekken. Zie open punt O-1.
 
 ## 9. Seed
 
-`supabase/seed.sql` en `docs/bouw/Programma-ontwikkelproject.sql` geven de gepubliceerde activiteiten een
-eindverantwoordelijke zonder telefoonnummer. Met R21 geeft dan elke opslag op die activiteiten
-`eindverantwoordelijke_verplicht` met reden `telefoon`, en toont het welkomscherm geen nummer. Beide krijgen verzonnen
-nummers (`06 12 34 56 78`-achtig, nooit een echt nummer) voor de eindverantwoordelijken, met een test die de seed controleert.
+`supabase/seed.sql` geeft de gepubliceerde activiteiten een eindverantwoordelijke zonder telefoonnummer. Met R21 geeft dan
+elke opslag op die activiteiten `eindverantwoordelijke_verplicht` met reden `telefoon`, en toont het welkomscherm geen
+nummer. De seed krijgt een verzonnen nummer (`06 12 34 56 78`, nooit een echt nummer) voor de eindverantwoordelijke,
+met een test die de seed controleert. `docs/bouw/Programma-ontwikkelproject.sql` heeft alleen concepten met een lege
+eindverantwoordelijke en geen leden; daar verandert niets.
 
 ## 10. Schermen en wat ze lezen
 
@@ -404,6 +408,23 @@ de lock-volgorde en `contact_eindverantwoordelijke` zonder lek tussen onbekend e
 | R2-15 | klein | Versie en bezetting uit verschillende momenten | Punt 10: eerst de activiteit lezen, dan de plekken |
 | R2-16 | klein | "Geweest" in de app wijkt af van `Bouwbesluiten` 4.5 | Punt 5: bewust, klokbron vastgelegd |
 | R2-17 | klein, niet zeker | Een lid kan tegelijk inactief worden gezet | Voor `Datamodel-fase-4`: de functie die leden inactief zet, moet de activiteiten-lock nemen (of de toets op `actief` herhalen na de lock) |
+
+**De review van de migratie** (stap B, PR 40; een schone Claude-subagent met eigen aanvalspogingen en mutatietests,
+02-11-2026, 11 bevindingen, niets blokkerends). Wat de code doet, wijkt op een paar plekken af van het stuk hierboven;
+dat is hier rechtgezet of vastgelegd.
+
+| ID | Ernst | Bevinding | Afhandeling |
+|---|---|---|---|
+| R3-01 | belangrijk | Een plek van een andere activiteit bij `toewijzen` en `leegmaken` was niet getest | Tests toegevoegd, bewezen rood zonder de controle (PR 40) |
+| R3-02 | belangrijk | De afgelopen-toets op de stand vóór de wijziging was niet getest | Test toegevoegd (datum van een afgelopen activiteit naar de toekomst), bewezen rood (PR 40) |
+| R3-03 | klein | Zwakke tests bij contact, `bijgewerkt` en de bewaker | Aangevuld; de bewaker zoekt breed (PR 40). De test op `huidig_seizoen()` vergelijkt met dezelfde uitdrukking; de grens zelf (1 september) is getest in `fase1_tijd.test.sql` |
+| R3-04 | klein | "Hetzelfde lid tegelijk op twee plekken" ontbreekt in de gelijktijdigheidstest | Bewust niet: de dubbelboeking is in pgTAP getest op de eindtoestand; de nieuwe e2e-test bewijst de lock voor de versie |
+| R3-05 | klein | De vorm van `detail` wijkt op twee plekken af | Punt 4 en 7 aangepast aan de code |
+| R3-06 | klein | `doelgroep_conflict` kijkt naar "veranderen", niet naar "staat in de aanroep" | Punt 3.1 aangepast: een gelijke lijst telt niet, wie nu is toegewezen valt onder `lid_buiten_doelgroep` |
+| R3-07 | klein | De vormcontrole van `p_velden` en `p_wijzigingen` komt vóór de lock en de versie | Genoteerd: een foute vorm met een verouderde versie geeft `veld_ongeldig` of `wijziging_ongeldig`, geen `versie_verouderd`; onschuldig |
+| R3-08, R3-09 | klein | Bestandsmodus; `drop function` zonder `if exists` | Hersteld in PR 40 |
+| R3-10 | klein | Een aanroep zonder id maakt stil een nieuwe activiteit | Bekend; de serveractie in stap C dwingt twee paden af (punt 10) |
+| R3-11 | klein | De opmerking in `20261029100000_fase1_schema.sql` ("zet hem aan het eind op immediate") is achterhaald; `service_role` houdt execute op de nieuwe functies | Een toegepaste migratie wijzig je niet; punt 3 stap 8 is de bron. `service_role` is gelijk aan fase 1 en onschadelijk (`geen_admin`, of geen rij zonder lid) |
 
 ## 14. Open punten
 
