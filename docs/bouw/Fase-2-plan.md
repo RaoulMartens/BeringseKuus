@@ -1,7 +1,7 @@
 # Fase 2: plan
 
-Stand 02-11-2026. **Voorstel van de bouwer, nog te bevestigen:** de besluiten in punt 2 zijn aanbevelingen, geen genomen
-besluiten. Bron: `Fase-1-plan.md` (versmald op 30-10-2026), `Afname-fase-1.md` punt 4 ("Van fase 1 naar fase 2"),
+Stand 02-11-2026. **De bouwer heeft beslissing 2.1 tot en met 2.5 genomen (02-11-2026, akkoord van de ontwerper op het
+voorstel).** De planning is een schatting. Bron: `Fase-1-plan.md` (versmald op 30-10-2026), `Afname-fase-1.md` punt 4 ("Van fase 1 naar fase 2"),
 `Bouwbesluiten-2026-10-27.md` 5.1, `Datamodel-fase-1.md` (vooral punt 4 en 5) en bouwgids V8 hoofdstuk 10 en 13.3.
 
 **Doel (V8 10, fase 2):** de beheerder deelt mensen in en publiceert; leden zien wie waar staat. Daarbij de schermen die
@@ -29,13 +29,13 @@ afmelden en ruilen.*
 **Niet in fase 2:** afmelden en ruilen (fase 3), ledenimport en uitnodigingen (fase 4), meldingen en de echte agenda-feed
 (fase 7), meerdere activiteiten tegelijk aanmaken (fase 9). **De bak** (V8 3.7, `bak_actief`) stel ik voor te laten
 vallen voor pilot A: ze is niet nodig om het programma en de indeling te tonen, en de eerste activiteit met een bak
-is waarschijnlijk in januari (het programma 2026/2027 noemt de Jeugd van Vreuger middig op 17 januari; of dat de bak is, is een aanname uit V8 15). Dat is een voorstel; zie 2.4.
+is waarschijnlijk in januari (het programma 2026/2027 noemt de Jeugd van Vreuger middig op 17 januari; of dat de bak is, is een aanname uit V8 15). Besloten, zie 2.4.
 
 ## 2. Beslissingen
 
 De eerste drie staan in `Bouwbesluiten` 5.1 als "vóór fase 2"; de bouwer legt ze nu vast.
 
-| # | Vraag | Voorstel | Reden |
+| # | Vraag | Besluit | Reden |
 |---|---|---|---|
 | 2.1 | Versie van de activiteit (review 06): vervangt `verwachte_versie` het `verwachte_bezetter`, of komt het ernaast? | **Ernaast.** `verwachte_bezetter` beschermt de ene plek (er bestaat al een scherm voor `slot_gewijzigd`). `versie` is het grove vangnet voor alles wat de getoonde activiteit raakt. Nieuwe foutcode `versie_verouderd`, met de tekst "Iemand anders heeft deze activiteit net gewijzigd. Laad de pagina opnieuw en probeer het nog eens." | Twee beheerders is genoeg om elkaar in de weg te zitten. Ernaast kost weinig: de bestaande controle verandert niet |
 | 2.2 | Doelgroepconflict (review 05): een groepswijziging terwijl er ingedeelden zijn die daardoor toegang verliezen | **Weigeren.** Foutcode `doelgroep_conflict`, met de namen in `detail`; de beheerder haalt ze eerst uit de indeling. Niet "automatisch verwijderen in dezelfde opslag" | Weigeren is de veiligste keuze; niemand verdwijnt uit een indeling zonder dat de beheerder het ziet |
