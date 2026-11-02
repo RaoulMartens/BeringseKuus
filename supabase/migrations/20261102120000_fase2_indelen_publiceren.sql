@@ -49,7 +49,7 @@ end
 $$;
 
 -- ===== 3. activiteit_opslaan =====
-drop function public.activiteit_opslaan(uuid, jsonb, jsonb, boolean);
+drop function if exists public.activiteit_opslaan(uuid, jsonb, jsonb, boolean);
 
 create function public.activiteit_opslaan(
   p_activiteit_id uuid default null,

@@ -5,7 +5,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(87);
+select plan(97);
 
 -- ===== Hulpen (alleen in deze transactie) =====
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
@@ -352,6 +352,21 @@ select set_config('test.dact', current_setting('test.r')::jsonb ->> 'activiteit_
 select set_config('test.d1', current_setting('test.r')::jsonb -> 'plekken' ->> 'd1', true);
 select is((select count(*)::int from public.activiteit_groep where activiteit_id = current_setting('test.dact')::uuid), 1,
   'aanmaken met een doelgroep: de groep staat er');
+-- Een plek van een andere activiteit is niet te bereiken, ook niet met de versie van deze (R3-01: de grens van lock en
+-- versie). De plek d1 hoort bij T D; de aanroep is voor T V.
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select alike(public.t_oz(current_setting('test.act')::uuid, '{}',
+  format('[{"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s", "verwachte_bezetter": null}]',
+         current_setting('test.d1'), current_setting('test.l_drie'))), 'plek_onbekend%',
+  'toewijzen op een plek van een andere activiteit: plek_onbekend');
+select alike(public.t_oz(current_setting('test.act')::uuid, '{}',
+  format('[{"handeling": "leegmaken", "rol_slot_id": "%s", "verwachte_bezetter": "%s"}]',
+         current_setting('test.d1'), current_setting('test.l_drie'))), 'plek_onbekend%',
+  'leegmaken op een plek van een andere activiteit: plek_onbekend');
+reset role;
+select is((select bezetter_id from public.rol_slots where id = current_setting('test.d1')::uuid), null,
+  'de plek van de andere activiteit is niet aangeraakt');
 select pg_temp.als('t_mark', 'aal2');
 set local role authenticated;
 select alike(public.t_oz(current_setting('test.dact')::uuid, '{}',
@@ -376,6 +391,20 @@ select is(public.t_oz(current_setting('test.dact')::uuid, format('{"groepen": ["
 reset role;
 select is((select count(*)::int from public.activiteit_groep where activiteit_id = current_setting('test.dact')::uuid
             and groep_id = current_setting('test.g_dames')::uuid), 1, 'de nieuwe doelgroep staat er');
+-- Een doelgroepwijziging zet bijgewerkt: leden zien de activiteit wel of niet, ook al blijft de rij gelijk (R3-03).
+select set_config('test.bijgewerkt', (select bijgewerkt::text from public.activiteiten where id = current_setting('test.dact')::uuid), true);
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select lives_ok(format($f$ select public.t_os(%L::uuid, '{"groepen": ["%s"]}', '[]') $f$,
+  current_setting('test.dact'), current_setting('test.g_bestuur')), 'de doelgroep alleen wijzigen');
+reset role;
+select isnt((select bijgewerkt::text from public.activiteiten where id = current_setting('test.dact')::uuid),
+  current_setting('test.bijgewerkt'), 'een doelgroepwijziging zet bijgewerkt');
+-- Terug naar de groep Dames, voor de scenario's hierna.
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select public.t_os(current_setting('test.dact')::uuid, format('{"groepen": ["%s"]}', current_setting('test.g_dames')), '[]');
+reset role;
 -- Een schending die er al was blokkeert een opslag zonder groepen niet.
 update public.rol_slots set bezetter_id = current_setting('test.l_een')::uuid where id = current_setting('test.d1')::uuid;
 select pg_temp.als('t_mark', 'aal2');
@@ -446,6 +475,12 @@ select is(public.t_oz(current_setting('test.pact')::uuid, '{}',
   format('[{"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s", "verwachte_bezetter": "%s"}]',
          current_setting('test.pev'), current_setting('test.l_een'), current_setting('test.l_ev'))), 'geen fout',
   'de eindverantwoordelijke rechtstreeks vervangen door iemand met telefoon slaagt');
+-- Leegmaken en in dezelfde aanroep opnieuw indelen is niet "rechtstreeks vervangen": ook dat weigert (R21).
+select alike(public.t_oz(current_setting('test.pact')::uuid, '{}',
+  format('[{"handeling": "leegmaken", "rol_slot_id": "%s", "verwachte_bezetter": "%s"},
+          {"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s", "verwachte_bezetter": null}]',
+         current_setting('test.pev'), current_setting('test.l_een'), current_setting('test.pev'), current_setting('test.l_ev'))),
+  'eindverantwoordelijke_verplicht%leeg%', 'leegmaken en opnieuw indelen van de eindverantwoordelijke in één aanroep: geweigerd');
 reset role;
 
 -- Aanmaken, indelen en publiceren in één aanroep.
@@ -478,6 +513,10 @@ select alike(public.t_oz('a2000000-0000-4000-8000-000000000001', '{"notitie": "x
   'een geannuleerde activiteit wijzigen: activiteit_niet_open');
 select alike(public.t_oz('a2000000-0000-4000-8000-000000000002', '{"notitie": "x"}', '[]'), 'activiteit_niet_open%afgelopen%',
   'een gepubliceerde activiteit die al geweest is: activiteit_niet_open');
+-- De toets op de stand van vóór de wijziging: een afgelopen activiteit komt niet "tot leven" door zijn datum naar de
+-- toekomst te zetten (R3-02: de eindtoestand-toets geeft dezelfde melding bij een notitie, deze niet).
+select alike(public.t_oz('a2000000-0000-4000-8000-000000000002', '{"datum": "2099-01-01"}', '[]'), 'activiteit_niet_open%afgelopen%',
+  'een afgelopen gepubliceerde activiteit naar de toekomst verplaatsen: activiteit_niet_open');
 select is(public.t_oz('a2000000-0000-4000-8000-000000000003', '{"notitie": "x"}', '[]'), 'geen fout',
   'een afgelopen concept mag nog worden gewijzigd');
 select alike(public.t_oz('a2000000-0000-4000-8000-000000000003', '{"starttijd": "20:00", "eindtijd": "23:00", "locatie": "De Kuus"}',
@@ -487,6 +526,8 @@ select alike(public.t_oz('a2000000-0000-4000-8000-000000000003', '{"starttijd": 
 select alike(public.t_oz(current_setting('test.pact')::uuid, '{"datum": "2020-01-03"}', '[]'), 'activiteit_niet_open%afgelopen%',
   'een gepubliceerde activiteit naar het verleden verplaatsen: activiteit_niet_open');
 reset role;
+select is((select datum::text from public.activiteiten where id = 'a2000000-0000-4000-8000-000000000002'), '2020-01-01',
+  'de datum van de afgelopen activiteit is niet verschoven');
 
 -- ===== Contact van de eindverantwoordelijke (R10) =====
 select set_config('test.pa2', (select id::text from public.activiteiten where naam = 'T P'), true);
@@ -516,6 +557,18 @@ set local role authenticated;
 select is((select count(*)::int from public.contact_eindverantwoordelijke(current_setting('test.pa2')::uuid)), 0,
   'een inactieve eindverantwoordelijke: geen rij');
 reset role;
+-- Een eindverantwoordelijke wiens nummer alleen uit spaties bestaat, en een geannuleerde activiteit mét eindverantwoordelijke.
+update public.leden set actief = true where id = current_setting('test.l_een')::uuid;
+update public.rol_slots set bezetter_id = current_setting('test.l_leeg')::uuid where id = current_setting('test.pev')::uuid;
+update public.rol_slots set bezetter_id = current_setting('test.l_ev')::uuid
+ where activiteit_id = 'a2000000-0000-4000-8000-000000000001' and rol_type = 'eindverantwoordelijke';
+select pg_temp.als('t_truus', 'aal1');
+set local role authenticated;
+select is((select count(*)::int from public.contact_eindverantwoordelijke(current_setting('test.pa2')::uuid)), 0,
+  'een nummer van alleen spaties: geen rij');
+select is((select count(*)::int from public.contact_eindverantwoordelijke('a2000000-0000-4000-8000-000000000001')), 0,
+  'een geannuleerde activiteit met een eindverantwoordelijke met telefoon: geen rij');
+reset role;
 
 -- ===== Het seizoen van vandaag =====
 select set_config('test.seizoen', intern.seizoen_van(intern.vandaag(now()))::text, true);
@@ -529,11 +582,14 @@ reset role;
 -- ===== De bewaker: wie schrijft er in rol_slots en activiteit_groep =====
 -- activiteit_opslaan verhoogt de versie zelf. Komt er een functie bij die in deze tabellen schrijft, dan faalt deze test:
 -- pas de lijst aan en beslis of de versie omhoog moet (Datamodel-fase-2.md punt 2).
+-- Zoekt breed: elke functie die een van de twee tabellen noemt én een schrijfwoord of dynamische SQL gebruikt, behalve de
+-- drie hulpen van deze test. Dat vangt ook merge, truncate en execute format(...) (R3-03).
 select is(
   (select coalesce(array_agg(p.proname::text order by p.proname), '{}')
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname in ('public', 'intern') and p.proname not like 't\_%'
-      and p.prosrc ~* '(insert\s+into|update|delete\s+from)\s+public\.(rol_slots|activiteit_groep)'),
+    where n.nspname in ('public', 'intern') and p.proname not in ('t_os', 't_oz', 't_v')
+      and p.prosrc ~* '(rol_slots|activiteit_groep)'
+      and p.prosrc ~* '\m(insert|update|delete|merge|truncate|execute)\M'),
   array['activiteit_opslaan'],
   'alleen activiteit_opslaan schrijft in rol_slots en activiteit_groep (de versie gaat daar omhoog)');
 
