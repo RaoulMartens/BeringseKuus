@@ -4,18 +4,11 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
+import { logInAlsBeheerder } from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { nieuwAdres } from './inloggen-hulp.ts';
-import {
-  bevestigAdresVoor,
-  bevestigBeheerder,
-  logInZonderBrowser,
-  maakLidMetRol,
-  ruimLidOp,
-  schrijfAppIn,
-} from './mfa-hulp.ts';
+import { bevestigAdresVoor, maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
 import { WCAG, wachtTotStil } from './normen.ts';
-import { totpCode } from './totp.ts';
 
 const lopende = crypto.randomUUID().slice(0, 8);
 const naam = (soort: string): string => `E2E ${soort} ${lopende}`;
@@ -58,22 +51,6 @@ async function logInAlsLid(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/mijn$/);
 }
 
-/** Een beheerder met een app, in de browser ingelogd en met de code bevestigd (aal2). */
-async function logInAlsBeheerder(page: Page): Promise<void> {
-  const email = nieuwAdres();
-  aangemaakt.push(await maakLidMetRol(email, 'now()'));
-  const { geheim } = await schrijfAppIn(await logInZonderBrowser(email));
-  bevestigBeheerder(email);
-  await page.goto(await bevestigAdresVoor(email));
-  await page.getByRole('button', { name: 'Inloggen' }).click();
-  await expect(page).toHaveURL(/\/mijn$/);
-  await page.goto('/beheer');
-  await expect(page).toHaveURL(/\/mfa\/code$/);
-  await page.getByLabel('Code uit de app').fill(totpCode(geheim));
-  await page.getByRole('button', { name: 'Verder naar beheer' }).click();
-  await expect(page).toHaveURL(/\/beheer$/);
-}
-
 test('zonder in te loggen gaat het programma naar het inloggen', async ({ page }) => {
   await page.goto('/programma');
   await expect(page).toHaveURL(/\/inloggen$/);
@@ -111,10 +88,10 @@ test('een lid ziet gepubliceerde activiteiten, geen concept en niets voor een an
 test('een beheerder met een code ziet ook het concept en de activiteit voor het bestuur', async ({
   page,
 }) => {
-  await logInAlsBeheerder(page);
+  aangemaakt.push(await logInAlsBeheerder(page));
 
   // Na de code staat de beheerder op Beheer, met de bovenbalk: van daaruit is het programma te bereiken zonder een adres te typen.
-  await expect(page.getByRole('heading', { level: 1, name: 'Beheer' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Activiteiten' })).toBeVisible();
   await page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Programma' }).click();
   await expect(page).toHaveURL(/\/programma$/);
 
@@ -130,7 +107,7 @@ test('een beheerder met een code ziet ook het concept en de activiteit voor het 
   await wachtTotStil(page);
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   await page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Beheer' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Activiteiten' })).toBeVisible();
   await wachtTotStil(page);
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   const teBreed = await page.evaluate(

@@ -79,7 +79,7 @@ test.describe('MFA voor het bestuur', () => {
 
     psql(`update public.leden_prive set beheerder_sinds = now() where email = '${email}';`);
     await page.goto('/beheer');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Beheer');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Activiteiten');
   });
 
   test('een verouderde QR-code (de pagina is opnieuw geopend) geeft een duidelijke melding', async ({
@@ -121,7 +121,7 @@ test.describe('MFA voor het bestuur', () => {
     await page.getByLabel('Code uit de app').fill(totpCode(geheim));
     await page.getByRole('button', { name: 'Verder naar beheer' }).click();
     await expect(page).toHaveURL(/\/beheer$/);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Beheer');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Activiteiten');
 
     // De code-pagina is nu niet meer nodig: wie er toch komt, gaat door naar beheer.
     await page.goto('/mfa/code');

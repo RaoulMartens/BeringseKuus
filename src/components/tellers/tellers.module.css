@@ -1,0 +1,60 @@
+/* Tellers die ook filter zijn, overgenomen uit docs/visueel/stijl.css sectie 11 (tegels op een groot scherm, afgeronde
+   labels op een telefoon). Het gekozen filter: een zachte ring in de themakleur, de tekst blijft donker. */
+.tellers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.teller {
+  display: block;
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst-zacht);
+  text-decoration: none;
+}
+
+.teller:hover:not(.actief) {
+  background: var(--neutraal-hover);
+}
+
+.aantal {
+  display: block;
+  font: 700 2rem/1.25 var(--font-tekst);
+  letter-spacing: -0.01em;
+  color: var(--neutraal-tekst);
+}
+
+.actief {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--thema-primair) 65%, white);
+  color: var(--neutraal-tekst);
+}
+
+.nul,
+.nul .aantal {
+  color: var(--neutraal-tekst-zacht);
+}
+
+@media (max-width: 700px) {
+  .tellers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .teller {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    border-radius: var(--radius-full);
+    padding: 6px 14px;
+  }
+
+  .aantal {
+    display: inline;
+    font: 700 1rem/1.5 var(--font-tekst);
+    letter-spacing: 0;
+  }
+}

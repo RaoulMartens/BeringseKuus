@@ -12,6 +12,7 @@ import { Kopvlak } from './kopvlak/kopvlak';
 import { Lijst, Lijstrij } from './lijst/lijst';
 import { Melding } from './melding/melding';
 import { Statuslabel } from './statuslabel/statuslabel';
+import { Tellers } from './tellers/tellers';
 import { Veld } from './veld/veld';
 
 const html = renderToStaticMarkup;
@@ -204,5 +205,27 @@ describe('Kopvlak', () => {
     );
     expect(uit).toContain('Vrijdag');
     expect(uit).toContain('href="/terug"');
+  });
+});
+
+describe('Tellers', () => {
+  const tellers = [
+    { href: '/beheer?filter=diensten', aantal: 13, label: 'diensten nog in te delen', actief: false },
+    { href: '/beheer', aantal: 0, label: 'concepten', actief: true },
+  ];
+
+  it('is een navigatie met een naam, en elke teller is een link met zijn getal en wat het telt', () => {
+    const uit = html(<Tellers tellers={tellers} naam="Filter op wat er te doen is" />);
+    expect(uit).toMatch(/^<nav /);
+    expect(uit).toContain('aria-label="Filter op wat er te doen is"');
+    expect(uit).toContain('href="/beheer?filter=diensten"');
+    expect(uit).toMatch(/<b [^>]*>13<\/b> diensten nog in te delen/);
+  });
+
+  it('zegt het gekozen filter met aria-current, en alleen dat', () => {
+    const uit = html(<Tellers tellers={tellers} naam="Filter" />);
+    expect(uit.match(/aria-current="true"/g)).toHaveLength(1);
+    // Het gekozen filter is de tweede teller, de link terug naar alles.
+    expect(uit.match(/<a [^>]*aria-current="true"[^>]*>/)?.[0]).toContain('href="/beheer"');
   });
 });
