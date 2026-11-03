@@ -273,6 +273,12 @@ function veldUit(detail: unknown): string | null {
   return typeof waarde === 'string' ? waarde : null;
 }
 
+function tekstUit(detail: unknown, sleutel: string): string | null {
+  if (typeof detail !== 'object' || detail === null) return null;
+  const waarde: unknown = (detail as Record<string, unknown>)[sleutel];
+  return typeof waarde === 'string' ? waarde : null;
+}
+
 /** De detailtekst van de database (JSON als tekst) als object; wat er niet in past, wordt een leeg object. */
 export function leesDetail(tekst: unknown): unknown {
   if (typeof tekst !== 'string') return {};
@@ -366,8 +372,14 @@ export function vertaalOpslagfout(code: string, detail: unknown): Fouttekst {
         melding: null,
       };
     case 'eindverantwoordelijke_verplicht':
+      // Een gepubliceerde activiteit houdt zijn eindverantwoordelijke, en leden moeten hem kunnen bellen (R21, R10).
       return {
-        fouten: { plekken: 'De eindverantwoordelijke kan niet worden weggehaald; kies iemand anders.' },
+        fouten: {
+          plekken:
+            tekstUit(detail, 'reden') === 'telefoon'
+              ? 'De eindverantwoordelijke heeft geen telefoonnummer, en leden moeten hem kunnen bellen. Kies iemand met een telefoonnummer.'
+              : 'De eindverantwoordelijke kan niet worden weggehaald; kies iemand anders.',
+        },
         melding: null,
       };
     default:

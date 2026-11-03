@@ -5,9 +5,9 @@ is gedaan, de pilotcheck, en de lijst "Van fase 2 naar fase 3 en de pilot". Wie 
 vrijdag 6 november voorbereidt, leest dit bestand eerst.
 
 **Stand (03-11-2026): de stappen A tot en met D van `Fase-2-plan.md` staan in `main` (PR 39 tot en met 50), de migratie staat
-online, en de review van fase 2 als geheel is verwerkt (punt 3). Niet af, en nodig voor pilot A ("het programma en de
-indeling zijn te zien, zonder afmelden en ruilen", bouwgids 13.3): een gepubliceerde activiteit kunnen wijzigen (F2-01) en
-een manier om telefoonnummers en groepen van de pilotleden te zetten (F2-02). Met de hand nog te doen door de bouwer: de
+online, en de review van fase 2 als geheel is verwerkt (punt 3). Een gepubliceerde activiteit wijzigen (F2-01) is daarna
+gebouwd. Niet af, en nodig voor pilot A ("het programma en de indeling zijn te zien, zonder afmelden en ruilen", bouwgids
+13.3): een manier om telefoonnummers en groepen van de pilotleden te zetten (F2-02). Met de hand nog te doen door de bouwer: de
 doorloop (punt 2.1), de vergelijking met het visuele ontwerp (punt 2.2) en de Supabase-adviseur (punt 2.3).** Het advies
 voor het beslismoment van vrijdag 6 november staat in punt 6.
 
@@ -92,8 +92,8 @@ zonder F2-01 en F2-02.** Ernst volgens de reviewer.
 
 | ID | Ernst | Bevinding | Afhandeling |
 |---|---|---|---|
-| F2-01 | belangrijk | Een gepubliceerde activiteit is in beheer alleen leesbaar: geen formulier en geen indeling. Het overzicht telt de lege plekken van gepubliceerde activiteiten wel mee als "diensten nog in te delen", en de link leidt naar een scherm waar je niets kunt doen. Ook een verkeerde tijd, locatie of eindverantwoordelijke is niet meer recht te zetten. In SQL werkt het wijzigen wel | **Open, voorwaarde voor pilot A.** Voorstel: het formulier ook tonen bij een gepubliceerde activiteit, met "Wijzigingen opslaan" en de tekst dat leden de wijziging direct zien en er geen bericht uitgaat (O-1). `versie` en `verwachte_bezetter` beschermen al. De bevestigingsstap met "Wie krijgt bericht" volgt met de berichten. Zie punt 6 |
-| F2-02 | belangrijk | Niets schrijft `leden_prive.telefoon`, `lid_groep`, `mag_bob` of `mag_eindverantw`; het "script voor pilotleden" bestaat niet (`scripts/` heeft `maak-lid-lokaal`, alleen lokaal, en `maak-inloglink`). Elke publicatie vraagt een eindverantwoordelijke met nummer (R21). Is een nummer later weg, dan weigert de database elke wijziging aan die activiteit en is dat niet te herstellen | **Open, voorwaarde voor pilot A.** Voorstel: een beschreven procedure of script voor leden, telefoon, groepen en aanmerkingen (online, met een geheim dat niet in de repo komt), en in het formulier een waarschuwing als de eindverantwoordelijke geen nummer heeft |
+| F2-01 | belangrijk | Een gepubliceerde activiteit is in beheer alleen leesbaar: geen formulier en geen indeling. Het overzicht telt de lege plekken van gepubliceerde activiteiten wel mee als "diensten nog in te delen", en de link leidt naar een scherm waar je niets kunt doen. Ook een verkeerde tijd, locatie of eindverantwoordelijke is niet meer recht te zetten. In SQL werkt het wijzigen wel | **Opgelost na de afname** (03-11-2026): het formulier staat nu ook bij een gepubliceerde activiteit, met "Wijzigingen opslaan", de tekst dat leden de wijziging direct zien en er geen bericht uitgaat (O-1), en de melding "… is bijgewerkt" in het overzicht. De eindverantwoordelijke is vast (alleen vervangen, niet openlaten, R21) en `versie` en `verwachte_bezetter` beschermen. Een geweest zijnde activiteit weigert de database (O-2); een geannuleerde toont alleen wat er staat. Browsertests in `e2e/gepubliceerd-wijzigen.spec.ts`. De bevestigingsstap met "Wie krijgt bericht" volgt met de berichten |
+| F2-02 | belangrijk | Niets schrijft `leden_prive.telefoon`, `lid_groep`, `mag_bob` of `mag_eindverantw`; het "script voor pilotleden" bestaat niet (`scripts/` heeft `maak-lid-lokaal`, alleen lokaal, en `maak-inloglink`). Elke publicatie vraagt een eindverantwoordelijke met nummer (R21). Is een nummer later weg, dan weigert de database elke wijziging aan die activiteit en is dat niet te herstellen | **Gedeeltelijk, voorwaarde voor pilot A.** De waarschuwing in het formulier is gebouwd (een eindverantwoordelijke zonder nummer geeft een melding vóór het opslaan, en een duidelijke foutmelding als de database het weigert). **Open:** een beschreven procedure of script voor leden, telefoon, groepen en aanmerkingen (online, met een geheim dat niet in de repo komt) |
 | F2-03 | belangrijk | De Start koos alleen activiteiten met `datum >= vandaag`: een activiteit die gisteren begon en na middernacht nog loopt (de Bonte Avond tot 01:11) verdween om 00:30 | **Opgelost** in deze afname: de Start toont wat loopt of vandaag nog komt, met een unittest voor de Bonte Avond om 00:30 |
 | F2-04 | klein (vermoeden) | De knoppen Publiceren en Opslaan als concept staan buiten het formulier en Publiceren komt eerst: Enter in een veld zou naar de bevestiging van het publiceren gaan | **Opgelost:** een onzichtbare standaardknop "opslaan" vooraan in het formulier (geen tabstop, niet voorgelezen), met een browsertest voor Enter |
 | F2-05 | klein (vermoeden) | Geen wachtstand op de knoppen: dubbel klikken op een traag netwerk kan twee concepten met dezelfde naam maken | **Open, bewust.** Een dubbel concept is met "Concept verwijderen" op te ruimen. De knoppen staan buiten het formulier, dus een wachtstand vraagt een kleine ombouw; mee in fase 3 |
@@ -125,7 +125,7 @@ AVG-grondslag voor het nummer van de eindverantwoordelijke aan alle leden (R10, 
 
 | Onderdeel | Wat er staat | Reden |
 |---|---|---|
-| **Een gepubliceerde activiteit wijzigen met een bevestigingsstap ("Wie krijgt bericht")** | **Niet gebouwd.** Een gepubliceerde activiteit toont op het beheerscherm wat er staat, met de melding dat wijzigen hier nog niet kan. De database kan het wel (`activiteit_opslaan` ondersteunt het en is getest, pgTAP en `e2e/gelijktijdig.spec.ts`) | Tijd, en O-1: de bevestigingsstap hoort per wijziging te laten zien wie bericht krijgt, en er gaat nog niets uit. **Gevolg voor de pilot: na het publiceren kan het bestuur niemand meer in- of uitdelen via het scherm.** Zie punt 6 |
+| **De bevestigingsstap ("Wie krijgt bericht") bij het wijzigen van een gepubliceerde activiteit** | **Niet gebouwd.** Het wijzigen zelf kan wel (F2-01): het formulier slaat direct op en zegt dat leden de wijziging meteen zien en dat er geen bericht uitgaat. De database kan beide (`activiteit_opslaan`, pgTAP en `e2e/gelijktijdig.spec.ts`) | O-1: de bevestigingsstap hoort per wijziging te laten zien wie bericht krijgt, en er gaat nog niets uit. Het bestuur laat het zelf weten als een wijziging ertoe doet. Komt met de berichten |
 | Berichten naar leden (bij publiceren, bij wijzigen van een gepubliceerde activiteit) | Er gaat niets uit; de bevestigingspagina zegt dat | Open punt O-1 in `Datamodel-fase-2.md` |
 | De bak en "Mijn diensten" ("Al je diensten") | Niet gebouwd | Besluit 2.4 van `Fase-2-plan.md`; fase 3 |
 | Afmelden en Dienst overdragen | Niet gebouwd; Jouw status toont alleen wat jij bent | Fase 3 |
@@ -184,11 +184,11 @@ Stand op 03-11-2026. Wat hieronder "open" staat, ligt grotendeels bij de bouwer 
 
 ### 6.3 Advies voor vrijdag 6 november
 
-**Pilot A (14 tot 22 november) is haalbaar, onder voorwaarden.** Wat de code betreft is er één blokkerend onderdeel dat nog
-moet: de beheerder moet na het publiceren kunnen blijven indelen en corrigeren (F2-01), en de bouwer moet de pilotleden met
-telefoonnummer en groep in het systeem kunnen zetten (F2-02). Beide zijn kleiner dan de stappen die al klaar zijn: de
-database kan het wijzigen al (getest), er ontbreekt een formulier voor een gepubliceerde activiteit en een script. De bevestigingsstap "Wie krijgt bericht"
-blijft buiten de pilot zolang er geen berichten uitgaan.
+**Pilot A (14 tot 22 november) is haalbaar, onder voorwaarden.** Wat de code betreft is er nog één onderdeel dat moet: de
+bouwer moet de pilotleden met telefoonnummer en groep in het systeem kunnen zetten (F2-02, een script of beschreven
+procedure). Het andere blokkerende punt, na het publiceren kunnen blijven indelen en corrigeren (F2-01), is gebouwd en
+getest. De bevestigingsstap "Wie krijgt bericht" blijft buiten de pilot zolang er geen berichten uitgaan; het bestuur laat
+wijzigingen die ertoe doen zelf weten.
 
 Wat het beslismoment bepaalt, is daarom niet de code maar de lijst van punt 6.1 en 6.2: het Pro-project met een teruggezette back-up, het
 afzenderdomein, de tweede beheerder en het akkoord op de kosten. Zijn die op 11 november niet rond, dan is pilot B (3 januari
@@ -201,8 +201,8 @@ dit is het advies.
 
 | Wat | Bron |
 |---|---|
-| Een gepubliceerde activiteit wijzigen in beheer (formulier met "Wijzigingen opslaan", zonder bericht) | F2-01 |
-| Telefoon, groepen en aanmerkingen van de pilotleden zetten (script of beschreven procedure); waarschuwing in het formulier bij een eindverantwoordelijke zonder nummer | F2-02 |
+| ~~Een gepubliceerde activiteit wijzigen in beheer~~ Gebouwd (formulier met "Wijzigingen opslaan", zonder bericht) | F2-01 |
+| Telefoon, groepen en aanmerkingen van de pilotleden zetten (script of beschreven procedure). De waarschuwing in het formulier bij een eindverantwoordelijke zonder nummer is gebouwd | F2-02 |
 | De doorloop met toetsenbord, telefoon en schermlezer en de vergelijking met het visuele ontwerp (punt 2.1 en 2.2); de Supabase-adviseur opnieuw (2.3) | Punt 2 |
 | De pilotleden uitleggen dat afmelden en ruilen nog niet kan (de Start zegt "Iedereen staat standaard op aanwezig") | F2-14 |
 | De overige punten "Vóór de pilot" uit `Afname-fase-1.md` punt 4: afzenderdomein, het echte e-mailadres in de ontwikkeldatabase (F1-06), tweede beheerder en organisatie (F1-09), de rem op foute codes meten (F1-19), de lege taken-Worker, `/ontwerp` en het tijdelijke inlogscript weghalen of afschermen (F1-20), de pilotcheck | `Afname-fase-1.md` |

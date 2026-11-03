@@ -138,6 +138,15 @@ describe('vertaalOpslagfout: indelen', () => {
     );
   });
 
+  it('zegt bij een eindverantwoordelijke zonder telefoonnummer dat leden hem moeten kunnen bellen', () => {
+    expect(vertaalOpslagfout('eindverantwoordelijke_verplicht', { reden: 'telefoon' }).fouten.plekken).toBe(
+      'De eindverantwoordelijke heeft geen telefoonnummer, en leden moeten hem kunnen bellen. Kies iemand met een telefoonnummer.',
+    );
+    expect(vertaalOpslagfout('eindverantwoordelijke_verplicht', { reden: 'leeg' }).fouten.plekken).toContain(
+      'kan niet worden weggehaald',
+    );
+  });
+
   it('zegt bij een gewijzigde plek dat er niets is opgeslagen', () => {
     const uit = vertaalOpslagfout('slot_gewijzigd', { rol_slot_id: 'x' });
     expect(uit.melding).toContain('Deze plek is inmiddels gewijzigd');

@@ -60,6 +60,8 @@ interface Eigenschappen {
   beginKeuzes?: Record<string, string>;
   /** Een fout bij de plekken, na het versturen. */
   fout?: string;
+  /** De activiteit is gepubliceerd: de eindverantwoordelijke is vast en kan alleen rechtstreeks worden vervangen (R21). */
+  gepubliceerd?: boolean;
 }
 
 interface NieuwePlek {
@@ -177,6 +179,7 @@ export function Plekken({
   beginToegevoegd = [],
   beginKeuzes,
   fout,
+  gepubliceerd = false,
 }: Eigenschappen) {
   const [weggehaald, zetWeggehaald] = useState<string[]>(beginWeggehaald);
   const [nieuw, zetNieuw] = useState<NieuwePlek[]>(() => leesNieuwePlekken(beginToegevoegd));
@@ -200,6 +203,8 @@ export function Plekken({
     }
     return start;
   });
+  /** Wie er nu als eindverantwoordelijke is gekozen (of stond), om te waarschuwen als hij geen telefoonnummer heeft. */
+  const gekozenEv = kandidaten.find((k) => k.id === keuzes[evNaam]);
   const wijzig = (naam: string, waarde: string): void =>
     zetKeuzes((vorige) => ({ ...vorige, [naam]: waarde }));
 
@@ -347,14 +352,26 @@ export function Plekken({
               waarde={keuzes[evNaam] ?? ''}
               bezetterId={eindverantwoordelijke.bezetterId}
               bezetterNaam={eindverantwoordelijke.naam}
-              eraf={eindverantwoordelijke.bezetterId !== null}
+              eraf={eindverantwoordelijke.bezetterId !== null && !gepubliceerd}
               alleenOpenlaten
               onWijzig={(waarde) => wijzig(evNaam, waarde)}
             />
           </div>
         </div>
-        {eindverantwoordelijke.telefoon && (
+        {eindverantwoordelijke.telefoon && gekozenEv?.id === eindverantwoordelijke.bezetterId && (
           <p className={stijl.vast}>Telefoon: {eindverantwoordelijke.telefoon}</p>
+        )}
+        {gekozenEv && !gekozenEv.telefoon && (
+          <p role="status" className={stijl.vast}>
+            {gekozenEv.naam} heeft nog geen telefoonnummer. De eindverantwoordelijke heeft er een nodig:
+            zonder nummer kan de activiteit niet worden gepubliceerd en zien leden geen nummer.
+          </p>
+        )}
+        {gepubliceerd && (
+          <p className={stijl.vast}>
+            Bij een gepubliceerde activiteit blijft er altijd een eindverantwoordelijke: kies een ander, je
+            kunt de plek niet openlaten.
+          </p>
         )}
       </section>
 

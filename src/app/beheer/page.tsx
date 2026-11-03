@@ -170,6 +170,12 @@ export default async function Beheer({
           <strong>{bewaard.naam} is opgeslagen als concept.</strong> Leden zien hem pas als je publiceert.
         </Melding>
       )}
+      {bewaard?.status === 'gepubliceerd' && (
+        <Melding soort="succes">
+          <strong>{bewaard.naam} is bijgewerkt.</strong> Leden zien de wijziging meteen. Er gaat nog geen
+          bericht uit.
+        </Melding>
+      )}
       {nuGepubliceerd && nuGepubliceerd.status !== 'concept' && (
         <Melding soort="succes">
           <strong>{nuGepubliceerd.naam} is gepubliceerd.</strong> Leden zien hem nu.
