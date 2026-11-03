@@ -19,6 +19,7 @@ import {
   type OverzichtRij,
 } from '@/lib/beheeroverzicht';
 import { vandaagInNederland } from '@/lib/programma';
+import { naamUitLog } from '@/lib/verwijderen';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import stijl from './beheer.module.css';
@@ -78,6 +79,7 @@ export default async function Beheer({
     filter?: string | string[];
     opgeslagen?: string | string[];
     gepubliceerd?: string | string[];
+    verwijderd?: string | string[];
   }>;
 }) {
   await eisBeheer();
@@ -86,6 +88,7 @@ export default async function Beheer({
   // Na het opslaan of publiceren: het id van de activiteit. Geen tekst in de adresbalk: wat er staat, komt uit de database.
   const opgeslagen = z.uuid().safeParse(parameters.opgeslagen);
   const gepubliceerd = z.uuid().safeParse(parameters.gepubliceerd);
+  const verwijderd = z.uuid().safeParse(parameters.verwijderd);
   const supabase = await maakSupabase();
 
   // De rijen komen uit de database (public.beheeroverzicht(), alleen voor een beheerder met een code); de tijd van de
@@ -117,6 +120,21 @@ export default async function Beheer({
     ? overzichtsrijen.find((rij) => rij.activiteitId === gepubliceerd.data)
     : undefined;
 
+  // Een verwijderd concept bestaat niet meer: de naam staat nog in het wijzigingenlog (alleen voor een beheerder te lezen).
+  let verwijderdeNaam: string | null | undefined;
+  if (verwijderd.success) {
+    const { data: regel, error: logFout } = await supabase
+      .from('wijzigingen_log')
+      .select('omschrijving')
+      .eq('actie', 'concept_verwijderd')
+      .eq('rij_id', verwijderd.data)
+      .order('moment', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (logFout) throw new Error(`wijzigingenlog niet te lezen: ${logFout.code ?? logFout.message}`);
+    verwijderdeNaam = regel ? naamUitLog(regel.omschrijving) : undefined;
+  }
+
   const tellers = [
     {
       href: filter === 'diensten' ? '/beheer' : '/beheer?filter=diensten',
@@ -147,6 +165,13 @@ export default async function Beheer({
       {nuGepubliceerd && nuGepubliceerd.status !== 'concept' && (
         <Melding soort="succes">
           <strong>{nuGepubliceerd.naam} is gepubliceerd.</strong> Leden zien hem nu.
+        </Melding>
+      )}
+      {verwijderdeNaam !== undefined && (
+        <Melding soort="succes">
+          <strong>
+            {verwijderdeNaam ? `${verwijderdeNaam} is verwijderd.` : 'Het concept is verwijderd.'}
+          </strong>
         </Melding>
       )}
       <Tellers tellers={tellers} naam="Filter op wat er te doen is" />

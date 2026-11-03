@@ -15,6 +15,8 @@ import { maakSupabase } from '@/lib/supabase/server';
 import { Activiteitformulier, FORMULIER_ID } from '../activiteitformulier';
 import { leesActiviteit, leesAfgemeld, leesGroepen, leesKandidaten } from '../gegevens';
 
+import stijl from './activiteit.module.css';
+
 export const metadata: Metadata = { title: 'Activiteit – Ledenplatform' };
 
 export default async function Activiteit({ params }: { params: Promise<{ id: string }> }) {
@@ -75,6 +77,11 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
           status="Concept"
           uitleg="Alleen het bestuur ziet deze activiteit."
           nodig={activiteit.nogNodig}
+          onderaan={
+            <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
+              Concept verwijderen
+            </Knop>
+          }
         >
           <Knop type="submit" soort="positief" formulier={FORMULIER_ID} naam="actie" waarde="publiceren">
             Publiceren
@@ -96,6 +103,11 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         kandidaten={kandidaten}
         afgemeld={afgemeld}
       />
+      <div className={stijl.verwijderMobiel}>
+        <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
+          Concept verwijderen
+        </Knop>
+      </div>
     </Schermkader>
   );
 }

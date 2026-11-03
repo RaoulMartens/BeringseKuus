@@ -1,0 +1,12 @@
+/* "Concept verwijderen" staat op een groot scherm onderaan het statuspaneel; op een telefoon is dat een balk met alleen de
+   hoofdknoppen, dus staat de link daar onder het formulier (ontwerpregel: .wf-mobiel-onderaan). */
+.verwijderMobiel {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .verwijderMobiel {
+    display: flex;
+    justify-content: center;
+  }
+}

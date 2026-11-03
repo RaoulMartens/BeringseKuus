@@ -1,0 +1,27 @@
+/* De bevestigingspagina voor het verwijderen van een concept: één kaart, de knoppen eronder; op een telefoon over de volle
+   breedte onder elkaar. */
+.formulier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+.knoppen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tekst {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .knoppen {
+    flex-direction: column;
+  }
+
+  .knoppen > * {
+    width: 100%;
+  }
+}
