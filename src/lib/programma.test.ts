@@ -4,6 +4,7 @@ import {
   dagTekst,
   isActiviteitStatus,
   isGeweest,
+  langeDag,
   maakProgramma,
   maandTitel,
   regelOnderNaam,
@@ -61,6 +62,17 @@ describe('dagTekst', () => {
     for (const fout of ['', 'morgen', '2027-1-1', '22-01-2027', '2027-01-22T10:00']) {
       expect(() => dagTekst(fout), fout).toThrow();
     }
+  });
+});
+
+describe('langeDag', () => {
+  it('geeft de dag voluit voor een kop', () => {
+    expect(langeDag('2027-02-06')).toBe('zaterdag 6 februari');
+    expect(langeDag('2028-02-29')).toBe('dinsdag 29 februari');
+  });
+
+  it('weigert iets dat geen datum is', () => {
+    expect(() => langeDag('morgen')).toThrow();
   });
 });
 

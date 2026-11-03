@@ -1,0 +1,105 @@
+/* De rolbezetting: per rol een kop, de plekken als regels en een knop om er een toe te voegen (docs/visueel/stijl.css,
+   sectie 13: rolbezetting). Een lege plek heeft een kruisje; een bezette plek niet (die moet eerst leeg). */
+.plekken {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.uitleg {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.rol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.rolkop {
+  margin: 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.lijst {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--control-default);
+  padding: 4px 4px 4px var(--padding-control-x);
+  background: var(--neutraal-vlak);
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+}
+
+.naam {
+  font-weight: 600;
+  color: var(--neutraal-tekst);
+}
+
+.leeg {
+  flex: 1 1 auto;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.vast {
+  margin: 0;
+  align-self: stretch;
+  padding: 8px var(--padding-control-x);
+  background: var(--neutraal-vlak);
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neutraal-tekst);
+}
+
+.vast .leeg {
+  font-weight: 400;
+}
+
+.weg {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-compact);
+  height: var(--control-compact);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--neutraal-tekst-zacht);
+  cursor: pointer;
+}
+
+.weg:hover {
+  background: var(--neutraal-hover);
+  color: var(--neutraal-tekst);
+}
+
+.weg svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fout {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  font-weight: 600;
+  color: var(--status-fout-tekst);
+}

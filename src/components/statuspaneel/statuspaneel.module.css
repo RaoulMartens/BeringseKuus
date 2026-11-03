@@ -1,0 +1,115 @@
+/* Het statuspaneel, overgenomen uit docs/visueel/stijl.css sectie 13 (`.wf-sidebar.wf-sticky`): een kaart die in beeld
+   blijft; op een telefoon een balk onderaan met de status en de knoppen. */
+.paneel {
+  position: sticky;
+  top: 16px;
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+  padding: var(--padding-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kop {
+  margin: 0;
+  font: 700 1.25rem/1.4 var(--font-titel);
+  color: var(--neutraal-tekst);
+}
+
+.uitleg {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.nodig {
+  border-top: 1px solid var(--neutraal-lijn);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.nodigKop {
+  margin: 0 0 4px;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.lijst {
+  margin: 0;
+  padding: 0 0 0 20px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--neutraal-tekst);
+}
+
+.knoppen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 700px) {
+  /* een balk onderaan; de inhoud krijgt ruimte eronder, zodat niets erachter verdwijnt */
+  :global(main):has(.paneel) {
+    padding-bottom: 168px;
+  }
+
+  .paneel {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 10;
+    top: auto;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    padding: 12px var(--padding-page) 16px;
+    box-shadow: var(--elevation-floating);
+    gap: 4px;
+  }
+
+  .kop {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .uitleg {
+    display: none;
+  }
+
+  .nodig {
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 0;
+  }
+
+  /* de kop blijft er voor een schermlezer, alleen niet in beeld */
+  .nodigKop {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .lijst {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 16px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .knoppen {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .knoppen > * {
+    flex: 1 1 calc(50% - 4px);
+  }
+}

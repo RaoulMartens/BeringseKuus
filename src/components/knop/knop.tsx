@@ -42,11 +42,21 @@ interface Gedeeld {
 
 type Eigenschappen = Gedeeld &
   (
-    | { href: string; type?: never; disabled?: never; naam?: never; waarde?: never; onClick?: never }
+    | {
+        href: string;
+        type?: never;
+        disabled?: never;
+        naam?: never;
+        waarde?: never;
+        formulier?: never;
+        onClick?: never;
+      }
     | {
         href?: never;
         type?: 'button' | 'submit';
         disabled?: boolean;
+        /** De knop hoort bij het formulier met dit id, ook als hij er niet in staat (het statuspaneel staat naast het formulier). */
+        formulier?: string;
         /** Voor een formulier met meer dan één knop: welke knop is gebruikt. */
         naam?: string;
         waarde?: string;
@@ -78,6 +88,7 @@ export function Knop(eigenschappen: Eigenschappen) {
       className={klasse}
       disabled={eigenschappen.disabled}
       onClick={eigenschappen.onClick}
+      form={eigenschappen.formulier}
       name={eigenschappen.naam}
       value={eigenschappen.waarde}
     >

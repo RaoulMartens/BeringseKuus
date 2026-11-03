@@ -1,0 +1,322 @@
+// Het formulier voor een activiteit (UC-004): wat de beheerder invult, gecontroleerd met Zod (besluit 2.4 in
+// Fase-1-plan.md), omgezet naar wat public.activiteit_opslaan verwacht, en de foutcodes van de database terug in woorden
+// bij het veld of bovenaan. Alles hier is zuivere logica zonder database, zodat de grenzen met tests vast te leggen zijn.
+//
+// Het formulier controleert voor de gebruiker (snel, bij het veld); de database controleert nog een keer en blijft de
+// baas (DM-13): een waarde die hier doorkomt en daar niet, komt als foutcode terug en wordt ook in woorden gezet.
+// De teksten staan zoals in de wireframes (docs/ux-flows): "Vul een eindtijd in."
+
+import { z } from 'zod';
+
+const TIJD = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DATUM = /^\d{4}-\d{2}-\d{2}$/;
+const TIJDSTIP = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Rollen die de beheerder zelf toevoegt; de eindverantwoordelijke is er altijd en de bak komt later. */
+export const TOEVOEGBARE_ROLLEN = ['werker', 'drankhaler', 'fotograaf', 'bob'] as const;
+export type ToevoegbareRol = (typeof TOEVOEGBARE_ROLLEN)[number];
+
+export const TEKENS_NAAM = 200;
+export const TEKENS_NOTITIE = 2000;
+
+export type Wijziging =
+  | { handeling: 'plek_toevoegen'; rol_type: ToevoegbareRol; tijdelijk_id: string }
+  | { handeling: 'plek_weghalen'; rol_slot_id: string };
+
+export interface ActiviteitVelden {
+  naam: string;
+  datum: string;
+  verzameltijd: string | null;
+  starttijd: string | null;
+  eindtijd: string | null;
+  locatie: string | null;
+  bus_vertrektijd: string | null;
+  bus_locatie: string | null;
+  notitie: string | null;
+  afmeld_deadline: string | null;
+  min_aanwezigen: number | null;
+  groepen: string[];
+}
+
+export type Uitkomst =
+  | { ok: true; velden: ActiviteitVelden; wijzigingen: Wijziging[] }
+  | { ok: false; fouten: Record<string, string> };
+
+/** Een lege invoer is "niet ingevuld" (null), niet een lege tekst. */
+const leeg = (waarde: unknown): unknown =>
+  typeof waarde === 'string' && waarde.trim() === '' ? null : waarde;
+
+function geldigeDatum(tekst: string): boolean {
+  if (!DATUM.test(tekst)) return false;
+  const dag = new Date(`${tekst}T12:00:00Z`);
+  const jaar = dag.getUTCFullYear();
+  return (
+    !Number.isNaN(dag.getTime()) && dag.toISOString().slice(0, 10) === tekst && jaar >= 2000 && jaar <= 2100
+  );
+}
+
+const optioneleTekst = (max: number) =>
+  z.preprocess(leeg, z.string().trim().max(max, `Maximaal ${max} tekens.`).nullable());
+
+const optioneleTijd = z.preprocess(leeg, z.string().regex(TIJD, 'Vul een tijd in zoals 14:00.').nullable());
+
+const SCHEMA = z.object({
+  naam: z.string().trim().min(1, 'Vul een naam in.').max(TEKENS_NAAM, `Maximaal ${TEKENS_NAAM} tekens.`),
+  datum: z.preprocess(
+    (waarde) => (typeof waarde === 'string' ? waarde.trim() : waarde),
+    z.string().min(1, 'Vul een datum in.').refine(geldigeDatum, 'Dit is geen datum.'),
+  ),
+  verzameltijd: optioneleTijd,
+  starttijd: optioneleTijd,
+  eindtijd: optioneleTijd,
+  locatie: optioneleTekst(200),
+  bus_vertrektijd: optioneleTijd,
+  bus_locatie: optioneleTekst(200),
+  notitie: optioneleTekst(TEKENS_NOTITIE),
+  afmeld_deadline: z.preprocess(
+    leeg,
+    z
+      .string()
+      .regex(TIJDSTIP, 'Vul een datum en tijd in.')
+      .refine((tekst) => geldigeDatum(tekst.slice(0, 10)), 'Dit is geen datum.')
+      .nullable(),
+  ),
+  min_aanwezigen: z.preprocess((waarde) => {
+    const schoon = leeg(waarde);
+    return schoon === null ? null : typeof schoon === 'string' ? Number(schoon) : schoon;
+  }, z.number('Vul een getal van 1 of meer in.').int('Vul een heel getal in.').min(1, 'Vul een getal van 1 of meer in.').max(100000, 'Dit getal is te groot.').nullable()),
+  groepen: z.array(z.uuid('Kies een groep uit de lijst.')),
+});
+
+const TOEVOEGEN = z.object({
+  rol: z.enum(TOEVOEGBARE_ROLLEN),
+  tijdelijk: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
+});
+
+function tekstVan(formulier: FormData, naam: string): string {
+  const waarde = formulier.get(naam);
+  return typeof waarde === 'string' ? waarde : '';
+}
+
+/** Leest het formulier. Een fout komt per veld terug (de eerste per veld), met de tekst voor bij het veld. */
+export function leesFormulier(formulier: FormData): Uitkomst {
+  const invoer = {
+    naam: tekstVan(formulier, 'naam'),
+    datum: tekstVan(formulier, 'datum'),
+    verzameltijd: tekstVan(formulier, 'verzameltijd'),
+    starttijd: tekstVan(formulier, 'starttijd'),
+    eindtijd: tekstVan(formulier, 'eindtijd'),
+    locatie: tekstVan(formulier, 'locatie'),
+    bus_vertrektijd: tekstVan(formulier, 'bus_vertrektijd'),
+    bus_locatie: tekstVan(formulier, 'bus_locatie'),
+    notitie: tekstVan(formulier, 'notitie'),
+    afmeld_deadline: tekstVan(formulier, 'afmeld_deadline'),
+    min_aanwezigen: tekstVan(formulier, 'min_aanwezigen'),
+    groepen: formulier.getAll('groep').filter((waarde): waarde is string => typeof waarde === 'string'),
+  };
+  const velden = SCHEMA.safeParse(invoer);
+  const fouten: Record<string, string> = {};
+  if (!velden.success) {
+    for (const probleem of velden.error.issues) {
+      const veld = String(probleem.path[0] ?? 'formulier');
+      fouten[veld] ??= probleem.message;
+    }
+  } else if (velden.data.starttijd !== null && velden.data.starttijd === velden.data.eindtijd) {
+    fouten.eindtijd = 'De eindtijd kan niet gelijk zijn aan de starttijd.';
+  }
+
+  const wijzigingen: Wijziging[] = [];
+  const gezien = new Set<string>();
+  for (const waarde of formulier.getAll('plek_toevoegen')) {
+    const [rol, tijdelijk] = typeof waarde === 'string' ? waarde.split(':') : [];
+    const plek = TOEVOEGEN.safeParse({ rol, tijdelijk });
+    if (!plek.success || gezien.has(plek.data.tijdelijk)) {
+      fouten.plekken = 'Er klopt iets niet met de plekken. Laad de pagina opnieuw.';
+      continue;
+    }
+    gezien.add(plek.data.tijdelijk);
+    wijzigingen.push({
+      handeling: 'plek_toevoegen',
+      rol_type: plek.data.rol,
+      tijdelijk_id: plek.data.tijdelijk,
+    });
+  }
+  for (const waarde of formulier.getAll('plek_weghalen')) {
+    const id = z.uuid().safeParse(waarde);
+    if (!id.success) {
+      fouten.plekken = 'Er klopt iets niet met de plekken. Laad de pagina opnieuw.';
+      continue;
+    }
+    wijzigingen.push({ handeling: 'plek_weghalen', rol_slot_id: id.data });
+  }
+
+  if (Object.keys(fouten).length > 0 || !velden.success) return { ok: false, fouten };
+  return { ok: true, velden: velden.data, wijzigingen };
+}
+
+// ===== Foutcodes van de database in woorden =====
+
+export interface Fouttekst {
+  /** Bij het veld; de sleutel is de veldnaam (of "groepen" of "plekken"). */
+  fouten: Record<string, string>;
+  /** Bovenaan het formulier, voor wat niet bij één veld hoort. */
+  melding: string | null;
+}
+
+const VELD_MET_LIDWOORD: Record<string, string> = {
+  naam: 'een naam',
+  datum: 'een datum',
+  starttijd: 'een starttijd',
+  eindtijd: 'een eindtijd',
+  locatie: 'een locatie',
+};
+
+const ALGEMEEN = 'Het opslaan is niet gelukt. Probeer het nog eens; blijft het misgaan, laat het dan weten.';
+
+function lijstUit(detail: unknown, sleutel: string): string[] {
+  if (typeof detail !== 'object' || detail === null) return [];
+  const waarde: unknown = (detail as Record<string, unknown>)[sleutel];
+  return Array.isArray(waarde) ? waarde.filter((deel): deel is string => typeof deel === 'string') : [];
+}
+
+function veldUit(detail: unknown): string | null {
+  if (typeof detail !== 'object' || detail === null) return null;
+  const waarde: unknown = (detail as Record<string, unknown>).veld;
+  return typeof waarde === 'string' ? waarde : null;
+}
+
+/** De detailtekst van de database (JSON als tekst) als object; wat er niet in past, wordt een leeg object. */
+export function leesDetail(tekst: unknown): unknown {
+  if (typeof tekst !== 'string') return {};
+  try {
+    return JSON.parse(tekst) as unknown;
+  } catch {
+    return {};
+  }
+}
+
+/** Vertaalt de foutcode van activiteit_opslaan naar teksten bij het veld of bovenaan. */
+export function vertaalOpslagfout(code: string, detail: unknown): Fouttekst {
+  switch (code) {
+    case 'veld_ontbreekt': {
+      const fouten: Record<string, string> = {};
+      for (const veld of lijstUit(detail, 'velden')) {
+        const naam = VELD_MET_LIDWOORD[veld];
+        if (naam) fouten[veld] = `Vul ${naam} in.`;
+      }
+      return Object.keys(fouten).length > 0 ? { fouten, melding: null } : { fouten, melding: ALGEMEEN };
+    }
+    case 'veld_ongeldig': {
+      const veld = veldUit(detail);
+      if (veld === 'eindtijd') {
+        return { fouten: { eindtijd: 'De eindtijd kan niet gelijk zijn aan de starttijd.' }, melding: null };
+      }
+      return veld && veld !== 'velden' && veld !== 'verwachte_versie'
+        ? { fouten: { [veld]: 'Dit klopt niet. Controleer wat je hebt ingevuld.' }, melding: null }
+        : { fouten: {}, melding: ALGEMEEN };
+    }
+    case 'versie_verouderd':
+      return {
+        fouten: {},
+        melding:
+          'Iemand anders heeft deze activiteit net gewijzigd. Je wijzigingen zijn niet opgeslagen. Laad de pagina opnieuw en probeer het nog eens.',
+      };
+    case 'activiteit_onbekend':
+      return { fouten: {}, melding: 'Deze activiteit bestaat niet meer.' };
+    case 'activiteit_niet_open':
+      return { fouten: {}, melding: 'Deze activiteit staat niet meer open voor wijzigingen.' };
+    case 'groep_onbekend':
+      return {
+        fouten: { groepen: 'Een van de gekozen groepen bestaat niet meer. Laad de pagina opnieuw.' },
+        melding: null,
+      };
+    case 'plek_onbekend':
+    case 'plek_niet_leeg':
+      return {
+        fouten: {},
+        melding:
+          'Een plek is inmiddels gewijzigd. Je wijzigingen zijn niet opgeslagen. Laad de pagina opnieuw.',
+      };
+    default:
+      return { fouten: {}, melding: ALGEMEEN };
+  }
+}
+
+// ===== Van de database naar het formulier =====
+
+/** "14:00" uit "14:00:00"; leeg als er geen tijd is. */
+export function tijdVoorVeld(tijd: string | null): string {
+  return tijd ? tijd.slice(0, 5) : '';
+}
+
+/** Een tijdstip (met tijdzone) als "2027-02-01T20:00" in Amsterdamse tijd, zoals een datum-en-tijdveld het wil. */
+export function tijdstipVoorVeld(tijdstip: string | null): string {
+  if (!tijdstip) return '';
+  const moment = new Date(tijdstip);
+  if (Number.isNaN(moment.getTime())) return '';
+  const delen = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Amsterdam',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(moment);
+  return delen.replace(' ', 'T');
+}
+
+/** Wat er nog nodig is om te publiceren (R21), in woorden voor het statuspaneel. */
+export function nogNodigOmTePubliceren(a: {
+  starttijd: string | null;
+  eindtijd: string | null;
+  locatie: string | null;
+  heeftEindverantwoordelijke: boolean;
+  eindverantwoordelijkeHeeftTelefoon: boolean;
+}): string[] {
+  const lijst: string[] = [];
+  if (!a.starttijd) lijst.push('Starttijd');
+  if (!a.eindtijd) lijst.push('Eindtijd');
+  if (!a.locatie) lijst.push('Locatie');
+  if (!a.heeftEindverantwoordelijke) lijst.push('Eindverantwoordelijke');
+  else if (!a.eindverantwoordelijkeHeeftTelefoon) lijst.push('Telefoonnummer van de eindverantwoordelijke');
+  return lijst;
+}
+
+// ===== Terug in het formulier na een fout =====
+
+/** De tekstvelden van het formulier, in de volgorde van het scherm. */
+export const TEKSTVELDEN = [
+  'naam',
+  'datum',
+  'verzameltijd',
+  'starttijd',
+  'eindtijd',
+  'locatie',
+  'bus_vertrektijd',
+  'bus_locatie',
+  'notitie',
+  'afmeld_deadline',
+  'min_aanwezigen',
+] as const;
+
+/** Wat de beheerder had ingevuld, zodat het na een fout terugkomt in het formulier (React leegt het anders). */
+export interface Waarden {
+  tekst: Record<string, string>;
+  groepen: string[];
+  plekToevoegen: string[];
+  plekWeghalen: string[];
+}
+
+export function leesWaarden(formulier: FormData): Waarden {
+  const tekst: Record<string, string> = {};
+  for (const veld of TEKSTVELDEN) tekst[veld] = tekstVan(formulier, veld);
+  const lijst = (naam: string): string[] =>
+    formulier.getAll(naam).filter((waarde): waarde is string => typeof waarde === 'string');
+  return {
+    tekst,
+    groepen: lijst('groep'),
+    plekToevoegen: lijst('plek_toevoegen'),
+    plekWeghalen: lijst('plek_weghalen'),
+  };
+}

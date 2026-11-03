@@ -66,3 +66,9 @@
     corner-shape: squircle;
   }
 }
+
+/* een tekstvak (meer regels): hetzelfde veld, hoger, en alleen in hoogte te vergroten */
+.tekstvak {
+  min-height: 96px;
+  resize: vertical;
+}
