@@ -26,7 +26,10 @@ export default async function NieuweActiviteit() {
       terug={{ href: '/beheer', tekst: 'Terug naar activiteiten' }}
       zijkolom={
         <Statuspaneel status="Concept" uitleg="Alleen het bestuur ziet deze activiteit.">
-          <Knop type="submit" formulier={FORMULIER_ID}>
+          <Knop type="submit" soort="positief" formulier={FORMULIER_ID} naam="actie" waarde="publiceren">
+            Publiceren
+          </Knop>
+          <Knop type="submit" soort="secundair" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
             Opslaan als concept
           </Knop>
         </Statuspaneel>

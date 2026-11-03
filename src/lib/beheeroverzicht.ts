@@ -81,7 +81,7 @@ export function leesPlekkenPerRol(json: unknown): Record<string, number> {
   return uit;
 }
 
-function opsomming(delen: string[]): string {
+export function opsomming(delen: string[]): string {
   if (delen.length <= 1) return delen.join('');
   return `${delen.slice(0, -1).join(', ')} en ${delen[delen.length - 1]}`;
 }

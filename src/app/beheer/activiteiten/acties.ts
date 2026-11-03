@@ -11,6 +11,7 @@ import {
   type Waarden,
 } from '@/lib/activiteitformulier';
 import { eisBeheer } from '@/lib/beheer';
+import { vertaalPubliceerfout } from '@/lib/publiceren';
 import { maakSupabase } from '@/lib/supabase/server';
 
 export interface FormulierStaat {
@@ -85,5 +86,46 @@ export async function slaActiviteitOp(_vorige: FormulierStaat, formulier: FormDa
     console.error('activiteit opgeslagen, maar het antwoord had geen id');
     redirect('/beheer');
   }
+  // Met "Publiceren" is het concept nu bewaard en volgt de bevestiging: publiceren raakt anderen en kan niet terug (BA-3).
+  if (formulier.get('actie') === 'publiceren') {
+    redirect(`/beheer/activiteiten/${opgeslagen.data.activiteit_id}/publiceren`);
+  }
   redirect(`/beheer?opgeslagen=${opgeslagen.data.activiteit_id}`);
+}
+
+export interface PubliceerStaat {
+  melding: string | null;
+}
+
+/**
+ * Publiceert een concept na de bevestiging: dezelfde databasefunctie als het opslaan, met niets te wijzigen en
+ * publiceren aan, zodat de controles van R21 (eindtijd, eindverantwoordelijke met telefoonnummer) op één plek staan.
+ * Faalt iets, dan blijft de beheerder op de bevestigingspagina met de reden.
+ */
+export async function publiceerActiviteit(
+  _vorige: PubliceerStaat,
+  formulier: FormData,
+): Promise<PubliceerStaat> {
+  await eisBeheer();
+  const id = ID.safeParse(formulier.get('activiteit_id'));
+  if (!id.success) return { melding: vertaalPubliceerfout('activiteit_onbekend', {}) };
+  const versie = VERSIE.safeParse(formulier.get('versie'));
+  if (!versie.success) return { melding: vertaalPubliceerfout('versie_verouderd', {}) };
+
+  const supabase = await maakSupabase();
+  const { error } = await supabase.rpc('activiteit_opslaan', {
+    p_activiteit_id: id.data,
+    p_velden: {},
+    p_wijzigingen: [],
+    p_publiceren: true,
+    p_verwachte_versie: versie.data,
+  });
+
+  if (error) {
+    console.error(`activiteit niet gepubliceerd: ${error.code ?? error.message}`);
+    if (error.code !== 'BK001') return { melding: vertaalPubliceerfout('', {}) };
+    if (error.message === 'geen_admin') redirect('/beheer');
+    return { melding: vertaalPubliceerfout(error.message, leesDetail(error.details)) };
+  }
+  redirect(`/beheer?gepubliceerd=${id.data}`);
 }
