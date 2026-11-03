@@ -28,6 +28,13 @@ export const metadata: Metadata = { title: 'Programma – Ledenplatform' };
 // de concepten. Deze pagina filtert daar niets op: een tweede filter zou kunnen afwijken van de regels.
 const KOLOMMEN = 'id, naam, datum, starttijd, locatie, status, eindigt_om';
 
+/** Een lid opent de activiteit zoals een lid hem ziet; een concept (alleen voor het bestuur zichtbaar) opent in beheer. */
+function activiteitHref(activiteit: ProgrammaActiviteit): string {
+  return activiteit.status === 'concept'
+    ? `/beheer/activiteiten/${activiteit.id}`
+    : `/programma/${activiteit.id}`;
+}
+
 function Maandkaart({
   maand,
   vandaag,
@@ -46,7 +53,7 @@ function Maandkaart({
           const dag = dagTekst(activiteit.datum);
           const regel = regelOnderNaam(activiteit);
           return (
-            <Lijstrij key={activiteit.id} uitgeschakeld={geweest}>
+            <Lijstrij key={activiteit.id} uitgeschakeld={geweest} href={activiteitHref(activiteit)}>
               <Datumblok {...dag} vandaag={activiteit.datum === vandaag} />
               <span className={stijl.tekst}>
                 <strong className={stijl.naam}>{activiteit.naam}</strong>

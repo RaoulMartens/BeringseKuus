@@ -28,6 +28,8 @@ interface Eigenschappen {
   gast?: boolean;
   /** De titel van het scherm: de <h1>. */
   titel: string;
+  /** De grote begroeting van het welkomscherm; het kopvlak blijft even hoog. */
+  groot?: boolean;
   /** Een kleine regel boven de titel. */
   datum?: string;
   /** Een link "← Terug naar …" bovenaan de inhoud. */
@@ -50,7 +52,16 @@ async function menuEnGebruiker(actief: Onderdeel | undefined) {
   return { onderdelen, gebruiker };
 }
 
-export async function Schermkader({ actief, gast, titel, datum, terug, zijkolom, children }: Eigenschappen) {
+export async function Schermkader({
+  actief,
+  gast,
+  titel,
+  groot,
+  datum,
+  terug,
+  zijkolom,
+  children,
+}: Eigenschappen) {
   const { onderdelen, gebruiker } = gast
     ? { onderdelen: [], gebruiker: null }
     : await menuEnGebruiker(actief);
@@ -60,6 +71,7 @@ export async function Schermkader({ actief, gast, titel, datum, terug, zijkolom,
       onderdelen={onderdelen}
       gebruiker={gebruiker ? { voornaam: gebruiker.voornaam, href: '/mijn' } : undefined}
       titel={titel}
+      groot={groot}
       datum={datum}
       terug={terug}
       zijkolom={zijkolom}

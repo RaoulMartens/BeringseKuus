@@ -7,6 +7,8 @@ import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { maakSupabase } from '@/lib/supabase/server';
 
 export interface Gebruiker {
+  /** Het id van het lid, om de eigen plek en de eigen afmelding te herkennen. */
+  lidId: string;
   voornaam: string;
   achternaam: string;
   email: string;
@@ -26,12 +28,13 @@ export const huidigeGebruiker = cache(async (): Promise<Gebruiker | null> => {
   // Een beheerder ziet alle rijen van leden_prive; daarom op het adres van deze gebruiker.
   const { data, error } = await supabase
     .from('leden_prive')
-    .select('email, is_admin, leden(voornaam, achternaam)')
+    .select('lid_id, email, is_admin, leden(voornaam, achternaam)')
     .eq('email', user.email)
     .maybeSingle();
   if (error) throw new Error(`gebruiker niet te lezen: ${error.code ?? error.message}`);
   if (!data?.leden?.voornaam) return null;
   return {
+    lidId: data.lid_id,
     voornaam: data.leden.voornaam,
     achternaam: data.leden.achternaam,
     email: data.email,

@@ -1,0 +1,48 @@
+/* "Belangrijk om te weten" (docs/visueel/stijl.css, `.wf-belangrijk`): een kaart in de informatiekleur, titel en tekst in
+   dezelfde kleur. */
+.belangrijk {
+  background: var(--status-info-tint);
+  border-radius: var(--radius-card);
+  padding: var(--padding-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.belangrijkKop {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--status-info-tekst);
+}
+
+.belangrijkIcoon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--status-info);
+}
+
+.belangrijkTekst {
+  margin: 0;
+  font: 400 1rem/1.5 var(--font-tekst);
+  color: var(--status-info-tekst);
+  overflow-wrap: anywhere;
+}
+
+/* wat nog niet is ingevuld: zacht, geen waarschuwing */
+.nogNiet {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+@supports (corner-shape: squircle) {
+  .belangrijk {
+    corner-shape: squircle;
+  }
+}

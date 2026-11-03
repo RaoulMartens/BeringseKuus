@@ -17,6 +17,7 @@ interface Eigenschappen {
   /** De ingelogde persoon in de bovenbalk. */
   gebruiker?: { voornaam: string; href: string };
   titel: string;
+  groot?: boolean;
   datum?: string;
   terug?: { href: string; tekst: string };
   zijkolom?: ReactNode;
@@ -27,6 +28,7 @@ export function Kader({
   onderdelen = [],
   gebruiker,
   titel,
+  groot,
   datum,
   terug,
   zijkolom,
@@ -36,7 +38,7 @@ export function Kader({
     <>
       <Bovenbalk merk={VERENIGING.naam} onderdelen={onderdelen} gebruiker={gebruiker} />
       <main>
-        <Kopvlak titel={titel} datum={datum} />
+        <Kopvlak titel={titel} datum={datum} groot={groot} />
         <div className={stijl.inhoud}>
           <div className={stijl.hoofd}>
             {terug && (

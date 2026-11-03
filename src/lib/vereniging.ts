@@ -6,6 +6,10 @@ export const VERENIGING = {
   naam: 'De Beringse Kuus',
   /** Het woord voor het seizoen: "Vastelaovend 2026/2027". */
   seizoensnaam: 'Vastelaovend',
+  /** De groet op het welkomscherm: "Alaaf, Mark". */
+  groet: 'Alaaf',
+  /** Het motto van het seizoen, voor de lege staat van het welkomscherm. */
+  motto: 'Merge kumt later',
 } as const;
 
 /** "Vastelaovend 2026/2027" voor een seizoen dat in de database als beginjaar (2026) staat. */

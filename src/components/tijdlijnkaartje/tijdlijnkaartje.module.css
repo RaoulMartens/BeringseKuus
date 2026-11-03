@@ -1,0 +1,161 @@
+/* Het activiteitkaartje, overgenomen uit docs/visueel/stijl.css sectie 12. De opbouw volgt de breedte van het kaartje
+   (container query): breed de stops naast elkaar, smal onder elkaar met de stippellijn ernaast. */
+.kaartje {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.boven {
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+  padding: var(--padding-card);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dag {
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.naam {
+  margin: 0;
+  font: 700 1.25rem/1.4 var(--font-titel);
+  color: var(--thema-primair-tekst);
+}
+
+.stops {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metKop {
+  margin-top: 16px;
+}
+
+.stop {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 24px;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.stop.eerst {
+  flex: 1.5;
+}
+
+.tijd {
+  font: 700 1.25rem/1.4 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.eerst .tijd {
+  font: 700 2rem/1.25 var(--font-tekst);
+  letter-spacing: -0.01em;
+}
+
+.eerst .wat {
+  font-weight: 700;
+  color: var(--neutraal-tekst);
+}
+
+.wat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.watIcoon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.plek {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--neutraal-tekst);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.plekIcoon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.punt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-full);
+  background: var(--neutraal-kaart);
+  z-index: 1;
+}
+
+.eerst .punt {
+  background: var(--thema-primair);
+  border-color: var(--thema-primair);
+}
+
+.stop:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 20px;
+  right: 6px;
+  border-top: 2px dotted var(--neutraal-lijn-sterk);
+}
+
+/* een smal kaartje: de stops onder elkaar, de lijn ernaast */
+@container (max-width: 520px) {
+  .stops {
+    flex-direction: column;
+  }
+
+  .stop,
+  .stop.eerst {
+    flex: none;
+    padding: 0 0 16px 32px;
+  }
+
+  .stop:last-child {
+    padding-bottom: 0;
+  }
+
+  .punt {
+    top: 6px;
+  }
+
+  .stop:not(:last-child)::after {
+    top: 24px;
+    bottom: -6px;
+    left: 6px;
+    right: auto;
+    border-top: none;
+    border-left: 2px dotted var(--neutraal-lijn-sterk);
+  }
+}
+
+@supports (corner-shape: squircle) {
+  .boven {
+    corner-shape: squircle;
+  }
+}

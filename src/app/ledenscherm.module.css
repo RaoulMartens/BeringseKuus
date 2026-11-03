@@ -1,0 +1,20 @@
+/* Het paneel "Jouw status" staat op een groot scherm in de zijkolom en op een telefoon bovenaan, vóór het kaartje (de opdrachtgever,
+   09-10: "Je staat op aanwezig" eerst). Daarom staat het twee keer in de pagina; wat niet past, is er niet (display: none:
+   ook niet voor een schermlezer). */
+.alleenMobiel {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .alleenMobiel {
+    display: block;
+  }
+
+  .nietOpMobiel {
+    display: none;
+  }
+}
+
+.leeg {
+  margin: 0;
+}
