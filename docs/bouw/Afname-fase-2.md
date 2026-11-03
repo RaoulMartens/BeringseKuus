@@ -5,10 +5,11 @@ is gedaan, de pilotcheck, en de lijst "Van fase 2 naar fase 3 en de pilot". Wie 
 vrijdag 6 november voorbereidt, leest dit bestand eerst.
 
 **Stand (03-11-2026): de stappen A tot en met D van `Fase-2-plan.md` staan in `main` (PR 39 tot en met 50), de migratie staat
-online, en de review van fase 2 als geheel is verwerkt (punt 3). Een gepubliceerde activiteit wijzigen (F2-01) is daarna
-gebouwd. Niet af, en nodig voor pilot A ("het programma en de indeling zijn te zien, zonder afmelden en ruilen", bouwgids
-13.3): een manier om telefoonnummers en groepen van de pilotleden te zetten (F2-02). Met de hand nog te doen door de bouwer: de
-doorloop (punt 2.1), de vergelijking met het visuele ontwerp (punt 2.2) en de Supabase-adviseur (punt 2.3).** Het advies
+online, en de review van fase 2 als geheel is verwerkt (punt 3). Een gepubliceerde activiteit wijzigen (F2-01) en een script
+om de pilotleden met telefoonnummer, groepen en aanmerkingen in het systeem te zetten (F2-02, `Pilotleden.md`) zijn daarna
+gebouwd. De codevoorwaarden voor pilot A ("het programma en de indeling zijn te zien, zonder afmelden en ruilen", bouwgids
+13.3) zijn daarmee af. Met de hand nog te doen door de bouwer: de eerste echte lijst online zetten en nakijken (`Pilotleden.md`),
+de doorloop (punt 2.1), de vergelijking met het visuele ontwerp (punt 2.2) en de Supabase-adviseur (punt 2.3).** Het advies
 voor het beslismoment van vrijdag 6 november staat in punt 6.
 
 ## 1. Wat fase 2 heeft opgeleverd
@@ -93,7 +94,7 @@ zonder F2-01 en F2-02.** Ernst volgens de reviewer.
 | ID | Ernst | Bevinding | Afhandeling |
 |---|---|---|---|
 | F2-01 | belangrijk | Een gepubliceerde activiteit is in beheer alleen leesbaar: geen formulier en geen indeling. Het overzicht telt de lege plekken van gepubliceerde activiteiten wel mee als "diensten nog in te delen", en de link leidt naar een scherm waar je niets kunt doen. Ook een verkeerde tijd, locatie of eindverantwoordelijke is niet meer recht te zetten. In SQL werkt het wijzigen wel | **Opgelost na de afname** (03-11-2026): het formulier staat nu ook bij een gepubliceerde activiteit, met "Wijzigingen opslaan", de tekst dat leden de wijziging direct zien en er geen bericht uitgaat (O-1), en de melding "… is bijgewerkt" in het overzicht. De eindverantwoordelijke is vast (alleen vervangen, niet openlaten, R21) en `versie` en `verwachte_bezetter` beschermen. Een geweest zijnde activiteit weigert de database (O-2); een geannuleerde toont alleen wat er staat. Browsertests in `e2e/gepubliceerd-wijzigen.spec.ts`. De bevestigingsstap met "Wie krijgt bericht" volgt met de berichten |
-| F2-02 | belangrijk | Niets schrijft `leden_prive.telefoon`, `lid_groep`, `mag_bob` of `mag_eindverantw`; het "script voor pilotleden" bestaat niet (`scripts/` heeft `maak-lid-lokaal`, alleen lokaal, en `maak-inloglink`). Elke publicatie vraagt een eindverantwoordelijke met nummer (R21). Is een nummer later weg, dan weigert de database elke wijziging aan die activiteit en is dat niet te herstellen | **Gedeeltelijk, voorwaarde voor pilot A.** De waarschuwing in het formulier is gebouwd (een eindverantwoordelijke zonder nummer geeft een melding vóór het opslaan, en een duidelijke foutmelding als de database het weigert). **Open:** een beschreven procedure of script voor leden, telefoon, groepen en aanmerkingen (online, met een geheim dat niet in de repo komt) |
+| F2-02 | belangrijk | Niets schrijft `leden_prive.telefoon`, `lid_groep`, `mag_bob` of `mag_eindverantw`; het "script voor pilotleden" bestaat niet (`scripts/` heeft `maak-lid-lokaal`, alleen lokaal, en `maak-inloglink`). Elke publicatie vraagt een eindverantwoordelijke met nummer (R21). Is een nummer later weg, dan weigert de database elke wijziging aan die activiteit en is dat niet te herstellen | **Opgelost na de afname** (03-11-2026), op de eerste echte lijst na. De waarschuwing in het formulier is gebouwd (een eindverantwoordelijke zonder nummer geeft een melding vóór het opslaan, en een duidelijke foutmelding als de database het weigert). `npm run leden:zet` zet een lijst uit Excel in het systeem: inlogaccount, telefoon, groepen en de aanmerkingen BOB en eindverantwoordelijke, eerst als proef, opnieuw draaien verandert niets, een lege cel wijzigt niets, en het maakt nooit een beheerder. Online werkt het met de gegevens van het project uit de terminal van de bouwer, met een getypte bevestiging; de lijst met echte gegevens blijft buiten de repository. Procedure: `Pilotleden.md`; 10 browsertests tegen de lokale Supabase en 33 unittests. Een onafhankelijke review van het script (schone chat, met eigen proeven) vond geen manier om de sleutel te laten uitlekken of om per ongeluk online te schrijven; de aandachtspunten zijn verwerkt (een cel met alleen `\|` wist geen groepen meer, regelnummers kloppen na lege regels, een niet-UTF-8-bestand wordt geweigerd, de meldingen noemen geen waarden, inactieve leden en beheerders worden getoond of met rust gelaten, strengere controle op nummers en adressen, de bewaking volgt symlinks en de echte map van de repository, en het opnieuw gebruiken van een bestaand inlogaccount staat in de proef). **Open, door de bouwer:** de eerste lijst online zetten en nakijken; wat niet lokaal te proberen was (het gedrag van het gehoste Supabase met de secret key) |
 | F2-03 | belangrijk | De Start koos alleen activiteiten met `datum >= vandaag`: een activiteit die gisteren begon en na middernacht nog loopt (de Bonte Avond tot 01:11) verdween om 00:30 | **Opgelost** in deze afname: de Start toont wat loopt of vandaag nog komt, met een unittest voor de Bonte Avond om 00:30 |
 | F2-04 | klein (vermoeden) | De knoppen Publiceren en Opslaan als concept staan buiten het formulier en Publiceren komt eerst: Enter in een veld zou naar de bevestiging van het publiceren gaan | **Opgelost:** een onzichtbare standaardknop "opslaan" vooraan in het formulier (geen tabstop, niet voorgelezen), met een browsertest voor Enter |
 | F2-05 | klein (vermoeden) | Geen wachtstand op de knoppen: dubbel klikken op een traag netwerk kan twee concepten met dezelfde naam maken | **Open, bewust.** Een dubbel concept is met "Concept verwijderen" op te ruimen. De knoppen staan buiten het formulier, dus een wachtstand vraagt een kleine ombouw; mee in fase 3 |
@@ -179,15 +180,15 @@ Stand op 03-11-2026. Wat hieronder "open" staat, ligt grotendeels bij de bouwer 
 | Akkoord van de opdrachtgever op de kosten (±€25 tot 30 per maand) | Open; meenemen in de vrijdag-update |
 | Een nieuw Supabase-project op Pro in Frankfurt; Workers betaald plan | Open, de bouwer |
 | Een eigen domein met mail via Resend | Open, zie punt 6.1 onder 1 |
-| De leden van het testgroepje in het systeem, met toestemming (AVG) | Open, **en niet te doen zonder F2-02** |
-| Fase 2 af: indelen en tonen wie waar staat | Gebouwd, op F2-01 en F2-02 na |
+| De leden van het testgroepje in het systeem, met toestemming (AVG) | Het script is er (`Pilotleden.md`); **open:** de lijst samenstellen, toestemming vastleggen en de eerste keer online draaien, door de bouwer |
+| Fase 2 af: indelen en tonen wie waar staat | Gebouwd |
 
 ### 6.3 Advies voor vrijdag 6 november
 
-**Pilot A (14 tot 22 november) is haalbaar, onder voorwaarden.** Wat de code betreft is er nog één onderdeel dat moet: de
-bouwer moet de pilotleden met telefoonnummer en groep in het systeem kunnen zetten (F2-02, een script of beschreven
-procedure). Het andere blokkerende punt, na het publiceren kunnen blijven indelen en corrigeren (F2-01), is gebouwd en
-getest. De bevestigingsstap "Wie krijgt bericht" blijft buiten de pilot zolang er geen berichten uitgaan; het bestuur laat
+**Pilot A (14 tot 22 november) is haalbaar, onder voorwaarden.** Wat de code betreft zijn de twee blokkerende punten
+gebouwd en getest: na het publiceren kunnen blijven indelen en corrigeren (F2-01), en de pilotleden met telefoonnummer en
+groep in het systeem kunnen zetten (F2-02, `Pilotleden.md`). Wat blijft, doet de bouwer: de eerste lijst echt online zetten en
+nakijken. De bevestigingsstap "Wie krijgt bericht" blijft buiten de pilot zolang er geen berichten uitgaan; het bestuur laat
 wijzigingen die ertoe doen zelf weten.
 
 Wat het beslismoment bepaalt, is daarom niet de code maar de lijst van punt 6.1 en 6.2: het Pro-project met een teruggezette back-up, het
@@ -202,7 +203,7 @@ dit is het advies.
 | Wat | Bron |
 |---|---|
 | ~~Een gepubliceerde activiteit wijzigen in beheer~~ Gebouwd (formulier met "Wijzigingen opslaan", zonder bericht) | F2-01 |
-| Telefoon, groepen en aanmerkingen van de pilotleden zetten (script of beschreven procedure). De waarschuwing in het formulier bij een eindverantwoordelijke zonder nummer is gebouwd | F2-02 |
+| ~~Telefoon, groepen en aanmerkingen van de pilotleden zetten~~ Gebouwd (`npm run leden:zet`, `Pilotleden.md`), met de waarschuwing in het formulier bij een eindverantwoordelijke zonder nummer. **Nog te doen door de bouwer:** de lijst samenstellen, toestemming vastleggen, eerst een proef en dan echt online zetten en nakijken | F2-02 |
 | De doorloop met toetsenbord, telefoon en schermlezer en de vergelijking met het visuele ontwerp (punt 2.1 en 2.2); de Supabase-adviseur opnieuw (2.3) | Punt 2 |
 | De pilotleden uitleggen dat afmelden en ruilen nog niet kan (de Start zegt "Iedereen staat standaard op aanwezig") | F2-14 |
 | De overige punten "Vóór de pilot" uit `Afname-fase-1.md` punt 4: afzenderdomein, het echte e-mailadres in de ontwikkeldatabase (F1-06), tweede beheerder en organisatie (F1-09), de rem op foute codes meten (F1-19), de lege taken-Worker, `/ontwerp` en het tijdelijke inlogscript weghalen of afschermen (F1-20), de pilotcheck | `Afname-fase-1.md` |

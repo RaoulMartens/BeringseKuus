@@ -28,8 +28,13 @@ test.describe.configure({ mode: 'serial' });
 test.beforeAll(() => {
   // Een beheerder die aan de regels van is_beheerder() voldoet: een factor van vóór beheerder_sinds, met aal2 en een recente code in de claims.
   psql(`
-    insert into auth.users (id, instance_id, aud, role, email, created_at, updated_at)
-    values ('${uid}', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '${email}', now(), now());
+    -- De tokenkolommen leeg in plaats van NULL: met NULL kan de beheer-API (listUsers) geen gebruikers meer opsommen
+    -- ("converting NULL to string is unsupported") zolang deze rij bestaat, ook voor tests die er niets mee te maken hebben.
+    insert into auth.users (id, instance_id, aud, role, email, created_at, updated_at, confirmation_token, recovery_token,
+                            email_change_token_new, email_change, phone_change, phone_change_token, email_change_token_current,
+                            reauthentication_token)
+    values ('${uid}', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '${email}', now(), now(), '', '',
+            '', '', '', '', '', '');
     insert into public.leden (id, auth_user_id, voornaam, achternaam, type)
     values ('${lid}', '${uid}', 'Gelijktijdig', 'Test', 'lid');
     insert into public.leden_prive (lid_id, email, is_admin, beheerder_sinds)

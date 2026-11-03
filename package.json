@@ -30,7 +30,8 @@
     "supabase:start": "supabase start -x realtime,storage-api,imgproxy,studio,postgres-meta,edge-runtime,logflare,vector,supavisor",
     "env:lokaal": "node scripts/schrijf-env-lokaal.ts",
     "types:db": "node scripts/controleer-dbtypen.ts --schrijf",
-    "lid:lokaal": "node scripts/maak-lid-lokaal.ts"
+    "lid:lokaal": "node scripts/maak-lid-lokaal.ts",
+    "leden:zet": "node scripts/zet-leden.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.13",

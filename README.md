@@ -37,6 +37,10 @@ npm run lid:lokaal -- iemand@example.com                                    # ee
 npm run lid:lokaal -- iemand@example.com --naam "Jan van Dijk" --beheerder  # met beheerrechten, zonder app
 ```
 
+Een lijst leden met telefoonnummer, groepen en aanmerkingen (de pilot) zet `npm run leden:zet -- lijst.leden.csv` in het
+systeem, eerst als proef en met `--ja` echt; online werkt het met de gegevens van het project uit je eigen terminal. De
+procedure staat in `docs/bouw/Pilotleden.md`; de lijst met echte gegevens hoort buiten de repository.
+
 Wie bestuurslid is, volgt voor beheer de procedure uit `docs/bouw/Beheerders.md`: een app instellen en bevestigen. Het
 script slaat die stappen niet over. De seed (`supabase/seed.sql`, na `npm run test:db`) bevat al verzonnen leden en een
 beheerder voor de tests; die inlogt niemand met de hand.
