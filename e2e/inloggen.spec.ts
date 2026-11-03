@@ -77,10 +77,11 @@ test.describe('inloggen met een code uit de mail', () => {
     await expect(page).toHaveURL(/\/inloggen$/);
   });
 
-  test('een lid dat inlogt komt op het programma als hij de voorpagina opent', async ({ page }) => {
+  test('een lid dat de voorpagina opent, ziet het welkomscherm', async ({ page }) => {
     await ingelogdLid(page);
     await page.goto('/');
-    await expect(page).toHaveURL(/\/programma$/);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('heading', { level: 1, name: /^Alaaf, / })).toBeVisible();
   });
 
   test('een inlogaccount zonder lid krijgt een melding en wordt niet teruggestuurd naar inloggen', async ({

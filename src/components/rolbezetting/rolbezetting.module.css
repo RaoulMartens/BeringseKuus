@@ -1,0 +1,105 @@
+/* De rolbezetting voor leden, overgenomen uit docs/visueel/stijl.css sectie 8: de rol links, de namen rechts; op een
+   telefoon de rol boven de namen. */
+.kaart {
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+  padding: var(--padding-card);
+  min-width: 0;
+}
+
+.titel {
+  margin: 0 0 var(--gap-group);
+  font: 700 1.25rem/1.4 var(--font-titel);
+  color: var(--thema-primair-tekst);
+}
+
+.blok {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--neutraal-lijn);
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst);
+}
+
+.groepen > .blok:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.rol {
+  width: 200px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+  font-weight: 600;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.rolIcoon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.namen {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.naam {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 20px;
+}
+
+.telefoon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.telefoon a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.telefoonIcoon {
+  width: 16px;
+  height: 16px;
+}
+
+.onderaan {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+@media (max-width: 700px) {
+  .blok {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .rol {
+    width: 100%;
+  }
+}
+
+@supports (corner-shape: squircle) {
+  .kaart {
+    corner-shape: squircle;
+  }
+}

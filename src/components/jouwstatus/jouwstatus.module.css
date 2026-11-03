@@ -1,0 +1,84 @@
+/* Het paneel "Jouw status": een kaart in de zijkolom; op een telefoon staat hij bovenaan (de opdrachtgever, 09-10: "Je staat op
+   aanwezig" voor het kaartje). */
+.kaart {
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+  padding: var(--padding-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kop {
+  margin: 0;
+  font: 700 1.25rem/1.4 var(--font-titel);
+  color: var(--thema-primair-tekst);
+}
+
+.regels {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.regel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.zin {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font: 400 1rem/1.5 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.icoon {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.aanwezig .icoon {
+  color: var(--status-succes);
+}
+
+.afgemeld .icoon {
+  color: var(--status-info);
+}
+
+.beheer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-left: 28px;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+  text-underline-offset: 3px;
+}
+
+.beheer svg {
+  width: 16px;
+  height: 16px;
+}
+
+.uitleg {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+@supports (corner-shape: squircle) {
+  .kaart {
+    corner-shape: squircle;
+  }
+}
