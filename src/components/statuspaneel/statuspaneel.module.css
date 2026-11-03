@@ -51,7 +51,20 @@
   margin-top: 12px;
 }
 
+.onderaan {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--neutraal-lijn);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
 @media (max-width: 700px) {
+  /* een link onderaan hoort niet in de balk: de pagina zet hem op een telefoon onder de inhoud */
+  .onderaan {
+    display: none;
+  }
+
   /* een balk onderaan; de inhoud krijgt ruimte eronder, zodat niets erachter verdwijnt */
   :global(main):has(.paneel) {
     padding-bottom: 168px;

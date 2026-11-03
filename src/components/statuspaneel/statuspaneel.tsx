@@ -16,9 +16,11 @@ interface Eigenschappen {
   nodig?: string[];
   /** De knoppen; een paneel zonder knoppen is alleen een status. */
   children?: ReactNode;
+  /** Een tekstlink helemaal onderaan, apart van de knoppen ("Concept verwijderen"); op een telefoon staat hij niet in de balk. */
+  onderaan?: ReactNode;
 }
 
-export function Statuspaneel({ status, uitleg, nodig = [], children }: Eigenschappen) {
+export function Statuspaneel({ status, uitleg, nodig = [], children, onderaan }: Eigenschappen) {
   return (
     <section aria-labelledby="statuspaneel-kop" className={stijl.paneel}>
       <h2 id="statuspaneel-kop" className={stijl.kop}>
@@ -36,6 +38,7 @@ export function Statuspaneel({ status, uitleg, nodig = [], children }: Eigenscha
         </div>
       )}
       {children && <div className={stijl.knoppen}>{children}</div>}
+      {onderaan && <div className={stijl.onderaan}>{onderaan}</div>}
     </section>
   );
 }

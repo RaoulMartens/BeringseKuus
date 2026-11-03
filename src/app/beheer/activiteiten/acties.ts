@@ -12,6 +12,7 @@ import {
 } from '@/lib/activiteitformulier';
 import { eisBeheer } from '@/lib/beheer';
 import { vertaalPubliceerfout } from '@/lib/publiceren';
+import { vertaalVerwijderfout } from '@/lib/verwijderen';
 import { maakSupabase } from '@/lib/supabase/server';
 
 export interface FormulierStaat {
@@ -128,4 +129,29 @@ export async function publiceerActiviteit(
     return { melding: vertaalPubliceerfout(error.message, leesDetail(error.details)) };
   }
   redirect(`/beheer?gepubliceerd=${id.data}`);
+}
+
+/**
+ * Verwijdert een concept na de bevestiging (public.concept_verwijderen): de plekken en de doelgroep gaan mee, en er gaat geen
+ * bericht uit (R18). Een gepubliceerde activiteit weigert de database (alleen_concept). Bij een fout blijft de beheerder op de
+ * bevestigingspagina met de reden.
+ */
+export async function verwijderConcept(
+  _vorige: PubliceerStaat,
+  formulier: FormData,
+): Promise<PubliceerStaat> {
+  await eisBeheer();
+  const id = ID.safeParse(formulier.get('activiteit_id'));
+  if (!id.success) return { melding: vertaalVerwijderfout('activiteit_onbekend') };
+
+  const supabase = await maakSupabase();
+  const { error } = await supabase.rpc('concept_verwijderen', { p_activiteit_id: id.data });
+
+  if (error) {
+    console.error(`concept niet verwijderd: ${error.code ?? error.message}`);
+    if (error.code !== 'BK001') return { melding: vertaalVerwijderfout('') };
+    if (error.message === 'geen_admin') redirect('/beheer');
+    return { melding: vertaalVerwijderfout(error.message) };
+  }
+  redirect(`/beheer?verwijderd=${id.data}`);
 }

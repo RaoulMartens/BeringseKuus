@@ -282,6 +282,16 @@ describe('Statuspaneel', () => {
     expect(uit).toContain('>Opslaan</button>');
   });
 
+  it('zet een link onderaan apart van de knoppen', () => {
+    const uit = html(
+      <Statuspaneel status="Concept" onderaan={<Knop href="/weg">Concept verwijderen</Knop>}>
+        <Knop>Opslaan</Knop>
+      </Statuspaneel>,
+    );
+    expect(uit).toMatch(/<a [^>]*href="\/weg"[^>]*>Concept verwijderen<\/a>/);
+    expect(uit.indexOf('Opslaan')).toBeLessThan(uit.indexOf('Concept verwijderen'));
+  });
+
   it('laat de lijst en de knoppen weg als ze er niet zijn', () => {
     const uit = html(<Statuspaneel status="Gepubliceerd" />);
     expect(uit).not.toContain('Nog nodig');
