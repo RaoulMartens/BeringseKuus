@@ -16,7 +16,7 @@ import {
   wacht,
 } from './inloggen-hulp.ts';
 import { bevestigAdresVoor } from './mfa-hulp.ts';
-import { WCAG } from './normen.ts';
+import { WCAG, wachtTotStil } from './normen.ts';
 
 test.afterAll(ruimLedenOp);
 
@@ -214,9 +214,11 @@ test.describe('inloggen met een code uit de mail', () => {
     const email = nieuwAdres();
     await maakLid(email);
     await vraagCodeAan(page, email);
+    await wachtTotStil(page);
     expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
     await logInMetCode(page, email, 'fout');
     await expect(page.locator('#code-fout')).toBeVisible();
+    await wachtTotStil(page);
     expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   });
 });

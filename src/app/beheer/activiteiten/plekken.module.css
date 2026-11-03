@@ -103,3 +103,28 @@
   font-weight: 600;
   color: var(--status-fout-tekst);
 }
+
+/* de keuzelijst van een plek: de naam is het veld */
+.keuze {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--control-default);
+  padding: 8px var(--padding-control-x);
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+/* alleen voor een schermlezer: het label van de keuzelijst staat niet in beeld, de naam is het veld */
+.verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
