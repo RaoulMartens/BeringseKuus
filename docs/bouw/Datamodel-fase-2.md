@@ -428,7 +428,7 @@ dat is hier rechtgezet of vastgelegd.
 
 ## 14. Open punten
 
-- **O-4: een gepubliceerde activiteit wijzigen in beheer** is niet gebouwd (review F2-01, `Afname-fase-2.md`): het scherm toont wat er staat. De database kan het (`activiteit_opslaan`, getest). Voorwaarde voor pilot A: een formulier met 'Wijzigingen opslaan', zonder de bevestigingsstap 'Wie krijgt bericht' zolang er geen berichten uitgaan (O-1).
+- **O-4: een gepubliceerde activiteit wijzigen in beheer** (review F2-01, `Afname-fase-2.md`) is gebouwd: een formulier met "Wijzigingen opslaan", zonder de bevestigingsstap "Wie krijgt bericht" zolang er geen berichten uitgaan (O-1). Opgelost.
 
 - **O-1: berichten in pilot A.** Het ontwerp belooft "betrokkenen krijgen bericht" bij publiceren en bij wijzigen van een
   gepubliceerde activiteit (R18, BA-4); fase 2 verstuurt niets. Pilot A (14 tot 22 november) kan zo met een klein

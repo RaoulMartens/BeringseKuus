@@ -32,9 +32,8 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
   const titel = `${activiteit.naam} — ${langeDag(activiteit.datum)}`;
   const terug = { href: '/beheer', tekst: 'Terug naar activiteiten' };
 
-  // Een gepubliceerde of geannuleerde activiteit wijzigen raakt anderen en vraagt eerst een bevestiging: dat komt in een
-  // volgende stap. Tot dan toont het scherm wat er staat.
-  if (activiteit.status !== 'concept') {
+  // Een geannuleerde activiteit is niet te wijzigen (annuleren is buiten de MVP); het scherm toont wat er staat.
+  if (activiteit.status === 'geannuleerd') {
     const tijden = [activiteit.tekst.starttijd, activiteit.tekst.eindtijd].filter(Boolean).join(' – ');
     return (
       <Schermkader
@@ -42,15 +41,10 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         titel={titel}
         terug={terug}
         zijkolom={
-          <Statuspaneel
-            status={activiteit.status === 'gepubliceerd' ? 'Gepubliceerd' : 'Geannuleerd'}
-            uitleg="Leden zien deze activiteit."
-          />
+          <Statuspaneel status="Geannuleerd" uitleg="Leden zien dat deze activiteit niet doorgaat." />
         }
       >
-        <Melding soort="info">
-          Een gepubliceerde activiteit wijzigen kan hier nog niet. Het scherm toont wat er staat.
-        </Melding>
+        <Melding soort="info">Een geannuleerde activiteit is niet meer te wijzigen.</Melding>
         <Kaart titel="Wanneer en waar" lijst>
           <Lijst>
             <Lijstrij>{langeDag(activiteit.datum)}</Lijstrij>
@@ -61,6 +55,7 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
       </Schermkader>
     );
   }
+  const gepubliceerd = activiteit.status === 'gepubliceerd';
 
   const [{ groepen, aantalLeden }, kandidaten, afgemeld] = await Promise.all([
     leesGroepen(supabase),
@@ -73,23 +68,39 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
       titel={titel}
       terug={terug}
       zijkolom={
-        <Statuspaneel
-          status="Concept"
-          uitleg="Alleen het bestuur ziet deze activiteit."
-          nodig={activiteit.nogNodig}
-          onderaan={
-            <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
-              Concept verwijderen
+        gepubliceerd ? (
+          <Statuspaneel
+            status="Gepubliceerd"
+            uitleg="Leden zien deze activiteit. Een wijziging zien ze meteen; er gaat nog geen bericht uit."
+            onderaan={
+              <Knop href={`/programma/${activiteit.id}`} soort="tekst">
+                Zo zien leden het
+              </Knop>
+            }
+          >
+            <Knop type="submit" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
+              Wijzigingen opslaan
             </Knop>
-          }
-        >
-          <Knop type="submit" soort="positief" formulier={FORMULIER_ID} naam="actie" waarde="publiceren">
-            Publiceren
-          </Knop>
-          <Knop type="submit" soort="secundair" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
-            Opslaan als concept
-          </Knop>
-        </Statuspaneel>
+          </Statuspaneel>
+        ) : (
+          <Statuspaneel
+            status="Concept"
+            uitleg="Alleen het bestuur ziet deze activiteit."
+            nodig={activiteit.nogNodig}
+            onderaan={
+              <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
+                Concept verwijderen
+              </Knop>
+            }
+          >
+            <Knop type="submit" soort="positief" formulier={FORMULIER_ID} naam="actie" waarde="publiceren">
+              Publiceren
+            </Knop>
+            <Knop type="submit" soort="secundair" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
+              Opslaan als concept
+            </Knop>
+          </Statuspaneel>
+        )
       }
     >
       <Activiteitformulier
@@ -102,12 +113,15 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         eindverantwoordelijke={activiteit.eindverantwoordelijke}
         kandidaten={kandidaten}
         afgemeld={afgemeld}
+        gepubliceerd={gepubliceerd}
       />
-      <div className={stijl.verwijderMobiel}>
-        <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
-          Concept verwijderen
-        </Knop>
-      </div>
+      {!gepubliceerd && (
+        <div className={stijl.verwijderMobiel}>
+          <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
+            Concept verwijderen
+          </Knop>
+        </div>
+      )}
     </Schermkader>
   );
 }

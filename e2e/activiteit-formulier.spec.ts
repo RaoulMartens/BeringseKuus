@@ -1,5 +1,5 @@
 // Het formulier voor een activiteit met echte gegevens (tegen de lokale Supabase en de Worker): aanmaken als concept,
-// de fouten bij het veld, bewerken, een wijziging van een ander tussendoor, en wat een gepubliceerde activiteit toont. De
+// de fouten bij het veld, bewerken, een wijziging van een ander tussendoor. Een gepubliceerde activiteit wijzigen staat in gepubliceerd-wijzigen.spec.ts. De
 // logica van de teksten en de controles staat in src/lib/activiteitformulier.test.ts; deze tests bewijzen het geheel:
 // formulier, serveractie, public.activiteit_opslaan en de rechten.
 import AxeBuilder from '@axe-core/playwright';
@@ -216,21 +216,6 @@ test('als een ander tussendoor heeft opgeslagen, gaat jouw wijziging niet door e
   ).toBeVisible();
   await expect(page.getByLabel('Locatie *')).toHaveValue('Mijn wijziging');
   expect(psql(`select locatie from public.activiteiten where id = '${id}';`).trim()).toBe('Door een ander');
-});
-
-test('een gepubliceerde activiteit toont wat er staat en heeft geen formulier', async ({ page }) => {
-  const uid = await logInAlsBeheerder(page);
-  aangemaakt.push(uid);
-  const naam = maakNaam('gepubliceerd');
-  psql(`
-    insert into public.activiteiten (naam, datum, starttijd, eindtijd, locatie, status)
-    values ('${naam}', '2099-03-10', '20:00', '23:00', 'Testlocatie', 'gepubliceerd');
-  `);
-  await page.goto(`/beheer/activiteiten/${activiteitId(naam)}`);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(naam);
-  await expect(page.getByText('Een gepubliceerde activiteit wijzigen kan hier nog niet')).toBeVisible();
-  await expect(page.getByLabel('Naam *')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Opslaan als concept' })).toHaveCount(0);
 });
 
 test('een activiteit die er niet is, bestaat niet', async ({ page }) => {

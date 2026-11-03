@@ -47,6 +47,8 @@ interface Eigenschappen {
   kandidaten: Kandidaat[];
   /** Wie zich voor deze activiteit heeft afgemeld. */
   afgemeld: string[];
+  /** De activiteit is al gepubliceerd: leden zien elke wijziging direct (er gaat nog geen bericht uit). */
+  gepubliceerd?: boolean;
 }
 
 const START: FormulierStaat = { fouten: {}, melding: null, waarden: null, kenmerk: 'start' };
@@ -65,6 +67,7 @@ export function Activiteitformulier({
   eindverantwoordelijke,
   kandidaten,
   afgemeld,
+  gepubliceerd = false,
 }: Eigenschappen) {
   const [staat, actie] = useActionState<FormulierStaat, FormData>(slaActiviteitOp, START);
   const formulier = useRef<HTMLFormElement>(null);
@@ -107,7 +110,11 @@ export function Activiteitformulier({
 
       <Kaart
         titel="Wanneer en waar"
-        ondertitel="Velden met * zijn verplicht om te kunnen publiceren. Opslaan als concept kan altijd, ook halfaf."
+        ondertitel={
+          gepubliceerd
+            ? 'Leden zien een wijziging meteen. Er gaat nog geen bericht uit: laat het zelf weten als het ertoe doet.'
+            : 'Velden met * zijn verplicht om te kunnen publiceren. Opslaan als concept kan altijd, ook halfaf.'
+        }
       >
         <div className={stijl.velden}>
           <Veld
@@ -216,6 +223,7 @@ export function Activiteitformulier({
           kandidaten={kandidaten}
           afgemeld={afgemeld}
           eindverantwoordelijke={eindverantwoordelijke}
+          gepubliceerd={gepubliceerd}
           fout={fouten.plekken}
         />
       </Kaart>
