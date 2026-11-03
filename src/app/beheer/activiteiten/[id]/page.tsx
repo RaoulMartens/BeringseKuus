@@ -76,7 +76,10 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
           uitleg="Alleen het bestuur ziet deze activiteit."
           nodig={activiteit.nogNodig}
         >
-          <Knop type="submit" formulier={FORMULIER_ID}>
+          <Knop type="submit" soort="positief" formulier={FORMULIER_ID} naam="actie" waarde="publiceren">
+            Publiceren
+          </Knop>
+          <Knop type="submit" soort="secundair" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
             Opslaan als concept
           </Knop>
         </Statuspaneel>

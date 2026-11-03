@@ -74,13 +74,18 @@ function Aanmaken() {
 export default async function Beheer({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string | string[]; opgeslagen?: string | string[] }>;
+  searchParams: Promise<{
+    filter?: string | string[];
+    opgeslagen?: string | string[];
+    gepubliceerd?: string | string[];
+  }>;
 }) {
   await eisBeheer();
   const parameters = await searchParams;
   const filter = leesFilter(parameters.filter);
-  // Na het opslaan: het id van de activiteit. Geen tekst in de adresbalk: wat er staat, komt uit de database.
+  // Na het opslaan of publiceren: het id van de activiteit. Geen tekst in de adresbalk: wat er staat, komt uit de database.
   const opgeslagen = z.uuid().safeParse(parameters.opgeslagen);
+  const gepubliceerd = z.uuid().safeParse(parameters.gepubliceerd);
   const supabase = await maakSupabase();
 
   // De rijen komen uit de database (public.beheeroverzicht(), alleen voor een beheerder met een code); de tijd van de
@@ -108,6 +113,9 @@ export default async function Beheer({
   const bewaard = opgeslagen.success
     ? overzichtsrijen.find((rij) => rij.activiteitId === opgeslagen.data)
     : undefined;
+  const nuGepubliceerd = gepubliceerd.success
+    ? overzichtsrijen.find((rij) => rij.activiteitId === gepubliceerd.data)
+    : undefined;
 
   const tellers = [
     {
@@ -134,6 +142,11 @@ export default async function Beheer({
       {bewaard?.status === 'concept' && (
         <Melding soort="succes">
           <strong>{bewaard.naam} is opgeslagen als concept.</strong> Leden zien hem pas als je publiceert.
+        </Melding>
+      )}
+      {nuGepubliceerd && nuGepubliceerd.status !== 'concept' && (
+        <Melding soort="succes">
+          <strong>{nuGepubliceerd.naam} is gepubliceerd.</strong> Leden zien hem nu.
         </Melding>
       )}
       <Tellers tellers={tellers} naam="Filter op wat er te doen is" />
