@@ -24,6 +24,10 @@ Thumbs.db
 next-env.d.ts
 *.tsbuildinfo
 
+# Ledenlijsten met echte gegevens voor de pilot (docs/bouw/Pilotleden.md): liever buiten de repository, anders met deze naam
+*.leden.csv
+/lokaal/
+
 # Testrapporten en de lokale namenlijst (nooit committen)
 testuitkomsten/
 .verboden-woorden

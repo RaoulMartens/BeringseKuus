@@ -65,7 +65,11 @@ in `leden` en een rij in `leden_prive`. Een inlogaccount alleen is geen lid: het
 
 Lokaal (verzonnen leden): `npm run lid:lokaal -- iemand@example.com --naam "Voornaam Achternaam"` (README, "Lokaal draaien").
 
-Online:
+**Meerdere leden, met telefoon, groepen en aanmerkingen (de pilot):** `npm run leden:zet`, met een lijst uit Excel. Dat maakt het inlogaccount
+en beide rijen voor je, zet de rest, en heeft een proef vóór het doorvoert. Procedure: `Pilotleden.md`. De stappen hieronder zijn voor één lid met
+SQL; ze zetten geen telefoonnummer en geen groepen.
+
+Online, één lid:
 
 1. Supabase, Authentication, Users, *Add user* met het e-mailadres, *Auto Confirm* aan, zonder wachtwoord te gebruiken.
 2. SQL Editor, met het e-mailadres en de naam ingevuld (één keer uitvoeren; het faalt als het account ontbreekt):

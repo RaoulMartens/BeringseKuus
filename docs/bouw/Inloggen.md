@@ -32,7 +32,8 @@ zo'n link niet, alleen de bevestigingsknop.
 ## Nog niet (bewust)
 
 - **Uitnodigen.** Een lid aanmaken kan tot fase 4 (ledenbeheer) alleen met SQL: zie `Beheerders.md`, "Een lid aanmaken".
-  Lokaal doet `npm run lid:lokaal` het. In de tests maakt `maakLidMetRol` (`e2e/mfa-hulp.ts`) het lid aan.
+  Lokaal doet `npm run lid:lokaal` het. Voor de pilot zet `npm run leden:zet` een lijst leden in het systeem (`Pilotleden.md`), zonder
+  uitnodiging: de leden loggen zelf in met hun e-mailadres. In de tests maakt `maakLidMetRol` (`e2e/mfa-hulp.ts`) het lid aan.
 - **MFA voor beheerders** (bouwgids 14.4): gebouwd in fase 1 (`Beheerders.md`).
 
 ## Online instellen
