@@ -23,7 +23,8 @@ const naam = (soort: string): string => `E2E ${soort} ${lopende}`;
 const aangemaakt: string[] = [];
 test.beforeAll(() => {
   // Gepubliceerd heeft tijden en een locatie nodig (R21); een concept alleen een naam en een datum. Eén activiteit is alleen
-  // voor de groep Bestuur (R22), één ligt al in het verleden.
+  // voor de groep Bestuur (R22), één ligt al in het verleden. Het programma toont het seizoen van vandaag (grens 1
+  // september): in de week rond die datum kan een van deze dagen in een ander seizoen vallen en de test rood worden.
   psql(`
     insert into public.activiteiten (naam, datum, starttijd, eindtijd, locatie, status) values
       ('${naam('komend')}', current_date + 5, '18:30', '23:00', 'Testlocatie', 'gepubliceerd'),

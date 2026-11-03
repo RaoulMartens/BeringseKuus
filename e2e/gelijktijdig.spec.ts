@@ -20,6 +20,7 @@ const uid = crypto.randomUUID();
 const lid = crypto.randomUUID();
 const concept1 = crypto.randomUUID();
 const concept2 = crypto.randomUUID();
+const concept3 = crypto.randomUUID();
 const email = `gelijktijdig-${uid}@example.com`;
 
 test.describe.configure({ mode: 'serial' });
@@ -36,7 +37,8 @@ test.beforeAll(() => {
     insert into auth.mfa_factors (id, user_id, factor_type, status, created_at, updated_at)
     values (gen_random_uuid(), '${uid}', 'totp', 'verified', timestamptz '2026-05-01', timestamptz '2026-05-01');
     insert into public.activiteiten (id, naam, datum) values
-      ('${concept1}', 'Gelijktijdig 1', '2031-01-01'), ('${concept2}', 'Gelijktijdig 2', '2031-01-02');
+      ('${concept1}', 'Gelijktijdig 1', '2031-01-01'), ('${concept2}', 'Gelijktijdig 2', '2031-01-02'),
+      ('${concept3}', 'Gelijktijdig 3', '2031-01-03');
   `);
 });
 
@@ -44,7 +46,7 @@ test.afterAll(() => {
   // De gepubliceerde testactiviteiten verwijdert alleen de eigenaar, met het vangnet even uit.
   psql(`
     alter table public.activiteiten disable trigger activiteit_vangnet_verwijderen;
-    delete from public.activiteiten where id in ('${concept1}', '${concept2}');
+    delete from public.activiteiten where id in ('${concept1}', '${concept2}', '${concept3}');
     alter table public.activiteiten enable trigger activiteit_vangnet_verwijderen;
     delete from public.wijzigingen_log where omschrijving like 'Gelijktijdig %';
     delete from public.leden_prive where lid_id = '${lid}';
@@ -57,20 +59,22 @@ test.afterAll(() => {
 const wacht = (ms: number): Promise<void> => new Promise((klaar) => setTimeout(klaar, ms));
 
 /**
- * Sessie A publiceert het concept en houdt de transactie vijf seconden open. Zodra de database laat zien dat A de lock
- * heeft (niet na een vaste tijd), draait sessie B als beheerder de aanroep. Geeft de foutmelding van B terug.
+ * Sessie A wijzigt de activiteit (standaard: publiceert het concept) en houdt de transactie vijf seconden open. Zodra de
+ * database laat zien dat A de lock heeft (niet na een vaste tijd), draait sessie B als beheerder de aanroep. Geeft de
+ * foutmelding van B terug.
  */
 async function eenAanroepTijdensPublicatie(
   conceptId: string,
   aanroep: string,
+  wijziging = `update public.activiteiten set status = 'gepubliceerd', starttijd = '20:00', eindtijd = '23:00', locatie = 'Test'
+     where id = '${conceptId}';`,
 ): Promise<{ fout: string; duurMs: number }> {
   const markering = `A_${conceptId.slice(0, 8)}`;
   const a = spawn('docker', PSQL, { stdio: ['pipe', 'ignore', 'ignore'] });
   const klaarA = new Promise<void>((klaar) => a.on('close', () => klaar()));
   a.stdin.write(`
     begin;
-    update public.activiteiten set status = 'gepubliceerd', starttijd = '20:00', eindtijd = '23:00', locatie = 'Test'
-     where id = '${conceptId}';
+    ${wijziging}
     select pg_sleep(5) /* ${markering} */;
     commit;
   `);
@@ -136,12 +140,28 @@ test('concept_verwijderen wacht op de lock en weigert zelf een concept dat net i
 test('activiteit_opslaan wacht op de lock en overschrijft niets van een activiteit die net is gepubliceerd', async () => {
   const { fout, duurMs } = await eenAanroepTijdensPublicatie(
     concept2,
-    `select public.activiteit_opslaan('${concept2}', '{"notitie": "overschreven"}', '[]')`,
+    `select public.activiteit_opslaan('${concept2}', '{"notitie": "overschreven"}', '[]', false, 1)`,
   );
-  // Zonder lock zou B het concept nog zien en een andere fout geven (de CHECK op tijden en locatie), niet niet_ondersteund.
-  expect(fout).toContain('niet_ondersteund');
+  // Met de lock ziet B de gepubliceerde activiteit, die geen eindverantwoordelijke heeft (R21). Zonder lock leest B nog het
+  // concept, waar dat niet nodig is, en dan zou de notitie zonder fout worden overschreven.
+  expect(fout).toContain('eindverantwoordelijke_verplicht');
   expect(duurMs, 'B moet op A hebben gewacht').toBeGreaterThan(1000);
   expect(
     psql(`select coalesce(notitie, '(leeg)') from public.activiteiten where id = '${concept2}';`).trim(),
+  ).toBe('(leeg)');
+});
+
+test('activiteit_opslaan wacht op de lock en geeft versie_verouderd als een ander net heeft opgeslagen', async () => {
+  // A wijzigt de activiteit (de versie gaat omhoog) en houdt de lock vast; B kent nog de oude versie.
+  const { fout, duurMs } = await eenAanroepTijdensPublicatie(
+    concept3,
+    `select public.activiteit_opslaan('${concept3}', '{"notitie": "B"}', '[]', false, 1)`,
+    `update public.activiteiten set versie = versie + 1 where id = '${concept3}';`,
+  );
+  // Zonder lock leest B nog versie 1, slaagt, en overschrijft de wijziging van A zonder dat iemand het merkt.
+  expect(fout).toContain('versie_verouderd');
+  expect(duurMs, 'B moet op A hebben gewacht').toBeGreaterThan(1000);
+  expect(
+    psql(`select coalesce(notitie, '(leeg)') from public.activiteiten where id = '${concept3}';`).trim(),
   ).toBe('(leeg)');
 });

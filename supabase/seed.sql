@@ -60,6 +60,11 @@ begin
 end
 $$;
 
+-- De eindverantwoordelijke van een gepubliceerde activiteit heeft een telefoonnummer nodig (R21): een verzonnen nummer.
+update public.leden_prive p set telefoon = '06 12 34 56 78'
+  from public.leden l
+ where l.id = p.lid_id and l.voornaam = 'Ger' and l.achternaam = 'Hermans';
+
 -- Een externe helper: geen inlog, wel een e-mailadres voor de dagmelding (V8 3.1 en 9).
 with nieuw as (
   insert into public.leden (voornaam, achternaam, type) values ('Hulp', 'Helper', 'extern') returning id

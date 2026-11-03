@@ -33,7 +33,10 @@ select ok(not has_function_privilege('authenticated', 'public.proef_functie()', 
 -- standaard. Krijgt een functie of tabel in fase 1 bewust een recht, dan komt hij hier op de lijst, met de reden.
 
 -- Functies die anon of authenticated mogen uitvoeren (ook via PUBLIC). Bewust toegestaan voor ingelogd, in public:
--- precies de drie die de app aanroept (Datamodel-fase-1.md punt 6). Voor anon niets.
+-- precies de functies die de app aanroept (Datamodel-fase-1.md punt 6, Datamodel-fase-2.md punt 6): de schrijf- en
+-- leesfuncties van het bestuur, beheerstatus voor de beveiligingsstap, het seizoen van vandaag (huidig_seizoen) en
+-- het telefoonnummer van de eindverantwoordelijke (contact_eindverantwoordelijke, R10: de enige route naar een nummer
+-- van een ander lid). Voor anon niets.
 select is_empty(
   $$ select p.oid::regprocedure::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -44,7 +47,8 @@ select is_empty(
   $$ select p.oid::regprocedure::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
-        and p.proname <> all (array['activiteit_opslaan', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus']) $$,
+        and p.proname <> all (array['activiteit_opslaan', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus',
+                                    'huidig_seizoen', 'contact_eindverantwoordelijke']) $$,
   'ingelogd: in public alleen de functies die de app aanroept zijn uit te voeren'
 );
 

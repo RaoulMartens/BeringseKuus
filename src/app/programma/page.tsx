@@ -26,9 +26,19 @@ export const metadata: Metadata = { title: 'Programma – Ledenplatform' };
 // Alleen kolommen die een lid mag lezen (CLAUDE.md: activiteiten altijd met een kolomlijst). Welke activiteiten er
 // terugkomen, beslist de database: een lid krijgt alleen gepubliceerde activiteiten voor zijn groepen, een beheerder ook
 // de concepten. Deze pagina filtert daar niets op: een tweede filter zou kunnen afwijken van de regels.
-const KOLOMMEN = 'id, naam, datum, starttijd, locatie, status, seizoen';
+const KOLOMMEN = 'id, naam, datum, starttijd, locatie, status, eindigt_om';
 
-function Maandkaart({ maand, vandaag, kop }: { maand: Maand; vandaag: string; kop: 'h2' | 'h3' }) {
+function Maandkaart({
+  maand,
+  vandaag,
+  geweest,
+  kop,
+}: {
+  maand: Maand;
+  vandaag: string;
+  geweest: boolean;
+  kop: 'h2' | 'h3';
+}) {
   return (
     <Kaart titel={maand.titel} kop={kop} lijst>
       <Lijst>
@@ -36,7 +46,7 @@ function Maandkaart({ maand, vandaag, kop }: { maand: Maand; vandaag: string; ko
           const dag = dagTekst(activiteit.datum);
           const regel = regelOnderNaam(activiteit);
           return (
-            <Lijstrij key={activiteit.id} uitgeschakeld={activiteit.datum < vandaag}>
+            <Lijstrij key={activiteit.id} uitgeschakeld={geweest}>
               <Datumblok {...dag} vandaag={activiteit.datum === vandaag} />
               <span className={stijl.tekst}>
                 <strong className={stijl.naam}>{activiteit.naam}</strong>
@@ -58,9 +68,14 @@ export default async function Programma() {
   if (!(await huidigeAuthGebruiker())) redirect('/inloggen');
   const supabase = await maakSupabase();
 
+  // Het seizoen van vandaag komt uit de database (één grens, 1 september), niet uit de eerste rij.
+  const { data: seizoen, error: seizoenFout } = await supabase.rpc('huidig_seizoen');
+  if (seizoenFout) throw new Error(`seizoen niet te lezen: ${seizoenFout.code ?? seizoenFout.message}`);
+
   const { data, error } = await supabase
     .from('activiteiten')
     .select(KOLOMMEN)
+    .eq('seizoen', seizoen)
     .order('datum', { ascending: true })
     .order('starttijd', { ascending: true, nullsFirst: false });
   if (error) throw new Error(`programma niet te lezen: ${error.code ?? error.message}`);
@@ -75,15 +90,15 @@ export default async function Programma() {
             starttijd: rij.starttijd,
             locatie: rij.locatie,
             status: rij.status,
+            eindigtOm: rij.eindigt_om,
           },
         ]
       : [],
   );
-  const vandaag = vandaagInNederland(new Date());
-  const programma = maakProgramma(activiteiten, vandaag);
-  // Het seizoen van de activiteiten; zonder activiteiten is er geen seizoen om te noemen.
-  const seizoen = data[0]?.seizoen;
-  const titel = typeof seizoen === 'number' ? seizoenTitel(seizoen) : 'Programma';
+  const nu = new Date();
+  const vandaag = vandaagInNederland(nu);
+  const programma = maakProgramma(activiteiten, nu);
+  const titel = seizoenTitel(seizoen);
 
   return (
     <Schermkader actief="programma" titel={titel}>
@@ -95,13 +110,13 @@ export default async function Programma() {
             {programma.aantalKomende} komende {programma.aantalKomende === 1 ? 'activiteit' : 'activiteiten'}
           </p>
           {programma.komende.map((maand) => (
-            <Maandkaart key={maand.sleutel} maand={maand} vandaag={vandaag} kop="h2" />
+            <Maandkaart key={maand.sleutel} maand={maand} vandaag={vandaag} geweest={false} kop="h2" />
           ))}
           {programma.geweest.length > 0 && (
             <>
               <h2 className={stijl.geweest}>Geweest dit seizoen</h2>
               {programma.geweest.map((maand) => (
-                <Maandkaart key={maand.sleutel} maand={maand} vandaag={vandaag} kop="h3" />
+                <Maandkaart key={maand.sleutel} maand={maand} vandaag={vandaag} geweest kop="h3" />
               ))}
             </>
           )}

@@ -3,7 +3,10 @@
 // activiteit zonder tijd) met tests vast te leggen zijn.
 //
 // Een datum is een kalenderdag als tekst (YYYY-MM-DD), zoals de database hem geeft; "vandaag" is de dag in Nederland
-// (Europe/Amsterdam), niet in UTC: een lid dat om 00:30 kijkt, ziet de nieuwe dag.
+// (Europe/Amsterdam), niet in UTC: een lid dat om 00:30 kijkt, ziet de nieuwe dag. Of een activiteit geweest is, bepaalt
+// niet de dag maar het eindmoment (R16): de Bonte Avond van vrijdag eindigt om 01:11 en is om 00:30 nog niet geweest.
+// Dat moment komt uit de database (de kolom eindigt_om, één formule met de tests rond middernacht en de zomertijd);
+// hier wordt het alleen vergeleken met het moment van nu (Datamodel-fase-2.md punt 5).
 
 export type ActiviteitStatus = 'concept' | 'gepubliceerd' | 'geannuleerd';
 
@@ -16,6 +19,8 @@ export interface ProgrammaActiviteit {
   starttijd: string | null;
   locatie: string | null;
   status: ActiviteitStatus;
+  /** Het eindmoment als tijdstip met tijdzone (de kolom eindigt_om); vanaf dit moment is de activiteit geweest. */
+  eindigtOm: string;
 }
 
 export interface Maand {
@@ -101,15 +106,20 @@ function perMaand(lijst: ProgrammaActiviteit[]): Maand[] {
   return maanden;
 }
 
+/** Is de activiteit geweest op dit moment? Het exacte eindmoment telt als geweest (R16). */
+export function isGeweest(activiteit: Pick<ProgrammaActiviteit, 'eindigtOm'>, nu: Date): boolean {
+  const einde = Date.parse(activiteit.eindigtOm);
+  if (Number.isNaN(einde) || Number.isNaN(nu.getTime())) throw new Error('ongeldig moment');
+  return einde <= nu.getTime();
+}
+
 /**
- * Deelt het programma in: de komende (vandaag en later, op volgorde) en wat geweest is (het laatste eerst, zoals in het
- * ontwerp). Een geannuleerde activiteit blijft zichtbaar met zijn label. Vandaag telt als komend; wanneer iets voorbij is,
- * beslist later de eindtijd (R16), hier de dag.
+ * Deelt het programma in: de komende (nog niet voorbij, op volgorde) en wat geweest is (het laatste eerst, zoals in het
+ * ontwerp). Een geannuleerde activiteit blijft zichtbaar met zijn label. Wat geweest is, beslist het eindmoment (R16).
  */
-export function maakProgramma(activiteiten: ProgrammaActiviteit[], vandaag: string): Programma {
-  if (!DATUM.test(vandaag)) throw new Error('ongeldige datum');
+export function maakProgramma(activiteiten: ProgrammaActiviteit[], nu: Date): Programma {
   const gesorteerd = [...activiteiten].sort(vergelijk);
-  const komende = gesorteerd.filter((a) => a.datum >= vandaag);
-  const geweest = gesorteerd.filter((a) => a.datum < vandaag).reverse();
+  const komende = gesorteerd.filter((a) => !isGeweest(a, nu));
+  const geweest = gesorteerd.filter((a) => isGeweest(a, nu)).reverse();
   return { komende: perMaand(komende), geweest: perMaand(geweest), aantalKomende: komende.length };
 }

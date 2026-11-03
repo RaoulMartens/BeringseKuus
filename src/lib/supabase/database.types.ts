@@ -67,6 +67,7 @@ export type Database = {
           status: string;
           type: string;
           vereniging_id: string;
+          versie: number;
           verzameltijd: string | null;
         };
         ComputedFields: never;
@@ -92,6 +93,7 @@ export type Database = {
           status?: string;
           type?: string;
           vereniging_id?: string;
+          versie?: number;
           verzameltijd?: string | null;
         };
         Update: {
@@ -116,6 +118,7 @@ export type Database = {
           status?: string;
           type?: string;
           vereniging_id?: string;
+          versie?: number;
           verzameltijd?: string | null;
         };
         Relationships: [
@@ -577,7 +580,13 @@ export type Database = {
     };
     Functions: {
       activiteit_opslaan: {
-        Args: { p_activiteit_id: string; p_publiceren?: boolean; p_velden: Json; p_wijzigingen: Json };
+        Args: {
+          p_activiteit_id?: string;
+          p_publiceren?: boolean;
+          p_velden?: Json;
+          p_verwachte_versie?: number;
+          p_wijzigingen?: Json;
+        };
         Returns: Json;
       };
       beheeroverzicht: {
@@ -600,6 +609,15 @@ export type Database = {
       };
       beheerstatus: { Args: Record<PropertyKey, never>; Returns: string };
       concept_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
+      contact_eindverantwoordelijke: {
+        Args: { p_activiteit: string };
+        Returns: {
+          achternaam: string;
+          telefoon: string;
+          voornaam: string;
+        }[];
+      };
+      huidig_seizoen: { Args: Record<PropertyKey, never>; Returns: number };
     };
     Enums: {
       [_ in never]: never;
