@@ -120,8 +120,15 @@ export async function leesActiviteit(supabase: Supabase, id: string): Promise<Ac
         id: slot.id,
         rol: slot.rol_type,
         bezetter: slot.bezetter_id ? (namen.get(slot.bezetter_id) ?? 'Onbekend') : null,
+        bezetterId: slot.bezetter_id,
       })),
-    eindverantwoordelijke: { naam: evNaam, telefoon: evTelefoon, nieuw: false },
+    eindverantwoordelijke: {
+      slotId: ev?.id ?? null,
+      bezetterId: ev?.bezetter_id ?? null,
+      naam: evNaam,
+      telefoon: evTelefoon,
+      nieuw: false,
+    },
     nogNodig: nogNodigOmTePubliceren({
       starttijd: a.starttijd,
       eindtijd: a.eindtijd,
@@ -130,4 +137,53 @@ export async function leesActiviteit(supabase: Supabase, id: string): Promise<Ac
       eindverantwoordelijkeHeeftTelefoon: evTelefoon !== null,
     }),
   };
+}
+
+/** Wie er in de keuzelijst van een plek kan staan: een actief lid of een externe helper. */
+export interface Kandidaat {
+  id: string;
+  naam: string;
+  /** Een externe helper; die kan geen BOB of eindverantwoordelijke zijn (R17). */
+  extern: boolean;
+  /** Is aangemerkt als geschikt voor BOB of eindverantwoordelijke: een hulp bij het kiezen, geen slot (R19). */
+  magBob: boolean;
+  magEindverantwoordelijke: boolean;
+  telefoon: string | null;
+}
+
+/** De actieve leden en externe helpers, op voornaam. Alleen een beheerder met een code leest dit (rechten van de database). */
+export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
+  const [leden, prive] = await Promise.all([
+    supabase
+      .from('leden')
+      .select('id, voornaam, achternaam, type')
+      .eq('actief', true)
+      .order('voornaam')
+      .order('achternaam'),
+    supabase.from('leden_prive').select('lid_id, mag_bob, mag_eindverantw, telefoon'),
+  ]);
+  if (leden.error) throw new Error(`leden niet te lezen: ${leden.error.code ?? leden.error.message}`);
+  if (prive.error) throw new Error(`ledengegevens niet te lezen: ${prive.error.code ?? prive.error.message}`);
+  const gegevens = new Map(prive.data.map((regel) => [regel.lid_id, regel]));
+  return leden.data.map((lid) => {
+    const regel = gegevens.get(lid.id);
+    return {
+      id: lid.id,
+      naam: `${lid.voornaam} ${lid.achternaam}`,
+      extern: lid.type === 'extern',
+      magBob: regel?.mag_bob ?? false,
+      magEindverantwoordelijke: regel?.mag_eindverantw ?? false,
+      telefoon: regel?.telefoon?.trim() || null,
+    };
+  });
+}
+
+/** Wie zich voor deze activiteit heeft afgemeld: die staat niet in de keuzelijst (BA-1). */
+export async function leesAfgemeld(supabase: Supabase, activiteitId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('afmeldingen')
+    .select('lid_id')
+    .eq('activiteit_id', activiteitId);
+  if (error) throw new Error(`afmeldingen niet te lezen: ${error.code ?? error.message}`);
+  return data.map((regel) => regel.lid_id);
 }

@@ -13,7 +13,7 @@ import { langeDag } from '@/lib/programma';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { Activiteitformulier, FORMULIER_ID } from '../activiteitformulier';
-import { leesActiviteit, leesGroepen } from '../gegevens';
+import { leesActiviteit, leesAfgemeld, leesGroepen, leesKandidaten } from '../gegevens';
 
 export const metadata: Metadata = { title: 'Activiteit – Ledenplatform' };
 
@@ -60,7 +60,11 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
     );
   }
 
-  const { groepen, aantalLeden } = await leesGroepen(supabase);
+  const [{ groepen, aantalLeden }, kandidaten, afgemeld] = await Promise.all([
+    leesGroepen(supabase),
+    leesKandidaten(supabase),
+    leesAfgemeld(supabase, activiteit.id),
+  ]);
   return (
     <Schermkader
       actief="beheer"
@@ -86,6 +90,8 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         aantalLeden={aantalLeden}
         plekken={activiteit.plekken}
         eindverantwoordelijke={activiteit.eindverantwoordelijke}
+        kandidaten={kandidaten}
+        afgemeld={afgemeld}
       />
     </Schermkader>
   );

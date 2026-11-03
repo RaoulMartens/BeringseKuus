@@ -1,18 +1,23 @@
 'use client';
 
-// De rolbezetting van een activiteit (UC-004 stap 6, "Rolbezetting op het activiteitscherm zelf"): per rol de plekken, bezet
-// of leeg. De beheerder voegt lege plekken toe en haalt lege plekken weg; wie er op een plek staat, kiezen komt in de
-// volgende stap. Er is geen getalveld: het aantal plekken is het aantal regels. Wat de beheerder wijzigt, blijft op het
-// scherm staan tot Opslaan en gaat dan in één keer naar de server (activiteit_opslaan, BG 4.4): als formulierwaarden
-// plek_toevoegen ("werker:n1") en plek_weghalen (het id van de plek).
+// De rolbezetting van een activiteit (UC-004 stap 6 en UC-005): per rol de plekken, bezet of leeg. De naam is het veld:
+// een keuzelijst met de leden en externe helpers die er kunnen staan. Bij een bezette plek staat onderaan "<naam> eraf
+// halen" met twee uitkomsten: "Plek openlaten" of "Plek weghalen" (BA-2). Er is geen getalveld: het aantal plekken is het
+// aantal regels, en lege plekken voeg je toe of haal je weg. Wat de beheerder wijzigt, blijft op het scherm staan tot
+// Opslaan en gaat dan in één keer naar de server (activiteit_opslaan, BG 4.4).
 //
-// De eindverantwoordelijke is vast: precies één plek, geen kruisje en geen plus (R21).
+// Elke plek is een keuzelijst (`plek_<id>`) met, verborgen, wie er stond toen het scherm werd getoond (`plek_was_<id>`):
+// dat gaat mee als `verwachte_bezetter`. De eindverantwoordelijke is vast: precies één plek, geen kruisje en geen plus
+// (R21), en alleen een lid. Wie al op een andere plek staat of zich heeft afgemeld, kun je niet kiezen; wie nog niet is
+// aangemerkt als geschikt voor BOB of eindverantwoordelijke, staat er met een hint (R19: een hulp, geen blokkade).
 
 import { useId, useState } from 'react';
 
 import { Icoon } from '@/components/icoon/icoon';
 import { Knop } from '@/components/knop/knop';
-import type { ToevoegbareRol } from '@/lib/activiteitformulier';
+import { PLEK_LEEGMAKEN, PLEK_WEGHALEN, type ToevoegbareRol } from '@/lib/activiteitformulier';
+
+import type { Kandidaat } from './gegevens';
 
 import stijl from './plekken.module.css';
 
@@ -21,10 +26,14 @@ export interface BestaandePlek {
   rol: string;
   /** Wie er staat; leeg als de plek leeg is. */
   bezetter: string | null;
+  bezetterId: string | null;
 }
 
 export interface Eindverantwoordelijke {
-  /** Wie er staat; leeg als de plek nog leeg is of de activiteit nog niet bestaat. */
+  /** Het id van de plek; leeg als de activiteit nog niet bestaat (de plek komt er bij het opslaan). */
+  slotId: string | null;
+  bezetterId: string | null;
+  /** Wie er staat; leeg als de plek nog leeg is. */
   naam: string | null;
   telefoon: string | null;
   /** De activiteit bestaat nog niet: de plek komt er bij het opslaan. */
@@ -40,10 +49,15 @@ const ROLLEN: { rol: ToevoegbareRol; kop: string; toevoegen: string; enkelvoud: 
 
 interface Eigenschappen {
   bestaand: BestaandePlek[];
+  eindverantwoordelijke: Eindverantwoordelijke;
+  kandidaten: Kandidaat[];
+  /** Wie zich voor deze activiteit heeft afgemeld. */
+  afgemeld: string[];
   /** Wat de beheerder al had gewijzigd (na een fout komt het terug): ids van weggehaalde plekken en nieuwe plekken als "rol:naam". */
   beginWeggehaald?: string[];
   beginToegevoegd?: string[];
-  eindverantwoordelijke: Eindverantwoordelijke;
+  /** Wat er in de keuzelijsten stond (na een fout), per veldnaam. */
+  beginKeuzes?: Record<string, string>;
   /** Een fout bij de plekken, na het versturen. */
   fout?: string;
 }
@@ -62,11 +76,106 @@ function leesNieuwePlekken(waarden: string[]): NieuwePlek[] {
   });
 }
 
+/** Het label van een keuze: de naam, met erachter waarom het niet of met een kanttekening kan. */
+function optieLabel(kandidaat: Kandidaat, rol: string, reden: string | null): string {
+  const delen = [kandidaat.naam];
+  if (kandidaat.extern) delen.push('(extern)');
+  if (reden) delen.push(`— ${reden}`);
+  else if (rol === 'bob' && !kandidaat.magBob) delen.push('— nog niet aangemerkt als BOB');
+  else if (rol === 'eindverantwoordelijke' && !kandidaat.magEindverantwoordelijke) {
+    delen.push('— nog niet aangemerkt als eindverantwoordelijke');
+  }
+  return delen.join(' ');
+}
+
+interface KeuzelijstEigenschappen {
+  /** De naam van het veld in het formulier. */
+  naam: string;
+  /** Wat een schermlezer voorleest ("Werker 1"). */
+  label: string;
+  rol: string;
+  kandidaten: Kandidaat[];
+  afgemeld: string[];
+  /** Wie er op andere plekken staat of is gekozen: die kun je hier niet kiezen. */
+  elders: Set<string>;
+  waarde: string;
+  /** Wie er bij het tonen op deze plek stond (leeg als niemand). */
+  bezetterId: string | null;
+  bezetterNaam: string | null;
+  /** Bij een bezette plek: "<naam> eraf halen" met openlaten en weghalen. */
+  eraf: boolean;
+  /** De eindverantwoordelijke kan niet worden weggehaald, alleen worden opengelaten. */
+  alleenOpenlaten?: boolean;
+  onWijzig: (waarde: string) => void;
+}
+
+function Keuzelijst({
+  naam,
+  label,
+  rol,
+  kandidaten,
+  afgemeld,
+  elders,
+  waarde,
+  bezetterId,
+  bezetterNaam,
+  eraf,
+  alleenOpenlaten,
+  onWijzig,
+}: KeuzelijstEigenschappen) {
+  // Een BOB of eindverantwoordelijke is een lid (R17); een externe helper kan wel werker, drankhaler of fotograaf zijn.
+  const geschikt = kandidaten.filter((k) => !k.extern || (rol !== 'bob' && rol !== 'eindverantwoordelijke'));
+  const stond = bezetterId && !geschikt.some((k) => k.id === bezetterId);
+  return (
+    <>
+      <label htmlFor={naam} className={stijl.verborgen}>
+        {label}
+      </label>
+      <select
+        id={naam}
+        name={naam}
+        className={stijl.keuze}
+        defaultValue={waarde}
+        onChange={(e) => onWijzig(e.target.value)}
+      >
+        {!bezetterId && <option value="">Kies iemand…</option>}
+        {/* Wie er stond maar niet meer te kiezen is (bijvoorbeeld op inactief gezet), blijft zichtbaar zolang hij er staat. */}
+        {stond && <option value={bezetterId}>{bezetterNaam ?? 'Onbekend'}</option>}
+        {geschikt.map((kandidaat) => {
+          const reden = afgemeld.includes(kandidaat.id)
+            ? 'afgemeld'
+            : elders.has(kandidaat.id)
+              ? 'al ingedeeld'
+              : null;
+          return (
+            <option
+              key={kandidaat.id}
+              value={kandidaat.id}
+              disabled={reden !== null && kandidaat.id !== waarde}
+            >
+              {optieLabel(kandidaat, rol, reden)}
+            </option>
+          );
+        })}
+        {eraf && (
+          <optgroup label={`${bezetterNaam ?? 'Deze persoon'} eraf halen`}>
+            <option value={PLEK_LEEGMAKEN}>Plek openlaten</option>
+            {!alleenOpenlaten && <option value={PLEK_WEGHALEN}>Plek weghalen</option>}
+          </optgroup>
+        )}
+      </select>
+    </>
+  );
+}
+
 export function Plekken({
   bestaand,
+  eindverantwoordelijke,
+  kandidaten,
+  afgemeld,
   beginWeggehaald = [],
   beginToegevoegd = [],
-  eindverantwoordelijke,
+  beginKeuzes,
   fout,
 }: Eigenschappen) {
   const [weggehaald, zetWeggehaald] = useState<string[]>(beginWeggehaald);
@@ -74,15 +183,65 @@ export function Plekken({
   const [teller, zetTeller] = useState(1);
   const basis = useId().replace(/[^A-Za-z0-9]/g, '');
 
+  // De naam van het veld bij een plek, en wat er in de keuzelijst staat: eerst wat de beheerder had gekozen (na een fout),
+  // anders wie er stond.
+  const evNaam = eindverantwoordelijke.slotId
+    ? `plek_${eindverantwoordelijke.slotId}`
+    : 'plek_eindverantwoordelijke';
+  const beginWaarde = (naam: string, standaard: string): string => beginKeuzes?.[naam] ?? standaard;
+  const [keuzes, zetKeuzes] = useState<Record<string, string>>(() => {
+    const start: Record<string, string> = {
+      [evNaam]: beginWaarde(evNaam, eindverantwoordelijke.bezetterId ?? ''),
+    };
+    for (const plek of bestaand)
+      start[`plek_${plek.id}`] = beginWaarde(`plek_${plek.id}`, plek.bezetterId ?? '');
+    for (const plek of leesNieuwePlekken(beginToegevoegd)) {
+      start[`plek_nieuw_${plek.tijdelijk}`] = beginWaarde(`plek_nieuw_${plek.tijdelijk}`, '');
+    }
+    return start;
+  });
+  const wijzig = (naam: string, waarde: string): void =>
+    zetKeuzes((vorige) => ({ ...vorige, [naam]: waarde }));
+
+  /** Wie er op een andere plek staat dan deze (bestaand en gekozen), zodat hij hier niet nog een keer te kiezen is. */
+  function elders(eigen: string): Set<string> {
+    const uit = new Set<string>();
+    for (const [naam, lid] of Object.entries(keuzes)) {
+      if (naam !== eigen && lid !== '' && lid !== PLEK_LEEGMAKEN && lid !== PLEK_WEGHALEN) uit.add(lid);
+    }
+    return uit;
+  }
+
   function voegToe(rol: ToevoegbareRol) {
-    zetNieuw((vorige) => [...vorige, { tijdelijk: `n${basis}${teller}`, rol }]);
+    const tijdelijk = `n${basis}${teller}`;
+    zetNieuw((vorige) => [...vorige, { tijdelijk, rol }]);
+    zetKeuzes((vorige) => ({ ...vorige, [`plek_nieuw_${tijdelijk}`]: '' }));
     zetTeller((vorige) => vorige + 1);
+  }
+
+  function haalNieuweWeg(tijdelijk: string) {
+    zetNieuw((vorige) => vorige.filter((p) => p.tijdelijk !== tijdelijk));
+    zetKeuzes((vorige) => {
+      const rest = { ...vorige };
+      delete rest[`plek_nieuw_${tijdelijk}`];
+      return rest;
+    });
+  }
+
+  function haalBestaandeWeg(id: string) {
+    zetWeggehaald((vorige) => [...vorige, id]);
+    zetKeuzes((vorige) => {
+      const rest = { ...vorige };
+      delete rest[`plek_${id}`];
+      return rest;
+    });
   }
 
   return (
     <div className={stijl.plekken}>
       <p className={stijl.uitleg}>
-        Voeg plekken toe of haal lege plekken weg. Wie er op een plek staat, kies je in een volgende stap.
+        Kies iemand voor een plek. Wil je iemand eraf halen, dan kies je onderaan de lijst: de plek openlaten
+        of weghalen.
       </p>
 
       {ROLLEN.map(({ rol, kop, toevoegen, enkelvoud }) => {
@@ -96,40 +255,66 @@ export function Plekken({
             </h3>
             {aantal > 0 && (
               <ul className={stijl.lijst}>
-                {vast.map((plek, nummer) => (
-                  <li key={plek.id} className={stijl.plek}>
-                    {plek.bezetter ? (
-                      <span className={stijl.naam}>{plek.bezetter}</span>
-                    ) : (
-                      <>
-                        <span className={stijl.leeg}>Leeg</span>
+                {vast.map((plek, nummer) => {
+                  const naam = `plek_${plek.id}`;
+                  const bezet = plek.bezetterId !== null;
+                  return (
+                    <li key={plek.id} className={stijl.plek}>
+                      <input type="hidden" name={`plek_was_${plek.id}`} value={plek.bezetterId ?? ''} />
+                      <Keuzelijst
+                        naam={naam}
+                        label={`${kop} ${nummer + 1}`}
+                        rol={rol}
+                        kandidaten={kandidaten}
+                        afgemeld={afgemeld}
+                        elders={elders(naam)}
+                        waarde={keuzes[naam] ?? ''}
+                        bezetterId={plek.bezetterId}
+                        bezetterNaam={plek.bezetter}
+                        eraf={bezet}
+                        onWijzig={(waarde) => wijzig(naam, waarde)}
+                      />
+                      {!bezet && (
                         <button
                           type="button"
                           className={stijl.weg}
                           aria-label={`Lege plek ${nummer + 1} van ${enkelvoud} weghalen`}
-                          onClick={() => zetWeggehaald((vorige) => [...vorige, plek.id])}
+                          onClick={() => haalBestaandeWeg(plek.id)}
                         >
                           <Icoon naam="kruis" />
                         </button>
-                      </>
-                    )}
-                  </li>
-                ))}
-                {toegevoegd.map((plek, nummer) => (
-                  <li key={plek.tijdelijk} className={stijl.plek}>
-                    <span className={stijl.leeg}>Nieuwe plek, leeg</span>
-                    <button
-                      type="button"
-                      className={stijl.weg}
-                      aria-label={`Nieuwe plek ${nummer + 1} van ${enkelvoud} weghalen`}
-                      onClick={() =>
-                        zetNieuw((vorige) => vorige.filter((p) => p.tijdelijk !== plek.tijdelijk))
-                      }
-                    >
-                      <Icoon naam="kruis" />
-                    </button>
-                  </li>
-                ))}
+                      )}
+                    </li>
+                  );
+                })}
+                {toegevoegd.map((plek, nummer) => {
+                  const naam = `plek_nieuw_${plek.tijdelijk}`;
+                  return (
+                    <li key={plek.tijdelijk} className={stijl.plek}>
+                      <Keuzelijst
+                        naam={naam}
+                        label={`Nieuwe plek ${nummer + 1} van ${enkelvoud}`}
+                        rol={rol}
+                        kandidaten={kandidaten}
+                        afgemeld={afgemeld}
+                        elders={elders(naam)}
+                        waarde={keuzes[naam] ?? ''}
+                        bezetterId={null}
+                        bezetterNaam={null}
+                        eraf={false}
+                        onWijzig={(waarde) => wijzig(naam, waarde)}
+                      />
+                      <button
+                        type="button"
+                        className={stijl.weg}
+                        aria-label={`Nieuwe plek ${nummer + 1} van ${enkelvoud} weghalen`}
+                        onClick={() => haalNieuweWeg(plek.tijdelijk)}
+                      >
+                        <Icoon naam="kruis" />
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
             <Knop soort="tekst" onClick={() => voegToe(rol)}>
@@ -143,18 +328,34 @@ export function Plekken({
         <h3 id="rol-eindverantwoordelijke" className={stijl.rolkop}>
           Eindverantwoordelijke *
         </h3>
-        <p className={stijl.vast}>
-          {eindverantwoordelijke.nieuw ? (
-            'Deze plek is er na het opslaan.'
-          ) : eindverantwoordelijke.naam ? (
-            <>
-              {eindverantwoordelijke.naam}
-              {eindverantwoordelijke.telefoon && ` — ${eindverantwoordelijke.telefoon}`}
-            </>
-          ) : (
-            <span className={stijl.leeg}>Leeg</span>
-          )}
-        </p>
+        <div className={stijl.lijst}>
+          <div className={stijl.plek}>
+            {eindverantwoordelijke.slotId && (
+              <input
+                type="hidden"
+                name={`plek_was_${eindverantwoordelijke.slotId}`}
+                value={eindverantwoordelijke.bezetterId ?? ''}
+              />
+            )}
+            <Keuzelijst
+              naam={evNaam}
+              label="Eindverantwoordelijke"
+              rol="eindverantwoordelijke"
+              kandidaten={kandidaten}
+              afgemeld={afgemeld}
+              elders={elders(evNaam)}
+              waarde={keuzes[evNaam] ?? ''}
+              bezetterId={eindverantwoordelijke.bezetterId}
+              bezetterNaam={eindverantwoordelijke.naam}
+              eraf={eindverantwoordelijke.bezetterId !== null}
+              alleenOpenlaten
+              onWijzig={(waarde) => wijzig(evNaam, waarde)}
+            />
+          </div>
+        </div>
+        {eindverantwoordelijke.telefoon && (
+          <p className={stijl.vast}>Telefoon: {eindverantwoordelijke.telefoon}</p>
+        )}
       </section>
 
       {weggehaald.map((id) => (

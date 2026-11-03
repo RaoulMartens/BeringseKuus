@@ -7,13 +7,17 @@ import { eisBeheer } from '@/lib/beheer';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { Activiteitformulier, FORMULIER_ID } from '../activiteitformulier';
-import { leesGroepen } from '../gegevens';
+import { leesGroepen, leesKandidaten } from '../gegevens';
 
 export const metadata: Metadata = { title: 'Nieuwe activiteit – Ledenplatform' };
 
 export default async function NieuweActiviteit() {
   await eisBeheer();
-  const { groepen, aantalLeden } = await leesGroepen(await maakSupabase());
+  const supabase = await maakSupabase();
+  const [{ groepen, aantalLeden }, kandidaten] = await Promise.all([
+    leesGroepen(supabase),
+    leesKandidaten(supabase),
+  ]);
 
   return (
     <Schermkader
@@ -36,7 +40,9 @@ export default async function NieuweActiviteit() {
         groepen={groepen}
         aantalLeden={aantalLeden}
         plekken={[]}
-        eindverantwoordelijke={{ naam: null, telefoon: null, nieuw: true }}
+        eindverantwoordelijke={{ slotId: null, bezetterId: null, naam: null, telefoon: null, nieuw: true }}
+        kandidaten={kandidaten}
+        afgemeld={[]}
       />
     </Schermkader>
   );

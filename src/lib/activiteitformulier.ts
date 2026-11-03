@@ -21,7 +21,16 @@ export const TEKENS_NOTITIE = 2000;
 
 export type Wijziging =
   | { handeling: 'plek_toevoegen'; rol_type: ToevoegbareRol; tijdelijk_id: string }
-  | { handeling: 'plek_weghalen'; rol_slot_id: string };
+  | { handeling: 'plek_weghalen'; rol_slot_id: string }
+  /** Iemand op een bestaande plek zetten; `verwachte_bezetter` is wie de beheerder er zag staan (UC-005 AF-8). */
+  | { handeling: 'toewijzen'; rol_slot_id: string; lid_id: string; verwachte_bezetter: string | null }
+  /** Iemand op een plek zetten die in dezelfde aanroep is toegevoegd (of de eindverantwoordelijke van een nieuwe activiteit). */
+  | { handeling: 'toewijzen'; tijdelijk_id: string; lid_id: string; verwachte_bezetter: null }
+  | { handeling: 'leegmaken'; rol_slot_id: string; verwachte_bezetter: string };
+
+/** De waarde van de keuzelijst bij een bezette plek: de plek leegmaken, of leegmaken en weghalen ("Truus eraf halen"). */
+export const PLEK_LEEGMAKEN = '__leeg';
+export const PLEK_WEGHALEN = '__weg';
 
 export interface ActiviteitVelden {
   naam: string;
@@ -93,6 +102,108 @@ const TOEVOEGEN = z.object({
   tijdelijk: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
 });
 
+const PLEKFOUT = 'Er klopt iets niet met de plekken. Laad de pagina opnieuw.';
+const KEUZE = z.union([z.literal(''), z.literal(PLEK_LEEGMAKEN), z.literal(PLEK_WEGHALEN), z.uuid()]);
+const WAS = z.union([z.literal(''), z.uuid()]);
+const BESTAANDE_PLEK = /^plek_([0-9a-fA-F-]{36})$/;
+const NIEUWE_PLEK = /^plek_nieuw_([A-Za-z0-9_-]{1,40})$/;
+
+/**
+ * De plekken uit het formulier als handelingen voor activiteit_opslaan, in een volgorde die klopt: eerst nieuwe plekken
+ * (anders bestaat er nog niets om in te delen), dan leegmaken, dan weghalen (een bezette plek wordt eerst leeg), en als
+ * laatste indelen. Per bestaande plek is er een keuze (`plek_<id>`) en wie er stond toen het scherm werd getoond
+ * (`plek_was_<id>`): dat laatste gaat mee als `verwachte_bezetter`, zodat een ander die intussen iemand indeelde niet
+ * ongemerkt wordt overschreven. Een fout komt als `plekken` in `fouten`.
+ */
+function leesPlekken(formulier: FormData, fouten: Record<string, string>): Wijziging[] {
+  const mis = (): void => {
+    fouten.plekken = PLEKFOUT;
+  };
+  const toevoegen: Wijziging[] = [];
+  const tijdelijk = new Set<string>();
+  for (const waarde of formulier.getAll('plek_toevoegen')) {
+    const [rol, naam] = typeof waarde === 'string' ? waarde.split(':') : [];
+    const plek = TOEVOEGEN.safeParse({ rol, tijdelijk: naam });
+    if (!plek.success || tijdelijk.has(plek.data.tijdelijk)) {
+      mis();
+      continue;
+    }
+    tijdelijk.add(plek.data.tijdelijk);
+    toevoegen.push({
+      handeling: 'plek_toevoegen',
+      rol_type: plek.data.rol,
+      tijdelijk_id: plek.data.tijdelijk,
+    });
+  }
+
+  const weghalen = new Set<string>();
+  for (const waarde of formulier.getAll('plek_weghalen')) {
+    const id = z.uuid().safeParse(waarde);
+    if (id.success) weghalen.add(id.data);
+    else mis();
+  }
+
+  const leegmaken: Wijziging[] = [];
+  const indelen: Wijziging[] = [];
+  for (const [naam, waarde] of formulier.entries()) {
+    const bestaand = BESTAANDE_PLEK.exec(naam);
+    if (bestaand) {
+      const id = z.uuid().safeParse(bestaand[1]);
+      const keuze = KEUZE.safeParse(waarde);
+      const was = WAS.safeParse(formulier.get(`plek_was_${bestaand[1]}`));
+      if (!id.success || !keuze.success || !was.success) {
+        mis();
+        continue;
+      }
+      const voorheen = was.data === '' ? null : was.data;
+      if (keuze.data === '') {
+        // Een bezette plek heeft geen lege keuze: dit komt niet van ons formulier.
+        if (voorheen !== null) mis();
+      } else if (keuze.data === PLEK_LEEGMAKEN || keuze.data === PLEK_WEGHALEN) {
+        if (voorheen !== null) {
+          leegmaken.push({ handeling: 'leegmaken', rol_slot_id: id.data, verwachte_bezetter: voorheen });
+        }
+        if (keuze.data === PLEK_WEGHALEN) weghalen.add(id.data);
+      } else if (keuze.data !== voorheen) {
+        indelen.push({
+          handeling: 'toewijzen',
+          rol_slot_id: id.data,
+          lid_id: keuze.data,
+          verwachte_bezetter: voorheen,
+        });
+      }
+      continue;
+    }
+
+    // Een nieuwe plek, of de eindverantwoordelijke van een nieuwe activiteit: er is nog geen id, alleen een naam.
+    const nieuw = NIEUWE_PLEK.exec(naam);
+    const naamVanPlek =
+      nieuw?.[1] ?? (naam === 'plek_eindverantwoordelijke' ? 'eindverantwoordelijke' : null);
+    if (naamVanPlek !== null) {
+      const lid = z.union([z.literal(''), z.uuid()]).safeParse(waarde);
+      if (!lid.success || (nieuw && !tijdelijk.has(naamVanPlek))) {
+        mis();
+        continue;
+      }
+      if (lid.data !== '') {
+        indelen.push({
+          handeling: 'toewijzen',
+          tijdelijk_id: naamVanPlek,
+          lid_id: lid.data,
+          verwachte_bezetter: null,
+        });
+      }
+    }
+  }
+
+  return [
+    ...toevoegen,
+    ...leegmaken,
+    ...[...weghalen].map((id): Wijziging => ({ handeling: 'plek_weghalen', rol_slot_id: id })),
+    ...indelen,
+  ];
+}
+
 function tekstVan(formulier: FormData, naam: string): string {
   const waarde = formulier.get(naam);
   return typeof waarde === 'string' ? waarde : '';
@@ -125,30 +236,7 @@ export function leesFormulier(formulier: FormData): Uitkomst {
     fouten.eindtijd = 'De eindtijd kan niet gelijk zijn aan de starttijd.';
   }
 
-  const wijzigingen: Wijziging[] = [];
-  const gezien = new Set<string>();
-  for (const waarde of formulier.getAll('plek_toevoegen')) {
-    const [rol, tijdelijk] = typeof waarde === 'string' ? waarde.split(':') : [];
-    const plek = TOEVOEGEN.safeParse({ rol, tijdelijk });
-    if (!plek.success || gezien.has(plek.data.tijdelijk)) {
-      fouten.plekken = 'Er klopt iets niet met de plekken. Laad de pagina opnieuw.';
-      continue;
-    }
-    gezien.add(plek.data.tijdelijk);
-    wijzigingen.push({
-      handeling: 'plek_toevoegen',
-      rol_type: plek.data.rol,
-      tijdelijk_id: plek.data.tijdelijk,
-    });
-  }
-  for (const waarde of formulier.getAll('plek_weghalen')) {
-    const id = z.uuid().safeParse(waarde);
-    if (!id.success) {
-      fouten.plekken = 'Er klopt iets niet met de plekken. Laad de pagina opnieuw.';
-      continue;
-    }
-    wijzigingen.push({ handeling: 'plek_weghalen', rol_slot_id: id.data });
-  }
+  const wijzigingen = leesPlekken(formulier, fouten);
 
   if (Object.keys(fouten).length > 0 || !velden.success) return { ok: false, fouten };
   return { ok: true, velden: velden.data, wijzigingen };
@@ -230,12 +318,57 @@ export function vertaalOpslagfout(code: string, detail: unknown): Fouttekst {
         fouten: { groepen: 'Een van de gekozen groepen bestaat niet meer. Laad de pagina opnieuw.' },
         melding: null,
       };
+    case 'slot_gewijzigd':
     case 'plek_onbekend':
     case 'plek_niet_leeg':
       return {
         fouten: {},
         melding:
-          'Een plek is inmiddels gewijzigd. Je wijzigingen zijn niet opgeslagen. Laad de pagina opnieuw.',
+          'Deze plek is inmiddels gewijzigd. Terwijl je bezig was, is hij door iemand anders aangepast. Je wijzigingen zijn niet opgeslagen, zodat je niet ongemerkt overschrijft wat een ander net heeft geregeld. Laad de pagina opnieuw en kies opnieuw.',
+      };
+    case 'lid_buiten_doelgroep':
+      return {
+        fouten: {
+          plekken:
+            'Iemand die je hebt ingedeeld, hoort niet bij de groep voor wie deze activiteit is. Kies iemand anders of pas "Voor wie" aan.',
+        },
+        melding: null,
+      };
+    case 'doelgroep_conflict':
+      return {
+        fouten: {
+          groepen:
+            'Er staan nog leden ingedeeld die niet bij de gekozen groepen horen. Haal ze eerst van hun plek.',
+        },
+        melding: null,
+      };
+    case 'lid_inactief':
+      return {
+        fouten: { plekken: 'Iemand die je hebt gekozen, is geen actief lid meer. Kies iemand anders.' },
+        melding: null,
+      };
+    case 'lid_afgemeld':
+      return {
+        fouten: {
+          plekken:
+            'Iemand die je hebt gekozen, heeft zich voor deze activiteit afgemeld. Kies iemand anders.',
+        },
+        melding: null,
+      };
+    case 'extern_niet_toegestaan':
+      return {
+        fouten: { plekken: 'Een externe helper kan geen BOB of eindverantwoordelijke zijn. Kies een lid.' },
+        melding: null,
+      };
+    case 'dubbelboeking':
+      return {
+        fouten: { plekken: 'Iemand staat op twee plekken. Kies voor elke plek een ander.' },
+        melding: null,
+      };
+    case 'eindverantwoordelijke_verplicht':
+      return {
+        fouten: { plekken: 'De eindverantwoordelijke kan niet worden weggehaald; kies iemand anders.' },
+        melding: null,
       };
     default:
       return { fouten: {}, melding: ALGEMEEN };
@@ -306,6 +439,8 @@ export interface Waarden {
   groepen: string[];
   plekToevoegen: string[];
   plekWeghalen: string[];
+  /** Wat er in de keuzelijsten van de plekken stond, per veldnaam (plek_<id>, plek_nieuw_<naam>, plek_eindverantwoordelijke). */
+  plekKeuzes: Record<string, string>;
 }
 
 export function leesWaarden(formulier: FormData): Waarden {
@@ -313,10 +448,16 @@ export function leesWaarden(formulier: FormData): Waarden {
   for (const veld of TEKSTVELDEN) tekst[veld] = tekstVan(formulier, veld);
   const lijst = (naam: string): string[] =>
     formulier.getAll(naam).filter((waarde): waarde is string => typeof waarde === 'string');
+  const plekKeuzes: Record<string, string> = {};
+  for (const [naam, waarde] of formulier.entries()) {
+    const eigenKeuze = naam.startsWith('plek_') && naam !== 'plek_toevoegen' && naam !== 'plek_weghalen';
+    if (eigenKeuze && !naam.startsWith('plek_was_') && typeof waarde === 'string') plekKeuzes[naam] = waarde;
+  }
   return {
     tekst,
     groepen: lijst('groep'),
     plekToevoegen: lijst('plek_toevoegen'),
     plekWeghalen: lijst('plek_weghalen'),
+    plekKeuzes,
   };
 }

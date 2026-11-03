@@ -16,6 +16,7 @@ import { Tekstvak } from '@/components/veld/tekstvak';
 import { TEKENS_NAAM, TEKENS_NOTITIE } from '@/lib/activiteitformulier';
 
 import { slaActiviteitOp, type FormulierStaat } from './acties';
+import type { Kandidaat } from './gegevens';
 import { Plekken, type BestaandePlek, type Eindverantwoordelijke } from './plekken';
 
 import stijl from './activiteitformulier.module.css';
@@ -42,6 +43,10 @@ interface Eigenschappen {
   aantalLeden: number;
   plekken: BestaandePlek[];
   eindverantwoordelijke: Eindverantwoordelijke;
+  /** Wie er in de keuzelijsten van de plekken kan staan. */
+  kandidaten: Kandidaat[];
+  /** Wie zich voor deze activiteit heeft afgemeld. */
+  afgemeld: string[];
 }
 
 const START: FormulierStaat = { fouten: {}, melding: null, waarden: null, kenmerk: 'start' };
@@ -58,6 +63,8 @@ export function Activiteitformulier({
   aantalLeden,
   plekken,
   eindverantwoordelijke,
+  kandidaten,
+  afgemeld,
 }: Eigenschappen) {
   const [staat, actie] = useActionState<FormulierStaat, FormData>(slaActiviteitOp, START);
   const formulier = useRef<HTMLFormElement>(null);
@@ -195,6 +202,9 @@ export function Activiteitformulier({
           bestaand={plekken}
           beginWeggehaald={staat.waarden?.plekWeghalen}
           beginToegevoegd={staat.waarden?.plekToevoegen}
+          beginKeuzes={staat.waarden?.plekKeuzes}
+          kandidaten={kandidaten}
+          afgemeld={afgemeld}
           eindverantwoordelijke={eindverantwoordelijke}
           fout={fouten.plekken}
         />

@@ -46,7 +46,42 @@ export function ruimActiviteitenOp(naamPatroon: string): void {
     set local session_replication_role = replica;
     delete from public.activiteit_groep where activiteit_id in (select id from public.activiteiten where naam like '${naamPatroon}');
     delete from public.rol_slots where activiteit_id in (select id from public.activiteiten where naam like '${naamPatroon}');
+    delete from public.afmeldingen where activiteit_id in (select id from public.activiteiten where naam like '${naamPatroon}');
     delete from public.activiteiten where naam like '${naamPatroon}';
     commit;
+  `);
+}
+
+export interface Testlid {
+  id: string;
+  /** Zoals de keuzelijst het toont: "voornaam achternaam". */
+  naam: string;
+}
+
+/**
+ * Een lid of externe helper voor de keuzelijsten, zonder inlogaccount. De achternaam is `kenmerk` (uniek per testbestand),
+ * zodat de opruimactie ze terugvindt (ruimTestledenOp).
+ */
+export function maakTestlid(
+  voornaam: string,
+  kenmerk: string,
+  opties: { extern?: boolean; magBob?: boolean; magEindverantwoordelijke?: boolean; telefoon?: string } = {},
+): Testlid {
+  const id = crypto.randomUUID();
+  psql(`
+    insert into public.leden (id, voornaam, achternaam, type) values ('${id}', '${voornaam}', '${kenmerk}', '${opties.extern ? 'extern' : 'lid'}');
+    insert into public.leden_prive (lid_id, email, mag_bob, mag_eindverantw, telefoon)
+    values ('${id}', '${id}@example.com', ${opties.magBob ?? false}, ${opties.magEindverantwoordelijke ?? false}, ${opties.telefoon ? `'${opties.telefoon}'` : 'null'});
+  `);
+  return { id, naam: `${voornaam} ${kenmerk}` };
+}
+
+/** Verwijdert de testleden van maakTestlid, ná de activiteiten waar ze op stonden (ruimActiviteitenOp). */
+export function ruimTestledenOp(kenmerk: string): void {
+  psql(`
+    delete from public.afmeldingen where lid_id in (select id from public.leden where achternaam = '${kenmerk}');
+    delete from public.lid_groep where lid_id in (select id from public.leden where achternaam = '${kenmerk}');
+    delete from public.leden_prive where lid_id in (select id from public.leden where achternaam = '${kenmerk}');
+    delete from public.leden where achternaam = '${kenmerk}';
   `);
 }
