@@ -25,6 +25,9 @@ function maakNaam(soort: string): string {
   return `E2E Welkom ${soort} ${reeks} ${kenmerk}`;
 }
 
+// De dag in Nederland: de database rekent in UTC, en tussen middernacht en 01:00 of 02:00 is dat nog gisteren.
+const VANDAAG = "(now() at time zone 'Europe/Amsterdam')::date";
+
 const aangemaakt: string[] = [];
 
 test.afterAll(async () => {
@@ -58,7 +61,7 @@ function maakActiviteit(naam: string, opties: Opties = {}): string {
   const tekst = (waarde: string | null | undefined) => (waarde ? `'${waarde}'` : 'null');
   return psql(`
     insert into public.activiteiten (naam, datum, verzameltijd, starttijd, eindtijd, locatie, bus_vertrektijd, bus_locatie, notitie, status)
-    values ('${naam}', ${opties.dag ?? 'current_date'}, ${tekst(opties.verzameltijd)}, '${opties.starttijd ?? '20:00'}',
+    values ('${naam}', ${opties.dag ?? VANDAAG}, ${tekst(opties.verzameltijd)}, '${opties.starttijd ?? '20:00'}',
             '${opties.eindtijd ?? '23:59'}', 'Zaal Test, Kerkstraat 1', ${tekst(opties.bus?.tijd)}, ${tekst(opties.bus?.plaats)},
             ${tekst(opties.notitie)}, 'gepubliceerd')
     returning id;
@@ -168,7 +171,7 @@ test('een afgemeld lid ziet dat; een activiteit zonder indeling, bus en notitie 
   const { lidId } = await logInAlsLid(page);
   const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78' });
   const naam = maakNaam('kaal');
-  const id = maakActiviteit(naam, { dag: 'current_date + 1', eindtijd: '23:00' });
+  const id = maakActiviteit(naam, { dag: `${VANDAAG} + 1`, eindtijd: '23:00' });
   zetPlek(id, 'eindverantwoordelijke', ger.id);
   psql(`insert into public.afmeldingen (activiteit_id, lid_id) values ('${id}', '${lidId}');`);
 
@@ -197,14 +200,14 @@ test('vanuit het programma open je een activiteit; een concept en een andere gro
 }) => {
   await logInAlsLid(page);
   const zichtbaar = maakNaam('zichtbaar');
-  const idZichtbaar = maakActiviteit(zichtbaar, { dag: 'current_date + 8' });
+  const idZichtbaar = maakActiviteit(zichtbaar, { dag: `${VANDAAG} + 8` });
   const idConcept = psql(`
-    insert into public.activiteiten (naam, datum, status) values ('${maakNaam('concept')}', current_date + 9, 'concept')
+    insert into public.activiteiten (naam, datum, status) values ('${maakNaam('concept')}', ${VANDAAG} + 9, 'concept')
     returning id;
   `)
     .trim()
     .split('\n')[0]!;
-  const idBestuur = maakActiviteit(maakNaam('bestuur'), { dag: 'current_date + 10' });
+  const idBestuur = maakActiviteit(maakNaam('bestuur'), { dag: `${VANDAAG} + 10` });
   psql(`
     insert into public.activiteit_groep (activiteit_id, groep_id)
     select '${idBestuur}', id from public.groepen where naam = 'Bestuur';
@@ -231,7 +234,7 @@ test('zonder in te loggen gaat een activiteit naar het inloggen', async ({ page 
 test('het bestuur ziet een link om de activiteit te beheren, een gewoon lid niet', async ({ page }) => {
   aangemaakt.push(await logInAlsBeheerder(page));
   const naam = maakNaam('beheren');
-  const id = maakActiviteit(naam, { dag: 'current_date + 11' });
+  const id = maakActiviteit(naam, { dag: `${VANDAAG} + 11` });
   await page.goto(`/programma/${id}`);
   await expect(page.getByRole('link', { name: 'Deze activiteit beheren' })).toHaveAttribute(
     'href',
@@ -241,7 +244,7 @@ test('het bestuur ziet een link om de activiteit te beheren, een gewoon lid niet
 
 test('een gewoon lid heeft geen link naar beheer', async ({ page }) => {
   await logInAlsLid(page);
-  const id = maakActiviteit(maakNaam('geen-beheer'), { dag: 'current_date + 12' });
+  const id = maakActiviteit(maakNaam('geen-beheer'), { dag: `${VANDAAG} + 12` });
   await page.goto(`/programma/${id}`);
   await expect(page.getByRole('region', { name: 'Jouw status' })).toBeVisible();
   await expect(page.getByRole('link', { name: /beheren/ })).toHaveCount(0);

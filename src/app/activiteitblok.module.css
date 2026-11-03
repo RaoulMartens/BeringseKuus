@@ -31,6 +31,8 @@
   font: 400 1rem/1.5 var(--font-tekst);
   color: var(--status-info-tekst);
   overflow-wrap: anywhere;
+  /* de notitie is een tekstvak met regeleinden (opsommingen): die blijven zichtbaar */
+  white-space: pre-line;
 }
 
 /* wat nog niet is ingevuld: zacht, geen waarschuwing */

@@ -86,6 +86,28 @@ describe('kiesWelkom', () => {
     );
   });
 
+  it('toont een activiteit van gisteren die na middernacht nog loopt (de Bonte Avond om 00:30)', () => {
+    // Vrijdag 22 januari 20:11 tot zaterdag 01:11; het is zaterdag 23 januari 00:30 in Nederland.
+    const bonteAvond = activiteit({
+      id: 'b',
+      datum: '2027-01-22',
+      starttijd: '20:11:00',
+      eindtijd: '01:11:00',
+      eindigtOm: '2027-01-23T00:11:00+00:00',
+    });
+    const zaterdag = activiteit({
+      id: 'z',
+      datum: '2027-01-23',
+      eindigtOm: '2027-01-23T22:00:00+00:00',
+    });
+    const halfEen = new Date('2027-01-22T23:30:00Z');
+    expect(kiesWelkom([zaterdag, bonteAvond], '2027-01-23', halfEen).map((a) => a.id)).toEqual(['b', 'z']);
+    // Na het einde (01:11) blijft alleen de zaterdag over.
+    expect(
+      kiesWelkom([zaterdag, bonteAvond], '2027-01-23', new Date('2027-01-23T00:11:00Z')).map((a) => a.id),
+    ).toEqual(['z']);
+  });
+
   it('slaat concepten, geannuleerde en geweest zijnde activiteiten over', () => {
     const geweest = activiteit({ id: 'w', datum: '2027-01-10', eindigtOm: '2027-01-10T23:00:00+00:00' });
     expect(

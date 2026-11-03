@@ -18,3 +18,15 @@
   gap: 12px;
   align-items: start;
 }
+
+/* de standaardknop voor Enter: er, maar nooit te zien of te bereiken */
+.standaardknop {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

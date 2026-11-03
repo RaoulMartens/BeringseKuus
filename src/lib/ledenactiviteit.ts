@@ -31,9 +31,9 @@ export function volgendeDag(datum: string): string {
 }
 
 /**
- * De activiteiten van het welkomscherm: alle gepubliceerde van vandaag die nog niet geweest zijn, op tijd; is dat er geen,
- * dan alle van de eerstvolgende dag waarop er iets is (UC-001 stap 1 en AF-8). Een afgelopen activiteit verdwijnt, ook als
- * hij vandaag was (R16). Concepten en geannuleerde activiteiten telt het scherm niet mee (R15).
+ * De activiteiten van het welkomscherm: alle gepubliceerde die lopen of vandaag nog komen (een activiteit van gisteren die
+ * na middernacht nog duurt, hoort daarbij), op tijd; is dat er geen, dan alle van de eerstvolgende dag waarop er iets is
+ * (UC-001 stap 1 en AF-8). Een afgelopen activiteit verdwijnt, ook als hij vandaag was (R16). Concepten en geannuleerde activiteiten telt het scherm niet mee (R15).
  */
 export function kiesWelkom(activiteiten: LedenActiviteit[], vandaag: string, nu: Date): LedenActiviteit[] {
   const komende = activiteiten
@@ -45,7 +45,10 @@ export function kiesWelkom(activiteiten: LedenActiviteit[], vandaag: string, nu:
       if (ta !== tb) return ta < tb ? -1 : 1;
       return a.naam.localeCompare(b.naam, 'nl');
     });
-  const eerste = komende.find((a) => a.datum >= vandaag);
+  // Wat al loopt of vandaag nog komt, gaat voor; dat is ook een activiteit van gisteren die na middernacht nog duurt (R16).
+  const lopend = komende.filter((a) => a.datum <= vandaag);
+  if (lopend.length > 0) return lopend;
+  const eerste = komende[0];
   return eerste ? komende.filter((a) => a.datum === eerste.datum) : [];
 }
 

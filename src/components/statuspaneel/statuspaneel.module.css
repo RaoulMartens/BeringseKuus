@@ -65,9 +65,13 @@
     display: none;
   }
 
-  /* een balk onderaan; de inhoud krijgt ruimte eronder, zodat niets erachter verdwijnt */
+  /* een balk onderaan; de inhoud krijgt ruimte eronder, zodat niets erachter verdwijnt, ook niet een veld dat de focus krijgt */
   :global(main):has(.paneel) {
     padding-bottom: 168px;
+  }
+
+  :global(html):has(.paneel) {
+    scroll-padding-bottom: 168px;
   }
 
   .paneel {
