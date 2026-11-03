@@ -81,6 +81,16 @@ export function Activiteitformulier({
 
   return (
     <form id={FORMULIER_ID} action={actie} ref={formulier} noValidate className={stijl.formulier}>
+      {/* Enter in een veld drukt op de eerste verzendknop in de pagina: dat moet Opslaan als concept zijn, niet Publiceren (die
+          knoppen staan in het statuspaneel, buiten het formulier). Deze knop is er alleen daarvoor: geen tabstop, niet voorgelezen. */}
+      <button
+        type="submit"
+        name="actie"
+        value="opslaan"
+        tabIndex={-1}
+        aria-hidden="true"
+        className={stijl.standaardknop}
+      />
       {activiteitId && <input type="hidden" name="activiteit_id" value={activiteitId} />}
       {versie !== null && <input type="hidden" name="versie" value={versie} />}
 

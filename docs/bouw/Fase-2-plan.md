@@ -1,6 +1,6 @@
 # Fase 2: plan
 
-Stand 02-11-2026. **De bouwer heeft beslissing 2.1 tot en met 2.5 genomen (02-11-2026, akkoord van de ontwerper op het
+Stand 03-11-2026: stap A tot en met D staan in main; wat er is, wat er niet is en het advies voor het beslismoment: `Afname-fase-2.md`. Stand 02-11-2026. **De bouwer heeft beslissing 2.1 tot en met 2.5 genomen (02-11-2026, akkoord van de ontwerper op het
 voorstel).** De planning is een schatting. Bron: `Fase-1-plan.md` (versmald op 30-10-2026), `Afname-fase-1.md` punt 4 ("Van fase 1 naar fase 2"),
 `Bouwbesluiten-2026-10-27.md` 5.1, `Datamodel-fase-1.md` (vooral punt 4 en 5) en bouwgids V8 hoofdstuk 10 en 13.3.
 

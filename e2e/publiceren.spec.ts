@@ -144,3 +144,19 @@ test('een activiteit die een ander net wijzigde, wordt niet ongemerkt gepublicee
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
   expect(status(id)).toBe('concept');
 });
+
+test('Enter in een veld slaat op als concept en gaat niet naar de bevestiging van het publiceren', async ({
+  page,
+}) => {
+  aangemaakt.push(await logInAlsBeheerder(page));
+  const naam = maakNaam('enter');
+  await page.goto('/beheer/activiteiten/nieuw');
+  await page.getByLabel('Naam *').fill(naam);
+  await page.getByLabel('Datum *').fill('2099-05-06');
+  await page.getByLabel('Naam *').press('Enter');
+  await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
+  expect(status(activiteitId(naam))).toBe('concept');
+  // De standaardknop voor Enter is geen tabstop en wordt niet voorgelezen.
+  await page.goto('/beheer/activiteiten/nieuw');
+  await expect(page.locator('form button[aria-hidden=true]')).toHaveAttribute('tabindex', '-1');
+});

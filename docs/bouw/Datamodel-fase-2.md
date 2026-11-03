@@ -355,7 +355,7 @@ gepubliceerde activiteit; die cases worden de nieuwe tests. Aanroepen op een bes
 | R10 (telefoon eindverantwoordelijke) | `contact_eindverantwoordelijke` | Welkom toont het nummer | `welkom` |
 | R13 (lege plekken verborgen voor leden) | Rechten op `rol_slots` | Welkom toont geen lege plek | `welkom` |
 | R14, R17 (alleen leden als vervanger, helpers door de beheerder) | `lid_inactief`, `extern_niet_toegestaan` | — | Keuzelijst |
-| R16 (geweest op het eindmoment) | Tijd (fase 1) | Programma na middernacht | `programma` |
+| R16 (geweest op het eindmoment) | Tijd (fase 1) | Niet in de browser: unittests voor het programma en het welkomscherm (rond middernacht) | `programma` |
 | R18 (geen meldingen bij een concept) | Alleen de vier tabellen veranderen (fase 1) | — | — |
 | R19 (vlaggen zijn een waarschuwing) | `toewijzen` zonder vlag slaagt | Waarschuwing zichtbaar | Keuzelijst |
 | R20 (dubbelboeking, ook voor de beheerder) | `dubbelboeking` | — | Keuzelijst (staat er niet in) |
@@ -427,6 +427,8 @@ dat is hier rechtgezet of vastgelegd.
 | R3-11 | klein | De opmerking in `20261029100000_fase1_schema.sql` ("zet hem aan het eind op immediate") is achterhaald; `service_role` houdt execute op de nieuwe functies | Een toegepaste migratie wijzig je niet; punt 3 stap 8 is de bron. `service_role` is gelijk aan fase 1 en onschadelijk (`geen_admin`, of geen rij zonder lid) |
 
 ## 14. Open punten
+
+- **O-4: een gepubliceerde activiteit wijzigen in beheer** is niet gebouwd (review F2-01, `Afname-fase-2.md`): het scherm toont wat er staat. De database kan het (`activiteit_opslaan`, getest). Voorwaarde voor pilot A: een formulier met 'Wijzigingen opslaan', zonder de bevestigingsstap 'Wie krijgt bericht' zolang er geen berichten uitgaan (O-1).
 
 - **O-1: berichten in pilot A.** Het ontwerp belooft "betrokkenen krijgen bericht" bij publiceren en bij wijzigen van een
   gepubliceerde activiteit (R18, BA-4); fase 2 verstuurt niets. Pilot A (14 tot 22 november) kan zo met een klein

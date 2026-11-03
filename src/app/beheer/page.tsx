@@ -97,20 +97,28 @@ export default async function Beheer({
   if (error) throw new Error(`beheeroverzicht niet te lezen: ${error.code ?? error.message}`);
 
   const tijdPerId = new Map<string, string | null>();
+  const heeftDeadline = new Set<string>();
   if (rijen.length > 0) {
     const { data: tijden, error: tijdFout } = await supabase
       .from('activiteiten')
-      .select('id, verzameltijd, starttijd')
+      .select('id, verzameltijd, starttijd, afmeld_deadline')
       .in(
         'id',
         rijen.map((rij) => rij.activiteit_id),
       );
     if (tijdFout) throw new Error(`activiteiten niet te lezen: ${tijdFout.code ?? tijdFout.message}`);
-    for (const tijd of tijden) tijdPerId.set(tijd.id, tijd.verzameltijd ?? tijd.starttijd);
+    for (const tijd of tijden) {
+      tijdPerId.set(tijd.id, tijd.verzameltijd ?? tijd.starttijd);
+      if (tijd.afmeld_deadline) heeftDeadline.add(tijd.id);
+    }
   }
 
   const overzichtsrijen = rijen.flatMap((rij): OverzichtRij[] =>
-    maakRij(rij, tijdPerId.get(rij.activiteit_id) ?? null),
+    // Zonder afmeld-deadline geldt het minimum niet (BA-5): dan is er ook geen "te weinig" om te melden.
+    maakRij(
+      { ...rij, min_aanwezigen: heeftDeadline.has(rij.activiteit_id) ? rij.min_aanwezigen : null },
+      tijdPerId.get(rij.activiteit_id) ?? null,
+    ),
   );
   const overzicht = maakOverzicht(overzichtsrijen, vandaagInNederland(new Date()), filter);
   const bewaard = opgeslagen.success
