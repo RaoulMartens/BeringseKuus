@@ -5,6 +5,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { Aankruislijst } from './aankruislijst/aankruislijst';
 import { Bovenbalk } from './bovenbalk/bovenbalk';
 import { Kaart } from './kaart/kaart';
 import { Knop } from './knop/knop';
@@ -12,8 +13,10 @@ import { Kopvlak } from './kopvlak/kopvlak';
 import { Lijst, Lijstrij } from './lijst/lijst';
 import { Melding } from './melding/melding';
 import { Statuslabel } from './statuslabel/statuslabel';
+import { Statuspaneel } from './statuspaneel/statuspaneel';
 import { Tellers } from './tellers/tellers';
 import { Veld } from './veld/veld';
+import { Tekstvak } from './veld/tekstvak';
 
 const html = renderToStaticMarkup;
 
@@ -227,5 +230,111 @@ describe('Tellers', () => {
     expect(uit.match(/aria-current="true"/g)).toHaveLength(1);
     // Het gekozen filter is de tweede teller, de link terug naar alles.
     expect(uit.match(/<a [^>]*aria-current="true"[^>]*>/)?.[0]).toContain('href="/beheer"');
+  });
+});
+
+describe('Knop bij een formulier elders', () => {
+  it('hoort met het formulier-attribuut bij een formulier waar hij niet in staat', () => {
+    const uit = html(
+      <Knop type="submit" formulier="activiteit-formulier">
+        Opslaan als concept
+      </Knop>,
+    );
+    expect(uit).toContain('form="activiteit-formulier"');
+    expect(uit).toContain('type="submit"');
+  });
+});
+
+describe('Tekstvak', () => {
+  it('is een textarea met zijn label, hulp en fout aan het veld gekoppeld', () => {
+    const uit = html(
+      <Tekstvak id="notitie" label="Belangrijk om te weten" hulp="Mag later." fout="Te lang." />,
+    );
+    expect(uit).toMatch(/<label[^>]*for="notitie"[^>]*>Belangrijk om te weten<\/label>/);
+    expect(uit).toMatch(/<textarea /);
+    expect(uit).toContain('aria-invalid="true"');
+    expect(uit).toMatch(/aria-describedby="notitie-fout notitie-hulp"/);
+    expect(uit).toMatch(/id="notitie-fout" role="alert"[^>]*>Te lang\./);
+  });
+
+  it('heeft zonder fout en hulp geen koppelingen', () => {
+    const uit = html(<Tekstvak id="x" label="X" />);
+    expect(uit).not.toContain('aria-describedby');
+    expect(uit).not.toContain('aria-invalid');
+  });
+});
+
+describe('Statuspaneel', () => {
+  it('is een sectie met de status als kop en wat er nog nodig is als lijst', () => {
+    const uit = html(
+      <Statuspaneel
+        status="Concept"
+        uitleg="Alleen het bestuur ziet deze activiteit."
+        nodig={['Eindtijd', 'Locatie']}
+      >
+        <Knop>Opslaan</Knop>
+      </Statuspaneel>,
+    );
+    expect(uit).toMatch(/<section aria-labelledby="statuspaneel-kop"/);
+    expect(uit).toMatch(/<h2 id="statuspaneel-kop"[^>]*>Concept<\/h2>/);
+    expect(uit).toMatch(/<h3[^>]*>Nog nodig om te publiceren<\/h3>/);
+    expect(uit).toContain('<li>Eindtijd</li><li>Locatie</li>');
+    expect(uit).toContain('>Opslaan</button>');
+  });
+
+  it('laat de lijst en de knoppen weg als ze er niet zijn', () => {
+    const uit = html(<Statuspaneel status="Gepubliceerd" />);
+    expect(uit).not.toContain('Nog nodig');
+    expect(uit).not.toContain('<button');
+    expect(uit).not.toContain('<ul');
+  });
+});
+
+describe('Aankruislijst', () => {
+  const opties = [
+    { waarde: 'a', label: 'Bestuur', toelichting: '9 leden' },
+    { waarde: 'b', label: 'Dames', toelichting: '14 leden' },
+  ];
+  const alles = { label: 'Iedereen', toelichting: '42 leden' };
+
+  it('is een fieldset met een legenda, en elke optie is een aankruisvakje met zijn naam', () => {
+    const uit = html(
+      <Aankruislijst naam="groep" legenda="Voor wie" opties={opties} gekozen={[]} alles={alles} />,
+    );
+    expect(uit).toMatch(/<fieldset[^>]*><legend[^>]*>Voor wie<\/legend>/);
+    expect(uit.match(/type="checkbox"/g)).toHaveLength(3);
+    expect(uit).toContain('name="groep" value="a"');
+    expect(uit).toContain('name="groep" value="b"');
+    expect(uit).toContain('9 leden');
+  });
+
+  it('kruist Iedereen aan als er niets is gekozen, en anders alleen de groepen', () => {
+    const leeg = html(
+      <Aankruislijst naam="groep" legenda="Voor wie" opties={opties} gekozen={[]} alles={alles} />,
+    );
+    expect(leeg.match(/checked=""/g)).toHaveLength(1);
+    expect(leeg).toMatch(/checked=""[^>]*\/><span[^>]*>Iedereen/);
+
+    const gekozen = html(
+      <Aankruislijst naam="groep" legenda="Voor wie" opties={opties} gekozen={['b']} alles={alles} />,
+    );
+    expect(gekozen.match(/checked=""/g)).toHaveLength(1);
+    expect(gekozen).toMatch(/value="b"[^>]*checked=""|checked=""[^>]*value="b"/);
+  });
+
+  it('koppelt de uitleg en de fout aan de groep', () => {
+    const uit = html(
+      <Aankruislijst
+        naam="groep"
+        legenda="Voor wie"
+        uitleg="Kies een groep."
+        fout="Dat kan niet."
+        opties={opties}
+        gekozen={[]}
+        alles={alles}
+      />,
+    );
+    expect(uit).toContain('aria-describedby="groep-fout groep-uitleg"');
+    expect(uit).toMatch(/id="groep-fout" role="alert"/);
   });
 });

@@ -55,6 +55,7 @@ function alsDatum(datum: string): Date {
 }
 
 const WEEKDAG = new Intl.DateTimeFormat('nl-NL', { weekday: 'short', timeZone: 'UTC' });
+const WEEKDAG_LANG = new Intl.DateTimeFormat('nl-NL', { weekday: 'long', timeZone: 'UTC' });
 const DAG = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', timeZone: 'UTC' });
 const MAAND_LANG = new Intl.DateTimeFormat('nl-NL', { month: 'long', timeZone: 'UTC' });
 const MAAND_EN_JAAR = new Intl.DateTimeFormat('nl-NL', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -65,6 +66,12 @@ export function dagTekst(datum: string): { weekdag: string; dag: string; lang: s
   const weekdag = WEEKDAG.format(d).replace('.', '');
   const dag = DAG.format(d);
   return { weekdag, dag, lang: `${weekdag} ${dag} ${MAAND_LANG.format(d)}` };
+}
+
+/** De dag voluit, voor een kop: "zaterdag 6 februari". */
+export function langeDag(datum: string): string {
+  const d = alsDatum(datum);
+  return `${WEEKDAG_LANG.format(d)} ${DAG.format(d)} ${MAAND_LANG.format(d)}`;
 }
 
 /** "Januari 2027". */

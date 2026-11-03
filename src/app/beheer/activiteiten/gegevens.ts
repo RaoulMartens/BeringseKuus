@@ -1,0 +1,133 @@
+// Wat de schermen voor aanmaken en bewerken lezen. Alles via de rechten van de database: alleen een beheerder met een code
+// leest hier alle plekken, leden en groepen (Datamodel-fase-1.md punt 6). Aan de serverkant, nooit in de browser.
+
+import { nogNodigOmTePubliceren, tijdstipVoorVeld, tijdVoorVeld } from '@/lib/activiteitformulier';
+import type { ActiviteitStatus } from '@/lib/programma';
+import { isActiviteitStatus } from '@/lib/programma';
+import type { maakSupabase } from '@/lib/supabase/server';
+
+import type { Groep } from './activiteitformulier';
+import type { BestaandePlek, Eindverantwoordelijke } from './plekken';
+
+type Supabase = Awaited<ReturnType<typeof maakSupabase>>;
+
+/** De groepen met het aantal actieve leden per groep, en het aantal actieve leden in totaal ("Iedereen"). */
+export async function leesGroepen(supabase: Supabase): Promise<{ groepen: Groep[]; aantalLeden: number }> {
+  const [groepen, koppelingen, leden] = await Promise.all([
+    supabase.from('groepen').select('id, naam').order('volgorde'),
+    supabase
+      .from('lid_groep')
+      .select('groep_id, leden!inner(actief, type)')
+      .eq('leden.actief', true)
+      .eq('leden.type', 'lid'),
+    supabase.from('leden').select('id', { count: 'exact', head: true }).eq('type', 'lid').eq('actief', true),
+  ]);
+  if (groepen.error) throw new Error(`groepen niet te lezen: ${groepen.error.code ?? groepen.error.message}`);
+  if (koppelingen.error)
+    throw new Error(`groepen niet te tellen: ${koppelingen.error.code ?? koppelingen.error.message}`);
+  if (leden.error) throw new Error(`leden niet te tellen: ${leden.error.code ?? leden.error.message}`);
+
+  const perGroep = new Map<string, number>();
+  for (const koppeling of koppelingen.data) {
+    perGroep.set(koppeling.groep_id, (perGroep.get(koppeling.groep_id) ?? 0) + 1);
+  }
+  return {
+    groepen: groepen.data.map((groep) => ({
+      id: groep.id,
+      naam: groep.naam,
+      leden: perGroep.get(groep.id) ?? 0,
+    })),
+    aantalLeden: leden.count ?? 0,
+  };
+}
+
+export interface ActiviteitGegevens {
+  id: string;
+  versie: number;
+  status: ActiviteitStatus;
+  naam: string;
+  datum: string;
+  /** De velden zoals het formulier ze toont, als tekst. */
+  tekst: Record<string, string>;
+  gekozenGroepen: string[];
+  plekken: BestaandePlek[];
+  eindverantwoordelijke: Eindverantwoordelijke;
+  /** Wat er nog nodig is om te publiceren. */
+  nogNodig: string[];
+}
+
+/** Een activiteit met zijn plekken, bezetters en doelgroep; leeg als hij er niet is of de beheerder hem niet mag lezen. */
+export async function leesActiviteit(supabase: Supabase, id: string): Promise<ActiviteitGegevens | null> {
+  const { data: a, error } = await supabase
+    .from('activiteiten')
+    .select(
+      'id, naam, datum, verzameltijd, starttijd, eindtijd, locatie, bus_vertrektijd, bus_locatie, notitie, afmeld_deadline, min_aanwezigen, status, versie',
+    )
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`activiteit niet te lezen: ${error.code ?? error.message}`);
+  if (!a || !isActiviteitStatus(a.status)) return null;
+
+  const [slots, groepen] = await Promise.all([
+    supabase.from('rol_slots').select('id, rol_type, bezetter_id').eq('activiteit_id', id).order('volgorde'),
+    supabase.from('activiteit_groep').select('groep_id').eq('activiteit_id', id),
+  ]);
+  if (slots.error) throw new Error(`plekken niet te lezen: ${slots.error.code ?? slots.error.message}`);
+  if (groepen.error)
+    throw new Error(`doelgroep niet te lezen: ${groepen.error.code ?? groepen.error.message}`);
+
+  const bezetters = [...new Set(slots.data.flatMap((slot) => (slot.bezetter_id ? [slot.bezetter_id] : [])))];
+  const namen = new Map<string, string>();
+  const telefoons = new Map<string, string | null>();
+  if (bezetters.length > 0) {
+    const [leden, prive] = await Promise.all([
+      supabase.from('leden').select('id, voornaam, achternaam').in('id', bezetters),
+      supabase.from('leden_prive').select('lid_id, telefoon').in('lid_id', bezetters),
+    ]);
+    if (leden.error) throw new Error(`leden niet te lezen: ${leden.error.code ?? leden.error.message}`);
+    if (prive.error) throw new Error(`telefoon niet te lezen: ${prive.error.code ?? prive.error.message}`);
+    for (const lid of leden.data) namen.set(lid.id, `${lid.voornaam} ${lid.achternaam}`);
+    for (const regel of prive.data) telefoons.set(regel.lid_id, regel.telefoon?.trim() || null);
+  }
+
+  const ev = slots.data.find((slot) => slot.rol_type === 'eindverantwoordelijke');
+  const evNaam = ev?.bezetter_id ? (namen.get(ev.bezetter_id) ?? null) : null;
+  const evTelefoon = ev?.bezetter_id ? (telefoons.get(ev.bezetter_id) ?? null) : null;
+
+  return {
+    id: a.id,
+    versie: a.versie,
+    status: a.status,
+    naam: a.naam,
+    datum: a.datum,
+    tekst: {
+      naam: a.naam,
+      datum: a.datum,
+      verzameltijd: tijdVoorVeld(a.verzameltijd),
+      starttijd: tijdVoorVeld(a.starttijd),
+      eindtijd: tijdVoorVeld(a.eindtijd),
+      locatie: a.locatie ?? '',
+      bus_vertrektijd: tijdVoorVeld(a.bus_vertrektijd),
+      bus_locatie: a.bus_locatie ?? '',
+      notitie: a.notitie ?? '',
+      afmeld_deadline: tijdstipVoorVeld(a.afmeld_deadline),
+      min_aanwezigen: a.min_aanwezigen === null ? '' : String(a.min_aanwezigen),
+    },
+    gekozenGroepen: groepen.data.map((groep) => groep.groep_id),
+    plekken: slots.data
+      .filter((slot) => slot.rol_type !== 'eindverantwoordelijke' && slot.rol_type !== 'bak')
+      .map((slot) => ({
+        id: slot.id,
+        rol: slot.rol_type,
+        bezetter: slot.bezetter_id ? (namen.get(slot.bezetter_id) ?? 'Onbekend') : null,
+      })),
+    eindverantwoordelijke: { naam: evNaam, telefoon: evTelefoon, nieuw: false },
+    nogNodig: nogNodigOmTePubliceren({
+      starttijd: a.starttijd,
+      eindtijd: a.eindtijd,
+      locatie: a.locatie,
+      heeftEindverantwoordelijke: evNaam !== null,
+      eindverantwoordelijkeHeeftTelefoon: evTelefoon !== null,
+    }),
+  };
+}

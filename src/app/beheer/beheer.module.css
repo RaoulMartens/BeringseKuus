@@ -63,3 +63,18 @@
   margin: 0;
   color: var(--neutraal-tekst-zacht);
 }
+
+/* Activiteit aanmaken: een zijkaart op een groot scherm, een knop direct onder de kop op een telefoon. */
+.alleenMobiel {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .alleenMobiel {
+    display: block;
+  }
+
+  .nietOpMobiel {
+    display: none;
+  }
+}

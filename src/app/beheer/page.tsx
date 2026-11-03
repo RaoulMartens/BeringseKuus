@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { z } from 'zod';
 
 import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
 import { Lijst, Lijstrij } from '@/components/lijst/lijst';
+import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { Statuslabel } from '@/components/statuslabel/statuslabel';
 import { Tellers } from '@/components/tellers/tellers';
@@ -36,7 +39,7 @@ function Regels({ regels, zonderKop }: { regels: OverzichtRegel[]; zonderKop?: b
   return (
     <Lijst zonderKop={zonderKop}>
       {regels.map((regel) => (
-        <Lijstrij key={regel.id}>
+        <Lijstrij key={regel.id} href={`/beheer/activiteiten/${regel.id}`}>
           <span className={stijl.tekst}>
             <span className={stijl.dag}>{regel.dag}</span>
             <strong className={stijl.naam}>
@@ -55,13 +58,29 @@ function Regels({ regels, zonderKop }: { regels: OverzichtRegel[]; zonderKop?: b
   );
 }
 
+/** Het aanmaken: een zijkaart op een groot scherm, een knop direct onder de kop op een telefoon (ontwerpbesluit). */
+function Aanmaken() {
+  return (
+    <div className={stijl.nietOpMobiel}>
+      <Kaart titel="Nieuwe activiteit" ondertitel="Begint als concept. Leden zien hem pas als je publiceert.">
+        <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold" vol>
+          Activiteit aanmaken
+        </Knop>
+      </Kaart>
+    </div>
+  );
+}
+
 export default async function Beheer({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string | string[] }>;
+  searchParams: Promise<{ filter?: string | string[]; opgeslagen?: string | string[] }>;
 }) {
   await eisBeheer();
-  const filter = leesFilter((await searchParams).filter);
+  const parameters = await searchParams;
+  const filter = leesFilter(parameters.filter);
+  // Na het opslaan: het id van de activiteit. Geen tekst in de adresbalk: wat er staat, komt uit de database.
+  const opgeslagen = z.uuid().safeParse(parameters.opgeslagen);
   const supabase = await maakSupabase();
 
   // De rijen komen uit de database (public.beheeroverzicht(), alleen voor een beheerder met een code); de tijd van de
@@ -82,11 +101,13 @@ export default async function Beheer({
     for (const tijd of tijden) tijdPerId.set(tijd.id, tijd.verzameltijd ?? tijd.starttijd);
   }
 
-  const overzicht = maakOverzicht(
-    rijen.flatMap((rij): OverzichtRij[] => maakRij(rij, tijdPerId.get(rij.activiteit_id) ?? null)),
-    vandaagInNederland(new Date()),
-    filter,
+  const overzichtsrijen = rijen.flatMap((rij): OverzichtRij[] =>
+    maakRij(rij, tijdPerId.get(rij.activiteit_id) ?? null),
   );
+  const overzicht = maakOverzicht(overzichtsrijen, vandaagInNederland(new Date()), filter);
+  const bewaard = opgeslagen.success
+    ? overzichtsrijen.find((rij) => rij.activiteitId === opgeslagen.data)
+    : undefined;
 
   const tellers = [
     {
@@ -104,7 +125,17 @@ export default async function Beheer({
   ];
 
   return (
-    <Schermkader actief="beheer" titel="Activiteiten">
+    <Schermkader actief="beheer" titel="Activiteiten" zijkolom={<Aanmaken />}>
+      <div className={stijl.alleenMobiel}>
+        <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold">
+          Activiteit aanmaken
+        </Knop>
+      </div>
+      {bewaard?.status === 'concept' && (
+        <Melding soort="succes">
+          <strong>{bewaard.naam} is opgeslagen als concept.</strong> Leden zien hem pas als je publiceert.
+        </Melding>
+      )}
       <Tellers tellers={tellers} naam="Filter op wat er te doen is" />
 
       {filter !== 'alles' ? (

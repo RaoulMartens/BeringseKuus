@@ -1,0 +1,20 @@
+/* Het formulier voor een activiteit: kaarten onder elkaar met dezelfde afstand als de andere blokken in de hoofdkolom;
+   velden in een kaart onder elkaar, tijden naast elkaar zolang er ruimte is (velden in een rij lopen door). */
+.formulier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+.velden {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rij {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
