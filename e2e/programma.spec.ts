@@ -99,6 +99,16 @@ test('een beheerder met een code ziet ook het concept en de activiteit voor het 
   const concept = page.getByRole('listitem').filter({ hasText: naam('concept') });
   await expect(concept).toContainText('Concept');
   await expect(page.getByText(naam('bestuur'))).toBeVisible();
+  // De activiteit voor het bestuur is voor deze beheerder als lid onzichtbaar (hij zit niet in die groep): de rij opent in
+  // beheer in plaats van in een 404 (CR-12). Een gewone activiteit opent als lid.
+  await expect(page.getByRole('link', { name: new RegExp(naam('bestuur')) })).toHaveAttribute(
+    'href',
+    /^\/beheer\/activiteiten\/[0-9a-f-]{36}$/,
+  );
+  await expect(page.getByRole('link', { name: new RegExp(naam('komend')) })).toHaveAttribute(
+    'href',
+    /^\/programma\/[0-9a-f-]{36}$/,
+  );
   await expect(
     page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }),
   ).toBeVisible();

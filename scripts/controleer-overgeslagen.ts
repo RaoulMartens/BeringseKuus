@@ -14,7 +14,7 @@
 // Gebruik:   node scripts/controleer-overgeslagen.ts [--map testuitkomsten]
 // Uitkomst:  "0 problemen" en exitcode 0, of een lijst en exitcode 1.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -28,6 +28,7 @@ export interface Uitkomst {
 }
 
 interface PlaywrightSuite {
+  file?: string;
   suites?: PlaywrightSuite[];
   specs?: { tests?: { expectedStatus?: unknown }[] }[];
 }
@@ -117,8 +118,68 @@ const RAPPORTEN = [
   },
 ] as const;
 
-/** Controleert alle rapporten in de map. */
-export function controleerUitkomsten(map: string): string[] {
+/** Alle bestanden onder `begin` die aan het patroon voldoen, als pad ten opzichte van `basis` met /. */
+function vindBestanden(begin: string, basis: string, patroon: RegExp): string[] {
+  if (!existsSync(begin)) return [];
+  const gevonden: string[] = [];
+  const loop = (map: string): void => {
+    for (const item of readdirSync(map, { withFileTypes: true })) {
+      const volledig = path.join(map, item.name);
+      if (item.isDirectory()) {
+        if (item.name !== 'node_modules') loop(volledig);
+      } else if (item.isFile() && patroon.test(item.name)) {
+        gevonden.push(path.relative(basis, volledig).split(path.sep).join('/'));
+      }
+    }
+  };
+  loop(begin);
+  return gevonden.sort();
+}
+
+/**
+ * Een telling zegt dat er tests zijn gedraaid, niet dát ze alle testbestanden zijn. Een smaller include, een exclude of een filter
+ * laat bestanden verdwijnen zonder dat iets als overgeslagen wordt gemeld; ook een instelling die we niet voorzien. Daarom het
+ * bewijs achteraf: elk testbestand op schijf staat in het rapport van de runner (FX-07).
+ */
+export function controleerBestanden(map: string, root: string): string[] {
+  const problemen: string[] = [];
+  const lees = (bestand: string): unknown => {
+    const pad = path.join(map, bestand);
+    return existsSync(pad) ? (JSON.parse(readFileSync(pad, 'utf8')) as unknown) : undefined;
+  };
+
+  const vitest = lees('vitest.json') as { testResults?: { name?: unknown }[] } | undefined;
+  if (vitest) {
+    const gedraaid = new Set(
+      (vitest.testResults ?? []).flatMap((r) =>
+        typeof r.name === 'string' ? [path.relative(root, r.name).split(path.sep).join('/')] : [],
+      ),
+    );
+    for (const bestand of vindBestanden(path.join(root, 'src'), root, /\.test\.tsx?$/)) {
+      if (!gedraaid.has(bestand)) problemen.push(`Vitest (src/): ${bestand} is niet gedraaid`);
+    }
+  }
+
+  const playwright = lees('e2e.json') as { suites?: PlaywrightSuite[] } | undefined;
+  if (playwright) {
+    // Het bestand staat in het rapport ten opzichte van de testmap (e2e/); een bestand dat in geen enkel project draait, ontbreekt.
+    const gedraaid = new Set<string>();
+    const verzamel = (suites: PlaywrightSuite[]): void => {
+      for (const suite of suites) {
+        if (typeof suite.file === 'string') gedraaid.add(suite.file.split('\\').join('/'));
+        verzamel(suite.suites ?? []);
+      }
+    };
+    verzamel(playwright.suites ?? []);
+    for (const bestand of vindBestanden(path.join(root, 'e2e'), path.join(root, 'e2e'), /\.spec\.ts$/)) {
+      if (!gedraaid.has(bestand)) problemen.push(`Playwright (e2e/): ${bestand} is niet gedraaid`);
+    }
+  }
+  return problemen;
+}
+
+/** Controleert alle rapporten in de map; met `root` ook dat elk testbestand van Vitest en Playwright is gedraaid. */
+export function controleerUitkomsten(map: string, root?: string): string[] {
   const problemen: string[] = [];
   for (const r of RAPPORTEN) {
     const pad = path.join(map, r.bestand);
@@ -134,6 +195,13 @@ export function controleerUitkomsten(map: string): string[] {
       problemen.push(`${r.naam}: rapport ${r.bestand} is geen geldige uitvoer`);
     }
   }
+  if (root !== undefined && problemen.length === 0) {
+    try {
+      problemen.push(...controleerBestanden(map, root));
+    } catch {
+      problemen.push('de rapporten zijn niet te vergelijken met de testbestanden op schijf');
+    }
+  }
   return problemen;
 }
 
@@ -141,7 +209,8 @@ function uitvoeren(): number {
   const argumenten = process.argv.slice(2);
   const i = argumenten.indexOf('--map');
   const map = path.resolve((i >= 0 ? argumenten[i + 1] : undefined) ?? 'testuitkomsten');
-  const problemen = controleerUitkomsten(map);
+  // De testbestanden staan naast de map met uitkomsten (de wortel van de repository).
+  const problemen = controleerUitkomsten(map, path.dirname(map));
   if (problemen.length === 0) {
     console.log('controleer-overgeslagen: 0 problemen');
     return 0;

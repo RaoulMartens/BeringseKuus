@@ -289,6 +289,36 @@ export function leesDetail(tekst: unknown): unknown {
   }
 }
 
+export type OpslagDoel =
+  | { soort: 'nieuw' }
+  | { soort: 'bewerken'; id: string; versie: number }
+  | { soort: 'fout'; reden: 'modus' | 'id' | 'versie' };
+
+const ID_TEKST = z.uuid();
+const VERSIE_TEKST = z.coerce.number().int().min(1).max(2_000_000_000);
+
+/**
+ * Wat het formulier wil: een nieuwe activiteit maken, of een bestaande bewerken. Dat staat er uitdrukkelijk in (`modus`), want
+ * de database maakt van een aanroep zonder id altijd een nieuwe activiteit: een bewerking zonder id of versie mag dus nooit
+ * stilletjes een nieuw concept worden (CR-06). Bij bewerken zijn id én versie verplicht; bij nieuw mogen ze er niet zijn.
+ */
+export function leesOpslagDoel(formulier: FormData): OpslagDoel {
+  const modus = formulier.get('modus');
+  const idTekst = formulier.get('activiteit_id');
+  if (modus === 'nieuw') {
+    const leeg = (waarde: FormDataEntryValue | null) => waarde === null || waarde === '';
+    return leeg(idTekst) && leeg(formulier.get('versie'))
+      ? { soort: 'nieuw' }
+      : { soort: 'fout', reden: 'modus' };
+  }
+  if (modus !== 'bewerken') return { soort: 'fout', reden: 'modus' };
+  const id = ID_TEKST.safeParse(idTekst);
+  if (!id.success) return { soort: 'fout', reden: 'id' };
+  const versie = VERSIE_TEKST.safeParse(formulier.get('versie'));
+  if (!versie.success) return { soort: 'fout', reden: 'versie' };
+  return { soort: 'bewerken', id: id.data, versie: versie.data };
+}
+
 /** Vertaalt de foutcode van activiteit_opslaan naar teksten bij het veld of bovenaan. */
 export function vertaalOpslagfout(code: string, detail: unknown): Fouttekst {
   switch (code) {

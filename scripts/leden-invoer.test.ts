@@ -241,6 +241,7 @@ function bestaand(extra: Partial<BestaandLid> = {}): BestaandLid {
     groepen: ['Bestuur'],
     isAdmin: false,
     actief: true,
+    indelingen: [],
     ...extra,
   };
 }
@@ -336,6 +337,62 @@ test('maakPlan: een inactief lid wordt niet aangeraakt, een beheerder wel bijgew
   const actie = beheerder.acties[0];
   assert.ok(actie && actie.soort === 'bijwerken');
   assert.match(beschrijf(actie), /dit lid is beheerder \(dat blijft zo\)/);
+});
+
+test('maakPlan: een groepswijziging die een lid zijn eigen dienst laat kwijtraken wordt geweigerd (CR-04)', () => {
+  const ingedeeld = bestaand({
+    groepen: ['Bestuur'],
+    indelingen: [
+      { activiteitId: 'a1', groepen: ['Bestuur'] },
+      { activiteitId: 'a2', groepen: ['Bestuur', 'Dames'] },
+      { activiteitId: 'a3', groepen: [] },
+    ],
+  });
+  const staat = new Map([['anna@example.com', ingedeeld]]);
+
+  // Van Bestuur naar Dames: a1 (alleen Bestuur) verdwijnt voor hem; a2 blijft (Dames), a3 is voor iedereen.
+  const weg = maakPlan([regel({ groepen: ['Dames'] })], staat);
+  assert.deepEqual(weg.acties, []);
+  assert.match(
+    weg.fouten.join(''),
+    /Regel 2: met deze groepen ziet dit lid 1 activiteit niet meer waar hij is ingedeeld/,
+  );
+
+  // Naar een groep die niets raakt, of een groep erbij, mag.
+  assert.equal(maakPlan([regel({ groepen: ['Bestuur', 'Dames'] })], staat).fouten.length, 0);
+  assert.equal(maakPlan([regel({ groepen: ['Bestuur'] })], staat).fouten.length, 0);
+  // Een lege cel laat de groepen staan: dan is er niets te toetsen.
+  assert.equal(maakPlan([regel({ groepen: null, telefoon: '06 99 99 99 99' })], staat).fouten.length, 0);
+});
+
+test('maakPlan: een activiteit die het lid al niet zag, blokkeert een telefoonwijziging of groepswijziging niet (FX-08)', () => {
+  const staat = new Map([
+    [
+      'anna@example.com',
+      bestaand({ groepen: ['Bestuur'], indelingen: [{ activiteitId: 'a1', groepen: ['Dames'] }] }),
+    ],
+  ]);
+  const plan = maakPlan([regel({ groepen: ['Raad van Elf'] })], staat);
+  assert.deepEqual(plan.fouten, []);
+  assert.equal(plan.acties[0]?.soort, 'bijwerken');
+});
+
+test('maakPlan: de melding telt meer verloren activiteiten', () => {
+  const staat = new Map([
+    [
+      'anna@example.com',
+      bestaand({
+        indelingen: [
+          { activiteitId: 'a1', groepen: ['Bestuur'] },
+          { activiteitId: 'a2', groepen: ['Bestuur'] },
+        ],
+      }),
+    ],
+  ]);
+  assert.match(
+    maakPlan([regel({ groepen: ['Dames'] })], staat).fouten.join(''),
+    /ziet dit lid 2 activiteiten niet meer/,
+  );
 });
 
 test('telHergebruik: telt de bestaande inlogaccounts die aan een lid worden gekoppeld, niet die van een externe helper', () => {

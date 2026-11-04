@@ -6,6 +6,7 @@ import { expect, test } from '@playwright/test';
 
 import { zetLedenIn } from '../scripts/zet-leden.ts';
 
+import { ruimActiviteitenOp } from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { beheerClient, logInZonderBrowser, ruimLidOp } from './mfa-hulp.ts';
 
@@ -15,7 +16,13 @@ const KOP = 'voornaam;achternaam;email;telefoon;groepen;bob;eindverantwoordelijk
 
 test.describe.configure({ mode: 'serial' });
 
+// Accounts die een test zelf maakte, ook die nog geen privérij hebben (de halve toestand).
+const extraUids: string[] = [];
+
 test.afterAll(async () => {
+  // Eerst de activiteiten (een plek verwijst naar een lid), dan de leden.
+  ruimActiviteitenOp(`E2E ZetLeden % ${kenmerk}`);
+  for (const uid of extraUids.splice(0)) await ruimLidOp(uid);
   const uids = psql(
     `select l.auth_user_id from public.leden l join public.leden_prive p on p.lid_id = l.id where p.email like 'zetleden-${kenmerk}-%' and l.auth_user_id is not null;`,
   )
@@ -171,6 +178,85 @@ test('een inactief lid wordt niet aangeraakt, en een beheerder blijft beheerder'
   expect(bijgewerkt.uitkomst).toMatchObject({ bijgewerkt: 1, mislukt: [] });
   // Het script wijzigt nooit wie beheerder is.
   expect(aantal(`p.email = '${beheerder}' and p.is_admin and p.telefoon = '06 22 22 22 22'`)).toBe(1);
+});
+
+test('een groepswijziging die een ingedeeld lid zijn dienst laat kwijtraken wordt geweigerd (CR-04)', async () => {
+  const email = adres('dienst');
+  const lijst = (groepen: string) => `${KOP}\nDiny;Dienst;${email};;${groepen};;;lid\n`;
+  const eerst = await zetLedenIn(beheerClient, lijst('Bestuur'), true);
+  expect(eerst.uitkomst).toMatchObject({ nieuw: 1, mislukt: [] });
+
+  // Een gepubliceerde activiteit voor het bestuur, waar dit lid is ingedeeld.
+  const naam = `E2E ZetLeden dienst ${kenmerk}`;
+  psql(`
+    with a as (
+      insert into public.activiteiten (naam, datum, starttijd, eindtijd, locatie, status)
+      values ('${naam}', '2099-08-08', '20:00', '23:00', 'Testlocatie', 'gepubliceerd') returning id
+    ), g as (
+      insert into public.activiteit_groep (activiteit_id, groep_id)
+      select a.id, gr.id from a, public.groepen gr where gr.naam = 'Bestuur'
+    )
+    insert into public.rol_slots (activiteit_id, rol_type, volgorde, bezetter_id)
+    select a.id, 'werker', 1, l.id from a, public.leden l join public.leden_prive p on p.lid_id = l.id where p.email = '${email}';
+  `);
+
+  // Naar een andere groep: het lid zou zijn eigen dienst niet meer zien, dus het script weigert en wijzigt niets.
+  const weg = await zetLedenIn(beheerClient, lijst('Dames'), true);
+  expect(weg.uitkomst).toBeNull();
+  expect(weg.fouten.join('')).toContain('ziet dit lid 1 activiteit niet meer waar hij is ingedeeld');
+  const groepen = () =>
+    psql(
+      `select string_agg(g.naam, ',' order by g.naam) from public.lid_groep k join public.groepen g on g.id = k.groep_id join public.leden_prive p on p.lid_id = k.lid_id where p.email = '${email}';`,
+    ).trim();
+  expect(groepen()).toBe('Bestuur');
+
+  // Een groep erbij haalt niets weg en mag.
+  const erbij = await zetLedenIn(beheerClient, lijst('Bestuur|Dames'), true);
+  expect(erbij.uitkomst).toMatchObject({ bijgewerkt: 1, mislukt: [] });
+  expect(groepen()).toBe('Bestuur,Dames');
+});
+
+test('een onderbroken import laat een half lid achter dat de volgende run afmaakt (CR-16)', async () => {
+  const email = adres('half');
+  // De toestand na een run die stopte tussen de ledenrij en de privérij: account en actieve ledenrij, geen leden_prive.
+  const gemaakt = await beheerClient.auth.admin.createUser({ email, email_confirm: true });
+  if (gemaakt.error) throw gemaakt.error;
+  extraUids.push(gemaakt.data.user.id);
+  psql(
+    `insert into public.leden (auth_user_id, voornaam, achternaam, type) values ('${gemaakt.data.user.id}', 'Hans', 'Half', 'lid');`,
+  );
+  const lijst = `${KOP}\nHans;Half;${email};0611111111;Dames;;;lid\n`;
+
+  const proef = await zetLedenIn(beheerClient, lijst, false);
+  expect(proef.fouten).toEqual([]);
+  expect(proef.halveLeden).toBeGreaterThanOrEqual(1);
+
+  const uit = await zetLedenIn(beheerClient, lijst, true);
+  expect(uit.uitkomst).toMatchObject({ nieuw: 1, mislukt: [] });
+  // Afgemaakt, niet dubbel: één ledenrij voor dit account, nu met privégegevens en groep.
+  expect(
+    psql(`select count(*) from public.leden where auth_user_id = '${gemaakt.data.user.id}';`).trim(),
+  ).toBe('1');
+  expect(aantal(`p.email = '${email}' and p.telefoon = '06 11 11 11 11'`)).toBe(1);
+  expect((await zetLedenIn(beheerClient, lijst, false)).plan?.acties.map((actie) => actie.soort)).toEqual([
+    'ongewijzigd',
+  ]);
+});
+
+test('een inlogaccount dat al bij een ander lid hoort, wordt niet overgenomen (CR-16)', async () => {
+  const bezet = adres('bezet');
+  const gemaakt = await beheerClient.auth.admin.createUser({ email: bezet, email_confirm: true });
+  if (gemaakt.error) throw gemaakt.error;
+  extraUids.push(gemaakt.data.user.id);
+  // Een lid met een account en privégegevens onder een ander adres: het account van het adres uit de lijst is dus al van iemand.
+  psql(`
+    with l as (insert into public.leden (auth_user_id, voornaam, achternaam, type) values ('${gemaakt.data.user.id}', 'Bram', 'Bezet', 'lid') returning id)
+    insert into public.leden_prive (lid_id, email) select id, '${adres('ander')}' from l;
+  `);
+  const uit = await zetLedenIn(beheerClient, `${KOP}\nNina;Nieuw;${bezet};;;;;lid\n`, true);
+  expect(uit.uitkomst).toMatchObject({ nieuw: 0 });
+  expect(uit.uitkomst?.mislukt.map((m) => m.reden).join('')).toContain('hoort al bij een ander lid');
+  expect(aantal(`p.email = '${bezet}'`)).toBe(0);
 });
 
 test('een fout in de lijst laat alles ongemoeid, en de melding noemt geen persoonsgegevens', async () => {

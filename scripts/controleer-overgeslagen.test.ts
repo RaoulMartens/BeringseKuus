@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -166,5 +166,87 @@ describe('controleerUitkomsten', () => {
       JSON.stringify({ stats: { expected: 10, skipped: 0, unexpected: 0, flaky: 0 } }),
     );
     assert.deepEqual(controleerUitkomsten(map), []);
+  });
+});
+
+describe('elk testbestand is gedraaid (FX-07)', () => {
+  /** Een repository met testbestanden en rapporten; `gedraaid` zegt welke bestanden de runners hebben gemeld. */
+  function maakRoot(gedraaid: { vitest: string[]; playwright: string[] }): { root: string; map: string } {
+    const root = nieuweMap();
+    const schrijf = (pad: string, inhoud = ''): void => {
+      mkdirSync(path.dirname(path.join(root, pad)), { recursive: true });
+      writeFileSync(path.join(root, pad), inhoud);
+    };
+    for (const pad of [
+      'src/a.test.ts',
+      'src/map/b.test.tsx',
+      'src/c.ts',
+      'e2e/x.spec.ts',
+      'e2e/sub/y.spec.ts',
+      'e2e/hulp.ts',
+    ]) {
+      schrijf(pad);
+    }
+    // Een testbestand in node_modules telt niet mee.
+    schrijf('src/node_modules/pakket/z.test.ts');
+    schrijf('testuitkomsten/node.tap', 'TAP version 13\n# tests 2\n# skipped 0\n# todo 0\n# fail 0\n');
+    schrijf(
+      'testuitkomsten/vitest.json',
+      JSON.stringify({
+        numTotalTests: 4,
+        numPendingTests: 0,
+        numTodoTests: 0,
+        numFailedTests: 0,
+        testResults: gedraaid.vitest.map((naam) => ({ name: path.join(root, naam) })),
+      }),
+    );
+    schrijf(
+      'testuitkomsten/e2e.json',
+      JSON.stringify({
+        stats: { expected: 10, skipped: 0, unexpected: 0, flaky: 0 },
+        suites: gedraaid.playwright.map((file) => ({ file, suites: [] })),
+      }),
+    );
+    return { root, map: path.join(root, 'testuitkomsten') };
+  }
+
+  const ALLES = {
+    vitest: ['src/a.test.ts', 'src/map/b.test.tsx'],
+    playwright: ['x.spec.ts', 'sub/y.spec.ts'],
+  };
+
+  it('is goed als elk testbestand in het rapport staat', () => {
+    const { root, map } = maakRoot(ALLES);
+    assert.deepEqual(controleerUitkomsten(map, root), []);
+  });
+
+  it('faalt als een Vitest-bestand niet is gedraaid, bijvoorbeeld door een smaller include of een exclude', () => {
+    const { root, map } = maakRoot({ ...ALLES, vitest: ['src/a.test.ts'] });
+    assert.deepEqual(controleerUitkomsten(map, root), ['Vitest (src/): src/map/b.test.tsx is niet gedraaid']);
+  });
+
+  it('faalt als een Playwright-bestand in geen enkel project draait, ook in een submap', () => {
+    const { root, map } = maakRoot({ ...ALLES, playwright: ['x.spec.ts'] });
+    assert.deepEqual(controleerUitkomsten(map, root), ['Playwright (e2e/): sub/y.spec.ts is niet gedraaid']);
+  });
+
+  it('kijkt zonder wortel alleen naar de tellingen, zoals voorheen', () => {
+    const { map } = maakRoot({ vitest: [], playwright: [] });
+    assert.deepEqual(controleerUitkomsten(map), []);
+  });
+
+  it('de opdrachtregel faalt op een niet-gedraaid bestand', () => {
+    const { root, map } = maakRoot({ ...ALLES, vitest: [] });
+    const r = spawnSync(
+      process.execPath,
+      [path.join(import.meta.dirname, 'controleer-overgeslagen.ts'), '--map', map],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, NODE_TEST_CONTEXT: undefined },
+      },
+    );
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /Vitest \(src\/\): src\/a\.test\.ts is niet gedraaid/);
+    assert.ok(root.length > 0);
   });
 });

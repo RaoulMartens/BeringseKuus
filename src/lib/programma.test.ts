@@ -7,6 +7,7 @@ import {
   langeDag,
   maakProgramma,
   maandTitel,
+  programmaLink,
   regelOnderNaam,
   tijdTekst,
   vandaagInNederland,
@@ -174,6 +175,21 @@ describe('maakProgramma', () => {
       new Date('2027-01-01T12:00:00Z'),
     );
     expect(p.komende[0]?.activiteiten[0]?.status).toBe('geannuleerd');
+  });
+});
+
+describe('programmaLink (CR-12)', () => {
+  it('een lid opent een gepubliceerde activiteit als lid', () => {
+    expect(programmaLink({ id: 'a1', status: 'gepubliceerd' }, true)).toBe('/programma/a1');
+  });
+
+  it('een concept opent in beheer, ook als het in de ledenview zou staan', () => {
+    expect(programmaLink({ id: 'c1', status: 'concept' }, true)).toBe('/beheer/activiteiten/c1');
+    expect(programmaLink({ id: 'c1', status: 'concept' }, false)).toBe('/beheer/activiteiten/c1');
+  });
+
+  it('een activiteit die de beheerder als lid niet ziet (een andere groep) opent in beheer, niet als 404', () => {
+    expect(programmaLink({ id: 'g1', status: 'gepubliceerd' }, false)).toBe('/beheer/activiteiten/g1');
   });
 });
 

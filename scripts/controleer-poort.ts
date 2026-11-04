@@ -93,11 +93,20 @@ export function controleerScripts(pakket: unknown): string[] {
   if (!/\bvitest run\b/.test(tekst('test')) || !/node --test\b.*--test-reporter=tap/.test(tekst('test'))) {
     problemen.push('package.json: test moet vitest run en node --test met een TAP-rapport draaien');
   }
+  // De Node-tests van de scripts (inclusief die van de poort zelf) horen bij `npm run test` en mogen er niet uit.
+  if (!tekst('test').includes('"scripts/**/*.test.ts"'))
+    problemen.push('package.json: test moet alle scripts/**/*.test.ts draaien');
   if (tekst('test:e2e').trim() !== 'playwright test')
     problemen.push('package.json: test:e2e moet "playwright test" zijn');
   // De browsertests draaien tegen de Worker zoals hij online gaat (review PR8-06): build:worker maakt hem (en
   // roept daarvoor zelf `npm run build` aan), preview:worker start hem in workerd.
+  // test:db hoort echt de pgTAP-tests te draaien: een groene poort met `test:db = "node -e 0"` zou niets bewijzen (CR-07).
+  // `test` precies zoals bedoeld: elke toevoeging (`|| true`, `--exclude`, `-t`, `--passWithNoTests`, `--test-skip-pattern`) laat tests
+  // verdwijnen of falen zonder dat dat opvalt (review van de fix-PR, FX-07). Een bedoelde wijziging past deze regel aan, in een aparte
+  // wijziging met reden.
   const precies: Record<string, string> = {
+    test: 'node -e "require(\'node:fs\').mkdirSync(\'testuitkomsten\',{recursive:true})" && vitest run && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=tap --test-reporter-destination=testuitkomsten/node.tap "scripts/**/*.test.ts"',
+    'test:db': 'npm run supabase:start && supabase db reset --local && supabase test db',
     build: 'next build',
     'build:worker': 'opennextjs-cloudflare build',
     'preview:worker': 'opennextjs-cloudflare preview',
@@ -462,6 +471,34 @@ export function controleerTestinstellingen(vitest: string, playwright: string): 
   // Een filter in de instellingen maakt de run stilletjes kleiner (review F0-09).
   if (/\bgrep(?:Invert)?\s*:/.test(playwright))
     problemen.push('playwright.config.ts: grep en grepInvert zijn niet toegestaan');
+
+  // Wat Vitest en Playwright als test zien, mag niet stilletjes kleiner worden: een smaller include of een exclude laat tests
+  // verdwijnen zonder dat iets als overgeslagen wordt gemeld (CR-07).
+  if (/\bexclude\s*:/.test(vitest)) problemen.push('vitest.config.ts: exclude is niet toegestaan');
+  if (!/passWithNoTests:\s*false/.test(vitest))
+    problemen.push('vitest.config.ts: passWithNoTests moet false zijn');
+  const include = (/\binclude:\s*\[([^\]]*)\]/.exec(vitest)?.[1] ?? '')
+    .split(',')
+    .map((deel) => deel.trim().replace(/^['"]|['"]$/g, ''))
+    .filter((deel) => deel !== '');
+  if (include.join('|') !== 'src/**/*.test.ts|src/**/*.test.tsx')
+    problemen.push('vitest.config.ts: include moet precies src/**/*.test.ts en src/**/*.test.tsx zijn');
+  if (!/\btestDir:\s*'\.\/e2e'/.test(playwright))
+    problemen.push("playwright.config.ts: testDir moet './e2e' zijn");
+  // Twee browserprojecten laten het databaseproject links liggen en één databaseproject draait die bestanden: alleen met
+  // DATABASE, een lijst van bestandsnamen. Elke andere testMatch of testIgnore verbergt tests.
+  const filters = [...playwright.matchAll(/\btest(Ignore|Match)\s*:\s*([^,\s}]+)/g)];
+  const juist =
+    filters.length === 3 &&
+    filters.filter((m) => m[1] === 'Ignore').length === 2 &&
+    filters.filter((m) => m[1] === 'Match').length === 1 &&
+    filters.every((m) => m[2] === 'DATABASE');
+  if (!juist)
+    problemen.push(
+      'playwright.config.ts: testIgnore en testMatch mogen alleen DATABASE gebruiken (twee keer testIgnore, één keer testMatch)',
+    );
+  if (!/^const DATABASE = \/\([a-z0-9-]+(?:\|[a-z0-9-]+)*\)\\\.spec\\\.ts\/;$/m.test(playwright))
+    problemen.push('playwright.config.ts: DATABASE moet een lijst van namen van .spec.ts-bestanden zijn');
   return problemen;
 }
 
@@ -518,6 +555,18 @@ export async function controleerEslint(root: string): Promise<string[]> {
   return problemen;
 }
 
+/**
+ * De hook voor een push (.githooks/pre-push): zonder de regel voor de geschiedenis ziet niets dat een tussencommit met een
+ * persoonsgegeven openbaar wordt (CR-02). De hook zelf is te kort om te testen zonder git; dit bewaakt dat de bedrading er staat.
+ */
+export function controleerHook(hook: string | undefined): string[] {
+  if (hook === undefined) return ['.githooks/pre-push ontbreekt'];
+  const nodig = ['controle:repo', 'controleer-repo.ts --push', 'controle:omwegen'];
+  return nodig
+    .filter((deel) => !hook.includes(deel))
+    .map((deel) => `.githooks/pre-push: "${deel}" ontbreekt`);
+}
+
 export async function controleerPoort(root: string): Promise<string[]> {
   const lees = (pad: string): string => readFileSync(path.join(root, pad), 'utf8');
   const leesAls = (pad: string): string | undefined =>
@@ -532,6 +581,7 @@ export async function controleerPoort(root: string): Promise<string[]> {
       JSON.parse(lees('uitrol/package.json')) as unknown,
     ),
     ...controleerTestinstellingen(lees('vitest.config.ts'), lees('playwright.config.ts')),
+    ...controleerHook(leesAls('.githooks/pre-push')),
     ...controleerUitrolBestanden(
       uitrolStartbestanden(lees('taken/wrangler.jsonc')),
       leesAls,

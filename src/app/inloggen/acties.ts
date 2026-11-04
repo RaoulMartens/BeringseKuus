@@ -9,7 +9,7 @@ import { maakSupabase } from '@/lib/supabase/server';
 export interface InlogStaat {
   email: string;
   verstuurd: boolean;
-  fout: 'adres' | 'vorm' | 'code' | 'te-vaak' | null;
+  fout: 'adres' | 'vorm' | 'code' | 'te-vaak' | 'storing' | null;
 }
 
 function leesAdres(formulier: FormData): string {
@@ -49,7 +49,10 @@ export async function bevestigInlogcode(_vorige: InlogStaat, formulier: FormData
   const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
   if (error) {
     console.error(`inlogcode niet geaccepteerd: ${error.code ?? error.name}`);
-    return { email, verstuurd: true, fout: error.status === 429 ? 'te-vaak' : 'code' };
+    // Een storing is iets anders dan een foute code: wie een goede code opnieuw intypt, wordt er niet mee geholpen (CR-10).
+    // Status 0 is een verbinding die niet tot stand kwam; 500 en hoger is de inlogdienst zelf.
+    const storing = error.status === 0 || (error.status !== undefined && error.status >= 500);
+    return { email, verstuurd: true, fout: error.status === 429 ? 'te-vaak' : storing ? 'storing' : 'code' };
   }
   // Een geldige mailcode geeft alleen een gewone sessie; beheer blijft zijn eigen MFA-controle uitvoeren.
   redirect('/mijn');

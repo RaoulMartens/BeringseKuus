@@ -94,7 +94,9 @@ export function magBestand(bestand: string, repo: string): string | null {
   };
   const volledig = echt(bestand);
   const relatief = path.relative(echt(repo), volledig);
-  const binnenRepo = relatief !== '' && !relatief.startsWith('..') && !path.isAbsolute(relatief);
+  // Alleen "..", of ".." met een scheidingsteken, is een stap omhoog: een bestand dat `..pilot.csv` heet, ligt gewoon in de map (CR-13).
+  const buiten = relatief === '..' || relatief.startsWith(`..${path.sep}`);
+  const binnenRepo = relatief !== '' && !buiten && !path.isAbsolute(relatief);
   if (binnenRepo && !volledig.endsWith('.leden.csv')) {
     return 'Dit bestand ligt in de repository en heet niet *.leden.csv: zet de lijst buiten de repository of geef haar die naam (dan negeert git haar).';
   }
@@ -113,27 +115,58 @@ export async function leesGroepen(klant: Klant): Promise<Map<string, string>> {
   return new Map(data.map((groep) => [groep.naam, groep.id]));
 }
 
-/** De bestaande leden, op e-mailadres, met hun groepen. */
+/**
+ * De bestaande leden, op e-mailadres, met hun groepen en hun komende indelingen, en het aantal "halve" leden: een lid met een
+ * inlogaccount maar zonder privégegevens, de toestand na een run die tussen twee schrijfacties stopte (CR-16).
+ */
 export async function leesBestaand(
   klant: Klant,
   groepen: Map<string, string>,
-): Promise<Map<string, BestaandLid>> {
-  const [leden, prive, koppelingen] = await Promise.all([
+): Promise<{ leden: Map<string, BestaandLid>; halve: number }> {
+  const nu = new Date().toISOString();
+  const [leden, prive, koppelingen, slots, activiteitGroepen] = await Promise.all([
     klant.from('leden').select('id, auth_user_id, voornaam, achternaam, type, actief'),
     klant.from('leden_prive').select('lid_id, email, telefoon, mag_bob, mag_eindverantw, is_admin'),
     klant.from('lid_groep').select('lid_id, groep_id'),
+    // Alleen de komende activiteiten: wie is ingedeeld bij iets dat al geweest is, verliest niets door een andere groep.
+    klant
+      .from('rol_slots')
+      .select('activiteit_id, bezetter_id, activiteiten!inner(eindigt_om)')
+      .not('bezetter_id', 'is', null)
+      .gt('activiteiten.eindigt_om', nu),
+    klant.from('activiteit_groep').select('activiteit_id, groep_id'),
   ]);
   if (leden.error) throw new Error(`leden niet te lezen (${leden.error.code ?? 'onbekend'})`);
   if (prive.error) throw new Error(`ledengegevens niet te lezen (${prive.error.code ?? 'onbekend'})`);
   if (koppelingen.error)
     throw new Error(`groepen van leden niet te lezen (${koppelingen.error.code ?? 'onbekend'})`);
+  if (slots.error) throw new Error(`indelingen niet te lezen (${slots.error.code ?? 'onbekend'})`);
+  if (activiteitGroepen.error)
+    throw new Error(`doelgroepen niet te lezen (${activiteitGroepen.error.code ?? 'onbekend'})`);
   // De API geeft hooguit 1000 rijen per aanvraag. Op die grens zouden we een deel van de leden niet zien en dus dubbel aanmaken.
-  if ([leden.data, prive.data, koppelingen.data].some((rijen) => rijen.length >= MAX_RIJEN)) {
-    throw new Error('te veel leden om veilig te vergelijken met dit script; gestopt');
+  if (
+    [leden.data, prive.data, koppelingen.data, slots.data, activiteitGroepen.data].some(
+      (rijen) => rijen.length >= MAX_RIJEN,
+    )
+  ) {
+    throw new Error('te veel gegevens om veilig te vergelijken met dit script; gestopt');
   }
 
   const naamPerGroep = new Map([...groepen].map(([naam, id]) => [id, naam]));
+  const groepenPerActiviteit = new Map<string, string[]>();
+  for (const regel of activiteitGroepen.data) {
+    const naam = naamPerGroep.get(regel.groep_id);
+    if (naam)
+      groepenPerActiviteit.set(regel.activiteit_id, [
+        ...(groepenPerActiviteit.get(regel.activiteit_id) ?? []),
+        naam,
+      ]);
+  }
   const lidPerId = new Map(leden.data.map((lid) => [lid.id, lid]));
+  const metPrive = new Set(prive.data.map((regel) => regel.lid_id));
+  const halve = leden.data.filter(
+    (lid) => lid.type === 'lid' && lid.auth_user_id !== null && !metPrive.has(lid.id),
+  ).length;
   const uitkomst = new Map<string, BestaandLid>();
   for (const regel of prive.data) {
     const lid = lidPerId.get(regel.lid_id);
@@ -149,6 +182,12 @@ export async function leesBestaand(
       magEindverantwoordelijke: regel.mag_eindverantw,
       isAdmin: regel.is_admin,
       actief: lid.actief,
+      indelingen: slots.data
+        .filter((slot) => slot.bezetter_id === lid.id)
+        .map((slot) => ({
+          activiteitId: slot.activiteit_id,
+          groepen: groepenPerActiviteit.get(slot.activiteit_id) ?? [],
+        })),
       groepen: koppelingen.data
         .filter((k) => k.lid_id === lid.id)
         .flatMap((k) => {
@@ -157,7 +196,7 @@ export async function leesBestaand(
         }),
     });
   }
-  return uitkomst;
+  return { leden: uitkomst, halve };
 }
 
 // ===== Uitvoeren =====
@@ -229,45 +268,87 @@ async function nieuwLid(
     if ('fout' in uitkomst) return uitkomst.fout;
     account = uitkomst;
   }
+  // Een lid met dit account en een ledenrij maar zonder privérij is de halve toestand van een run die tussen twee schrijfacties
+  // stopte. Die maken we af in plaats van er tegenaan te lopen (de ledenrij is er al, dus een nieuwe zou botsen, CR-16). Is het
+  // account van een lid met privégegevens, dan hoort het niet bij deze regel.
+  let lidId: string | null = null;
+  let eigenLid = true;
+  if (account) {
+    const aanwezig = await klant.from('leden').select('id').eq('auth_user_id', account.id).maybeSingle();
+    if (aanwezig.error) {
+      if (account.nieuw) await klant.auth.admin.deleteUser(account.id);
+      return `lid niet te lezen (${aanwezig.error.code ?? 'onbekend'})`;
+    }
+    if (aanwezig.data) {
+      const privegegevens = await klant
+        .from('leden_prive')
+        .select('lid_id')
+        .eq('lid_id', aanwezig.data.id)
+        .maybeSingle();
+      if (privegegevens.error)
+        return `ledengegevens niet te lezen (${privegegevens.error.code ?? 'onbekend'})`;
+      if (privegegevens.data) return 'dit inlogaccount hoort al bij een ander lid; niets gewijzigd';
+      lidId = aanwezig.data.id;
+      eigenLid = false;
+      const naam = await klant
+        .from('leden')
+        .update({ voornaam: regel.voornaam, achternaam: regel.achternaam })
+        .eq('id', lidId);
+      if (naam.error) return `halve toestand niet af te maken (${naam.error.code ?? 'onbekend'})`;
+    }
+  }
+
   // Mislukt een stap, dan weg wat dit script net maakte: een account zonder lid is precies de halve toestand om te voorkomen.
-  const opruimen = async (lidId: string | null): Promise<void> => {
-    if (lidId) await klant.from('leden').delete().eq('id', lidId);
-    if (account?.nieuw) await klant.auth.admin.deleteUser(account.id);
+  // Een halve toestand die we overnamen, laten we staan: een volgende run maakt hem alsnog af. Mislukt het opruimen zelf, dan zeggen we dat.
+  const opruimen = async (): Promise<string> => {
+    const problemen: string[] = [];
+    if (eigenLid && lidId) {
+      const weg = await klant.from('leden').delete().eq('id', lidId);
+      if (weg.error) problemen.push('lid');
+    }
+    if (account?.nieuw) {
+      const weg = await klant.auth.admin.deleteUser(account.id);
+      if (weg.error) problemen.push('inlogaccount');
+    }
+    return problemen.length > 0
+      ? ` Opruimen mislukt (${problemen.join(' en ')}): controleer met SQL en draai het opnieuw.`
+      : '';
   };
 
-  const lid = await klant
-    .from('leden')
-    .insert({
-      auth_user_id: account?.id ?? null,
-      voornaam: regel.voornaam,
-      achternaam: regel.achternaam,
-      type: regel.type,
-    })
-    .select('id')
-    .single();
-  if (lid.error) {
-    await opruimen(null);
-    return `lid niet aan te maken (${lid.error.code ?? 'onbekend'})`;
+  if (lidId === null) {
+    const lid = await klant
+      .from('leden')
+      .insert({
+        auth_user_id: account?.id ?? null,
+        voornaam: regel.voornaam,
+        achternaam: regel.achternaam,
+        type: regel.type,
+      })
+      .select('id')
+      .single();
+    if (lid.error) {
+      return `lid niet aan te maken (${lid.error.code ?? 'onbekend'})${await opruimen()}`;
+    }
+    lidId = lid.data.id;
   }
   const prive = await klant.from('leden_prive').insert({
-    lid_id: lid.data.id,
+    lid_id: lidId,
     email: regel.email,
     telefoon: regel.telefoon,
     mag_bob: regel.magBob ?? false,
     mag_eindverantw: regel.magEindverantwoordelijke ?? false,
   });
   if (prive.error) {
-    await opruimen(lid.data.id);
-    return `ledengegevens niet te zetten (${prive.error.code ?? 'onbekend'})`;
+    return `ledengegevens niet te zetten (${prive.error.code ?? 'onbekend'})${await opruimen()}`;
   }
   const ids = groepIds(regel.groepen ?? [], groepen);
   if (ids.length > 0) {
+    const gekozenLid = lidId;
     const koppeling = await klant
       .from('lid_groep')
-      .insert(ids.map((groep) => ({ lid_id: lid.data.id, groep_id: groep })));
+      .insert(ids.map((groep) => ({ lid_id: gekozenLid, groep_id: groep })));
     if (koppeling.error) {
-      await opruimen(lid.data.id);
-      return `groepen niet te zetten (${koppeling.error.code ?? 'onbekend'})`;
+      return `groepen niet te zetten (${koppeling.error.code ?? 'onbekend'})${await opruimen()}`;
     }
   }
   return null;
@@ -349,12 +430,24 @@ export async function zetLedenIn(
   klant: Klant,
   tekst: string,
   doorvoeren: boolean,
-): Promise<{ fouten: string[]; plan: Plan | null; uitkomst: Uitkomst | null; hergebruik: number | null }> {
+): Promise<{
+  fouten: string[];
+  plan: Plan | null;
+  uitkomst: Uitkomst | null;
+  hergebruik: number | null;
+  /** Leden met een inlogaccount maar zonder privégegevens: de toestand na een onderbroken run. */
+  halveLeden: number;
+}> {
   const groepen = await leesGroepen(klant);
   const invoer = leesLeden(tekst, [...groepen.keys()]);
-  if (invoer.fouten.length > 0) return { fouten: invoer.fouten, plan: null, uitkomst: null, hergebruik: 0 };
-  const plan = maakPlan(invoer.regels, await leesBestaand(klant, groepen));
-  if (plan.fouten.length > 0) return { fouten: plan.fouten, plan, uitkomst: null, hergebruik: 0 };
+  if (invoer.fouten.length > 0) {
+    return { fouten: invoer.fouten, plan: null, uitkomst: null, hergebruik: 0, halveLeden: 0 };
+  }
+  const bestaand = await leesBestaand(klant, groepen);
+  const plan = maakPlan(invoer.regels, bestaand.leden);
+  if (plan.fouten.length > 0) {
+    return { fouten: plan.fouten, plan, uitkomst: null, hergebruik: 0, halveLeden: bestaand.halve };
+  }
   // Een bestaand inlogaccount zonder lid wordt gekoppeld in plaats van nieuw gemaakt: de bouwer moet dat in de proef zien.
   // Dat is een extra controle: lukt het opsommen van de accounts niet, dan blokkeert dat de proef niet, maar zegt het commando dat het niet kon.
   let hergebruik: number | null = null;
@@ -368,6 +461,7 @@ export async function zetLedenIn(
     plan,
     uitkomst: doorvoeren ? await voerPlanUit(klant, plan, groepen) : null,
     hergebruik,
+    halveLeden: bestaand.halve,
   };
 }
 
@@ -450,6 +544,11 @@ async function uitvoeren(): Promise<number> {
   for (const actie of proef.plan.acties) console.log(`  ${beschrijf(actie)}`);
   const teDoen = proef.plan.acties.filter((actie) => actie.soort !== 'ongewijzigd').length;
   console.log(`leden:zet: ${proef.plan.acties.length} regel(s), ${teDoen} te doen.`);
+  if (proef.halveLeden > 0) {
+    console.log(
+      `leden:zet: let op: ${proef.halveLeden} lid/leden heeft een inlogaccount maar geen privégegevens (een eerdere run is onderbroken). Staat dat lid in deze lijst, dan wordt het afgemaakt; anders blijft het zo staan: kijk er met SQL naar.`,
+    );
+  }
   if (proef.hergebruik === null) {
     console.log(
       'leden:zet: let op: kon niet nagaan of er al inlogaccounts bestaan; een bestaand account wordt bij het doorvoeren zelf herkend.',

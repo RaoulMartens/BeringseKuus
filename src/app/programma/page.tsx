@@ -10,6 +10,7 @@ import {
   dagTekst,
   isActiviteitStatus,
   maakProgramma,
+  programmaLink,
   regelOnderNaam,
   vandaagInNederland,
   type Maand,
@@ -28,23 +29,19 @@ export const metadata: Metadata = { title: 'Programma – Ledenplatform' };
 // de concepten. Deze pagina filtert daar niets op: een tweede filter zou kunnen afwijken van de regels.
 const KOLOMMEN = 'id, naam, datum, starttijd, locatie, status, eindigt_om';
 
-/** Een lid opent de activiteit zoals een lid hem ziet; een concept (alleen voor het bestuur zichtbaar) opent in beheer. */
-function activiteitHref(activiteit: ProgrammaActiviteit): string {
-  return activiteit.status === 'concept'
-    ? `/beheer/activiteiten/${activiteit.id}`
-    : `/programma/${activiteit.id}`;
-}
-
 function Maandkaart({
   maand,
   vandaag,
   geweest,
   kop,
+  zichtbaarAlsLid,
 }: {
   maand: Maand;
   vandaag: string;
   geweest: boolean;
   kop: 'h2' | 'h3';
+  /** De id's van de activiteiten die dit lid als lid ziet (de view mijn_activiteiten). */
+  zichtbaarAlsLid: Set<string>;
 }) {
   return (
     <Kaart titel={maand.titel} kop={kop} lijst>
@@ -53,7 +50,11 @@ function Maandkaart({
           const dag = dagTekst(activiteit.datum);
           const regel = regelOnderNaam(activiteit);
           return (
-            <Lijstrij key={activiteit.id} uitgeschakeld={geweest} href={activiteitHref(activiteit)}>
+            <Lijstrij
+              key={activiteit.id}
+              uitgeschakeld={geweest}
+              href={programmaLink(activiteit, zichtbaarAlsLid.has(activiteit.id))}
+            >
               <Datumblok {...dag} vandaag={activiteit.datum === vandaag} />
               <span className={stijl.tekst}>
                 <strong className={stijl.naam}>{activiteit.naam}</strong>
@@ -87,6 +88,15 @@ export default async function Programma() {
     .order('starttijd', { ascending: true, nullsFirst: false });
   if (error) throw new Error(`programma niet te lezen: ${error.code ?? error.message}`);
 
+  // Wat dit lid als lid ziet (R15, R22). Een beheerder leest hierboven meer; een rij die hij als lid niet ziet, opent in beheer.
+  const { data: zichtbaar, error: zichtbaarFout } = await supabase
+    .from('mijn_activiteiten')
+    .select('id')
+    .eq('seizoen', seizoen);
+  if (zichtbaarFout)
+    throw new Error(`programma niet te lezen: ${zichtbaarFout.code ?? zichtbaarFout.message}`);
+  const zichtbaarAlsLid = new Set(zichtbaar.flatMap((rij) => (rij.id ? [rij.id] : [])));
+
   const activiteiten: ProgrammaActiviteit[] = data.flatMap((rij) =>
     isActiviteitStatus(rij.status)
       ? [
@@ -117,13 +127,27 @@ export default async function Programma() {
             {programma.aantalKomende} komende {programma.aantalKomende === 1 ? 'activiteit' : 'activiteiten'}
           </p>
           {programma.komende.map((maand) => (
-            <Maandkaart key={maand.sleutel} maand={maand} vandaag={vandaag} geweest={false} kop="h2" />
+            <Maandkaart
+              key={maand.sleutel}
+              maand={maand}
+              vandaag={vandaag}
+              geweest={false}
+              kop="h2"
+              zichtbaarAlsLid={zichtbaarAlsLid}
+            />
           ))}
           {programma.geweest.length > 0 && (
             <>
               <h2 className={stijl.geweest}>Geweest dit seizoen</h2>
               {programma.geweest.map((maand) => (
-                <Maandkaart key={maand.sleutel} maand={maand} vandaag={vandaag} geweest kop="h3" />
+                <Maandkaart
+                  key={maand.sleutel}
+                  maand={maand}
+                  vandaag={vandaag}
+                  geweest
+                  kop="h3"
+                  zichtbaarAlsLid={zichtbaarAlsLid}
+                />
               ))}
             </>
           )}

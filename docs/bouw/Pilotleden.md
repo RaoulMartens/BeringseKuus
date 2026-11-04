@@ -25,6 +25,12 @@ de bouwer zet het testgroepje met een script. Dit bestand is de procedure. Het h
 Het script is veilig om opnieuw te draaien: wat er al staat, verandert niet, en een regel die mislukt stopt de rest niet. **Draai het nooit
 twee keer tegelijk** (twee terminals): dan mislukt een deel van de regels met een melding zonder duidelijke reden. Draai het daarna gewoon opnieuw.
 
+Een **groepswijziging** die een lid zijn eigen dienst zou laten kwijtraken, weigert het script: staat iemand ingedeeld bij een komende activiteit die alleen
+voor zijn oude groep is, dan zou hij die activiteit na de wijziging niet meer zien terwijl zijn plek blijft staan (R22). De proef noemt de regel en het aantal activiteiten;
+haal hem eerst uit die indeling (of laat de groepen zoals ze zijn) en draai opnieuw. Een groep **erbij** raakt niemand en mag altijd. Een **onderbroken run** laat soms een
+lid met een inlogaccount maar zonder privégegevens achter; de proef meldt hoeveel dat er zijn, en staat zo'n lid in de lijst, dan maakt de volgende run het af
+(zonder dubbele rij). Een inlogaccount dat al aan een ander lid met privégegevens hangt, neemt het script nooit over.
+
 Een paar dingen die het script voor je afvangt: een **inactief lid** laat het met rust (de proef meldt het als fout: haal de regel uit de lijst); een
 **beheerder** in de lijst werkt het wel bij (bijvoorbeeld het telefoonnummer van een bestuurslid dat eindverantwoordelijke is), zonder zijn beheerrechten
 te wijzigen, en de proef zegt dat erbij; een **bestaand inlogaccount zonder lid** met hetzelfde adres koppelt het aan het lid, en de proef telt hoeveel dat er zijn, zodat je

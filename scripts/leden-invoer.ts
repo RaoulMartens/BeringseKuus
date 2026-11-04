@@ -289,6 +289,11 @@ export interface BestaandLid {
   isAdmin: boolean;
   /** Een inactief lid kan niets lezen; het script activeert niemand en laat zo'n lid dus met rust. */
   actief: boolean;
+  /**
+   * De komende activiteiten waar dit lid is ingedeeld, met de namen van de groepen waar de activiteit voor is (leeg = voor
+   * iedereen). Een lid dat uit zo'n groep gaat, ziet zijn eigen dienst niet meer (R22, CR-04).
+   */
+  indelingen: { activiteitId: string; groepen: string[] }[];
 }
 
 export type Actie =
@@ -330,6 +335,24 @@ export function maakPlan(regels: LidRegel[], bestaand: Map<string, BestaandLid>)
         `Regel ${regel.regel}: dit lid is inactief; activeren kan niet met dit script. Haal de regel uit de lijst.`,
       );
       continue;
+    }
+    // Een groepswijziging mag niemand zijn eigen dienst laten kwijtraken: de toewijzing blijft bestaan, maar de activiteit is dan
+    // voor hem onzichtbaar. De bouwer haalt hem eerst uit die indeling (of laat de groepen zoals ze zijn).
+    if (regel.groepen !== null) {
+      const nieuw = regel.groepen;
+      // Alleen wat hij nu wél ziet en straks niet meer: een activiteit die hij al niet zag, kan hij niet kwijtraken (FX-08).
+      const verloren = staat.indelingen.filter(
+        (indeling) =>
+          indeling.groepen.length > 0 &&
+          indeling.groepen.some((groep) => staat.groepen.includes(groep)) &&
+          !indeling.groepen.some((groep) => nieuw.includes(groep)),
+      ).length;
+      if (verloren > 0) {
+        fouten.push(
+          `Regel ${regel.regel}: met deze groepen ziet dit lid ${verloren} ${verloren === 1 ? 'activiteit' : 'activiteiten'} niet meer waar hij is ingedeeld. Haal hem eerst uit die indeling, of laat de groepen zoals ze zijn.`,
+        );
+        continue;
+      }
     }
     const wijzigingen: string[] = [];
     // Een lid dat met SQL is aangemaakt, kan nog zonder inlogaccount zijn: dan kan hij niet inloggen (docs/bouw/Inloggen.md).

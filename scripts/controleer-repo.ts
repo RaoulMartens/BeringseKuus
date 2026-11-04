@@ -37,7 +37,8 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -50,6 +51,8 @@ export interface Probleem {
 
 export interface Opties {
   verbodenWoorden: readonly string[];
+  /** De map is een uitgepakte commit (git archive): alles wat erin staat, is dus door git bijgehouden. */
+  snapshot?: boolean;
 }
 
 interface Uitzondering {
@@ -155,7 +158,8 @@ const TOEGESTANE_ADRESDOMEINEN = [
   /^users\.noreply\.github\.com$/i,
   /^noreply\.github\.com$/i,
 ];
-const TOEGESTANE_ADRESSEN = new Set(['git@github.com']);
+// noreply@anthropic.com: het vaste adres in de Co-Authored-By-regel van commits die met Claude Code zijn gemaakt (geen persoon).
+const TOEGESTANE_ADRESSEN = new Set(['git@github.com', 'noreply@anthropic.com']);
 
 const SLEUTELS: readonly (readonly [RegExp, string])[] = [
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'privésleutel'],
@@ -230,8 +234,11 @@ export function laadVerbodenWoorden(
     .filter((w) => w !== '' && !w.startsWith('#'));
 }
 
-/** Bestanden van de repository: wat git bijhoudt of zou bijhouden; zonder git: alles behalve build-mappen. */
-export function lijstBestanden(root: string): string[] {
+/**
+ * Bestanden van de repository: wat git bijhoudt of zou bijhouden; zonder git: alles behalve build-mappen. Met `alles` slaat het ook
+ * die mappen niet over: in een uitgepakte commit is elk bestand door git bijgehouden, ook als het in `coverage/` staat (FX-02).
+ */
+export function lijstBestanden(root: string, alles = false): string[] {
   if (existsSync(path.join(root, '.git'))) {
     const uit = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
       cwd: root,
@@ -247,7 +254,7 @@ export function lijstBestanden(root: string): string[] {
   const loop = (map: string): void => {
     for (const item of readdirSync(map, { withFileTypes: true })) {
       if (item.isDirectory()) {
-        if (!OVERSLAAN_MAPPEN.has(item.name)) loop(path.join(map, item.name));
+        if (alles || !OVERSLAAN_MAPPEN.has(item.name)) loop(path.join(map, item.name));
       } else if (item.isFile()) {
         gevonden.push(naarPosix(path.relative(root, path.join(map, item.name))));
       }
@@ -398,7 +405,22 @@ export function controleer(root: string, opties: Opties): Probleem[] {
     meld({ regel: 'licentie', pad: 'docs/licenties.md', melding: o.melding, regelnummer: o.regelnummer });
   const uitzonderingen = leesUitzonderingen(root, meld);
 
-  for (const pad of lijstBestanden(root)) {
+  // De namenlijst zelf mag nooit in Git staan: .gitignore beschermt alleen een bestand dat nog niet is bijgehouden, en de
+  // scan slaat dit bestand over (CR-03). Staat hij in de lijst van git (of in een uitgepakte commit), dan is hij bijgehouden.
+  const bestanden = lijstBestanden(root, opties.snapshot === true);
+  if (
+    (existsSync(path.join(root, '.git')) || opties.snapshot === true) &&
+    bestanden.includes('.verboden-woorden')
+  ) {
+    meld({
+      regel: 'namenlijst-in-git',
+      pad: '.verboden-woorden',
+      melding:
+        'de namenlijst wordt door git bijgehouden en staat dus in de (publieke) repository; haal hem eruit met `git rm --cached .verboden-woorden` en laat een beheerder nagaan of hij al is gepusht',
+    });
+  }
+
+  for (const pad of bestanden) {
     const naam = path.posix.basename(pad);
     const ext = extensie(pad);
     const volledig = path.join(root, pad);
@@ -531,10 +553,172 @@ export function controleer(root: string, opties: Opties): Probleem[] {
   return problemen;
 }
 
+// ===== De geschiedenis van een push =====
+//
+// De controle hierboven ziet de werkmap. Een gegeven dat in één commit is toegevoegd en in de volgende is verwijderd, is voor deze
+// controle onzichtbaar, maar na de push staan beide commits openbaar (CR-02). De hook voor een push (.githooks/pre-push) geeft
+// daarom ook de commits door die de push nieuw maakt, en elke commit wordt als volledige map gecontroleerd.
+
+const NUL_SHA = /^0+$/;
+/** Meer nieuwe commits dan dit scannen we niet in één push: elke commit is een volledige controle. */
+export const MAX_COMMITS_PER_PUSH = 200;
+
+/** De regels die git de hook voor een push op stdin geeft: `<lokale ref> <lokale sha> <remote ref> <remote sha>`. */
+export function leesPushRegels(invoer: string): { lokaleSha: string; remoteSha: string }[] {
+  return invoer
+    .split(/\r?\n/)
+    .map((regel) => regel.trim().split(/\s+/))
+    .filter((delen) => delen.length >= 4)
+    .flatMap((delen) => {
+      const lokaleSha = delen[1] ?? '';
+      const remoteSha = delen[3] ?? '';
+      // Een ref wegduwen (lokale sha is nul) voegt geen commits toe.
+      return /^[0-9a-f]{7,64}$/.test(lokaleSha) && !NUL_SHA.test(lokaleSha) ? [{ lokaleSha, remoteSha }] : [];
+    });
+}
+
+/** De commits die deze push nieuw publiek maakt, oudste eerst, zonder dubbelen. */
+export function commitsVanPush(root: string, regels: { lokaleSha: string; remoteSha: string }[]): string[] {
+  const gezien = new Set<string>();
+  const lijst = (argumenten: string[]): string[] =>
+    execFileSync('git', argumenten, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+      .split('\n')
+      .filter(Boolean);
+  const nieuweBranch = (lokaleSha: string): string[] =>
+    lijst(['rev-list', '--reverse', lokaleSha, '--not', '--remotes']);
+  for (const { lokaleSha, remoteSha } of regels) {
+    // Een nieuwe branch (remote sha nul): alles wat nog op geen enkele remote staat. Anders: wat er bijkomt.
+    let commits: string[];
+    if (NUL_SHA.test(remoteSha)) {
+      commits = nieuweBranch(lokaleSha);
+    } else {
+      try {
+        commits = lijst(['rev-list', '--reverse', `${remoteSha}..${lokaleSha}`]);
+      } catch {
+        // De remote heeft een commit die we lokaal niet kennen (iemand anders pushte, of een force-push na herschrijven): we
+        // kunnen dan niet zeggen wat "nieuw" is. Liever te veel controleren dan de hook met een stacktrace laten sneuvelen (FX-03).
+        console.error(
+          'controleer-repo: de remote-commit van deze push is lokaal onbekend; alle commits die op geen remote staan worden gecontroleerd',
+        );
+        commits = nieuweBranch(lokaleSha);
+      }
+    }
+    for (const sha of commits) gezien.add(sha);
+  }
+  return [...gezien];
+}
+
+/**
+ * Zet een commit als volledige map neer, zoals hij in git staat. Niet met `git archive`: dat leest `.gitattributes` uit de commit
+ * zelf en laat bestanden met `export-ignore` weg, zodat een commit zijn eigen inhoud kan verbergen voor de controle (FX-01).
+ * `read-tree` en `checkout-index` kennen die uitzondering niet.
+ */
+function pakCommitUit(root: string, sha: string, map: string): void {
+  const indexMap = mkdtempSync(path.join(tmpdir(), 'controleer-repo-index-'));
+  try {
+    const env = { ...process.env, GIT_INDEX_FILE: path.join(indexMap, 'index') };
+    execFileSync('git', ['read-tree', sha], { cwd: root, env, stdio: 'ignore' });
+    execFileSync('git', ['checkout-index', '-a', '-f', `--prefix=${map}${path.sep}`], {
+      cwd: root,
+      env,
+      stdio: 'ignore',
+      maxBuffer: 512 * 1024 * 1024,
+    });
+  } finally {
+    rmSync(indexMap, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Controleert elke commit als volledige map, met het commitbericht erbij (een naam in een bericht is even openbaar als in een
+ * bestand); een melding noemt de commit (de eerste zeven tekens). Auteur en tagberichten worden niet gecontroleerd: de auteur
+ * van een commit is openbaar bedoeld.
+ */
+export function controleerGeschiedenis(root: string, commits: string[], opties: Opties): Probleem[] {
+  const problemen: Probleem[] = [];
+  for (const sha of commits) {
+    const map = mkdtempSync(path.join(tmpdir(), 'controleer-repo-'));
+    try {
+      pakCommitUit(root, sha, map);
+      // Het bericht als bestand, onder een naam die nog niet bestaat, zodat alle regels er ook op gelden.
+      let berichtNaam = '.commitbericht-controle.txt';
+      for (let n = 1; existsSync(path.join(map, berichtNaam)); n += 1)
+        berichtNaam = `.commitbericht-controle-${n}.txt`;
+      const bericht = execFileSync('git', ['log', '-1', '--format=%B', sha], { cwd: root, encoding: 'utf8' });
+      writeFileSync(path.join(map, berichtNaam), bericht);
+      for (const p of controleer(map, { ...opties, snapshot: true })) {
+        const pad = p.pad === berichtNaam ? 'commitbericht' : p.pad;
+        problemen.push({ ...p, pad: `${pad} (commit ${sha.slice(0, 7)})` });
+      }
+    } finally {
+      rmSync(map, { recursive: true, force: true });
+    }
+  }
+  return problemen;
+}
+
+export interface PushUitkomst {
+  problemen: Probleem[];
+  commits: number;
+  /** Waarom de controle niet kon draaien (en dus de push moet stoppen), in plaats van een lijst problemen. */
+  fout?: string;
+}
+
+/** De hele controle van een push: stdin van git in, problemen uit. Faalt dicht: bij iets onverwachts is er een `fout`. */
+export function controleerPush(
+  root: string,
+  invoer: string,
+  opties: Opties,
+  max = MAX_COMMITS_PER_PUSH,
+): PushUitkomst {
+  // Niet herkende invoer is geen "0 commits": dan zou een andere indeling van de hook alles ongezien laten doorgaan (FX-03).
+  const ruw = invoer.split(/\r?\n/).filter((regel) => regel.trim() !== '');
+  if (ruw.length > 0 && ruw.every((regel) => regel.trim().split(/\s+/).length < 4)) {
+    return {
+      problemen: [],
+      commits: 0,
+      fout: 'de invoer van git is niet te lezen; de push is niet gecontroleerd',
+    };
+  }
+  const commits = commitsVanPush(root, leesPushRegels(invoer));
+  if (commits.length > max) {
+    return {
+      problemen: [],
+      commits: commits.length,
+      fout: `${commits.length} nieuwe commits in één push; meer dan ${max} controleren we niet. Push in delen.`,
+    };
+  }
+  return { problemen: controleerGeschiedenis(root, commits, opties), commits: commits.length };
+}
+
+function uitvoerenPush(root: string): number {
+  const uitkomst = controleerPush(root, readFileSync(0, 'utf8'), {
+    verbodenWoorden: laadVerbodenWoorden(root),
+  });
+  if (uitkomst.fout) {
+    console.error(`controleer-repo: ${uitkomst.fout}`);
+    return 1;
+  }
+  for (const p of uitkomst.problemen) {
+    const plek = p.regelnummer ? `${p.pad}:${p.regelnummer}` : p.pad;
+    console.error(`FOUT [${p.regel}] ${plek}: ${p.melding}`);
+  }
+  if (uitkomst.problemen.length > 0) {
+    const aantal = uitkomst.problemen.length;
+    console.error(
+      `controleer-repo: ${aantal} ${aantal === 1 ? 'probleem' : 'problemen'} in ${uitkomst.commits} nieuwe commit(s) van deze push`,
+    );
+    return 1;
+  }
+  console.log(`controleer-repo: de ${uitkomst.commits} nieuwe commit(s) van deze push zijn schoon`);
+  return 0;
+}
+
 function uitvoeren(): number {
   const argumenten = process.argv.slice(2);
   const i = argumenten.indexOf('--root');
   const root = path.resolve((i >= 0 ? argumenten[i + 1] : undefined) ?? '.');
+  if (argumenten.includes('--push')) return uitvoerenPush(root);
   const problemen = controleer(root, { verbodenWoorden: laadVerbodenWoorden(root) });
   if (problemen.length === 0) {
     console.log('controleer-repo: 0 problemen');

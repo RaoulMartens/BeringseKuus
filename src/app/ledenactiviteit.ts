@@ -2,7 +2,11 @@
 // alleen gepubliceerde activiteiten voor zijn groepen (R15, R22), alleen bezette plekken (R13) en alleen zijn eigen afmelding.
 // Aan de serverkant, nooit in de browser. De uitleg wat het scherm ermee doet staat in src/lib/ledenactiviteit.ts.
 
-import type { BezettePlek, LedenActiviteit } from '@/lib/ledenactiviteit';
+import {
+  telefoonBijEindverantwoordelijke,
+  type BezettePlek,
+  type LedenActiviteit,
+} from '@/lib/ledenactiviteit';
 import { isActiviteitStatus } from '@/lib/programma';
 import type { maakSupabase } from '@/lib/supabase/server';
 
@@ -109,7 +113,13 @@ export async function leesIndelingen(
       activiteitIds.map(async (id) => {
         const { data, error } = await supabase.rpc('contact_eindverantwoordelijke', { p_activiteit: id });
         if (error) throw new Error(`contact niet te lezen: ${error.code ?? error.message}`);
-        return { id, telefoon: data[0]?.telefoon ?? null };
+        const regel = data[0];
+        return {
+          id,
+          contact: regel?.telefoon
+            ? { naam: `${regel.voornaam} ${regel.achternaam}`, telefoon: regel.telefoon }
+            : null,
+        };
       }),
     ),
   ]);
@@ -139,9 +149,11 @@ export async function leesIndelingen(
     const indeling = uitkomst.get(regel.activiteit_id);
     if (indeling) indeling.afgemeld = true;
   }
-  for (const { id, telefoon } of contacten) {
+  // Plekken en contact komen uit twee aanvragen: wisselt het bestuur daartussen de eindverantwoordelijke, dan hoort het nummer
+  // niet bij de naam op het scherm. Het nummer staat er alleen als beide aanvragen over dezelfde persoon gaan.
+  for (const { id, contact } of contacten) {
     const indeling = uitkomst.get(id);
-    if (indeling) indeling.telefoon = telefoon;
+    if (indeling) indeling.telefoon = telefoonBijEindverantwoordelijke(indeling.plekken, contact);
   }
   return uitkomst;
 }

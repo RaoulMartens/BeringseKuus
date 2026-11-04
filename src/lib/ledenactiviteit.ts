@@ -148,6 +148,19 @@ export function groepeerRollen(plekken: BezettePlek[], eigenLidId: string): Rolg
   });
 }
 
+/**
+ * Het nummer dat bij de eindverantwoordelijke op het scherm hoort, of niets. De plekken en het contact (de database-
+ * functie contact_eindverantwoordelijke) komen uit aparte aanvragen; ze moeten over dezelfde persoon gaan (CR-09).
+ */
+export function telefoonBijEindverantwoordelijke(
+  plekken: BezettePlek[],
+  contact: { naam: string; telefoon: string } | null,
+): string | null {
+  if (!contact) return null;
+  const eindverantwoordelijke = plekken.find((plek) => plek.rol === 'eindverantwoordelijke');
+  return eindverantwoordelijke?.naam === contact.naam ? contact.telefoon : null;
+}
+
 /** Staat er behalve de eindverantwoordelijke niemand op de plekken? Dan is de indeling nog niet gemaakt (UC-001 AF-7). */
 export function isNogNietIngedeeld(groepen: Rolgroep[]): boolean {
   return groepen.every((groep) => groep.rol === 'eindverantwoordelijke');
