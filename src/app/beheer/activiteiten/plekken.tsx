@@ -364,7 +364,9 @@ export function Plekken({
         {gekozenEv && !gekozenEv.telefoon && (
           <p role="status" className={stijl.vast}>
             {gekozenEv.naam} heeft nog geen telefoonnummer. De eindverantwoordelijke heeft er een nodig:
-            zonder nummer kan de activiteit niet worden gepubliceerd en zien leden geen nummer.
+            zonder nummer kan de activiteit niet worden gepubliceerd en zien leden geen nummer. Een nummer
+            toevoegen kan nog niet in dit scherm: vraag de bouwer van het platform het in de ledenlijst te
+            zetten, of kies iemand met een nummer.
           </p>
         )}
         {gepubliceerd && (

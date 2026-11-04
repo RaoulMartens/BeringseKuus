@@ -407,7 +407,7 @@ export function vertaalOpslagfout(code: string, detail: unknown): Fouttekst {
         fouten: {
           plekken:
             tekstUit(detail, 'reden') === 'telefoon'
-              ? 'De eindverantwoordelijke heeft geen telefoonnummer, en leden moeten hem kunnen bellen. Kies iemand met een telefoonnummer.'
+              ? 'De eindverantwoordelijke heeft geen telefoonnummer, en leden moeten hem kunnen bellen. Kies iemand met een telefoonnummer, of vraag de bouwer van het platform het nummer in de ledenlijst te zetten.'
               : 'De eindverantwoordelijke kan niet worden weggehaald; kies iemand anders.',
         },
         melding: null,

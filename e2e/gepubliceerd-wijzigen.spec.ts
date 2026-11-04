@@ -113,12 +113,18 @@ test('een eindverantwoordelijke zonder telefoonnummer: waarschuwing, en er wordt
 
   await page.goto(`/beheer/activiteiten/${id}`);
   await page.getByLabel('Eindverantwoordelijke', { exact: true }).selectOption({ label: carla.naam });
+  // De waarschuwing zegt ook hoe het nummer erbij komt: er is nog geen scherm voor, dus via de ledenlijst.
   await expect(
-    page.getByRole('status').filter({ hasText: `${carla.naam} heeft nog geen telefoonnummer` }),
+    page
+      .getByRole('status')
+      .filter({ hasText: `${carla.naam} heeft nog geen telefoonnummer` })
+      .filter({ hasText: 'ledenlijst' }),
   ).toBeVisible();
   await opslaan(page).click();
 
-  await expect(page.getByRole('alert').filter({ hasText: 'geen telefoonnummer' })).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'geen telefoonnummer' }).filter({ hasText: 'ledenlijst' }),
+  ).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}$`));
   expect(aantal('rol_slots', `activiteit_id = '${id}' and bezetter_id = '${ger.id}'`)).toBe('1');
   expect(psql(`select versie from public.activiteiten where id = '${id}';`).trim()).toBe('1');
