@@ -50,24 +50,29 @@ function maakActiviteit(
   naam: string,
   opties: { dag?: string; eindtijd?: string; status?: string; voorLid?: string } = {},
 ): string {
-  const id = psql(`
-    insert into public.activiteiten (naam, datum, verzameltijd, starttijd, eindtijd, locatie, status)
-    values ('${naam}', ${opties.dag ?? VANDAAG}, '18:30', '20:00', '${opties.eindtijd ?? '23:59'}', 'Zaal Test, Kerkstraat 1',
-            '${opties.status ?? 'gepubliceerd'}')
-    returning id;
-  `)
-    .trim()
-    .split('\n')[0]!;
-  if (opties.voorLid) {
-    const groep = `E2E Afmelden g${crypto.randomUUID().slice(0, 8)} ${kenmerk}`;
-    psql(`
-      insert into public.groepen (naam, volgorde) values ('${groep}', 98);
-      insert into public.lid_groep (lid_id, groep_id)
-        select '${opties.voorLid}', id from public.groepen where naam = '${groep}';
-      insert into public.activiteit_groep (activiteit_id, groep_id)
-        select '${id}', id from public.groepen where naam = '${groep}';
-    `);
-  }
+  const id = crypto.randomUUID();
+  const groep = `E2E Afmelden g${crypto.randomUUID().slice(0, 8)} ${kenmerk}`;
+  // In één transactie: de activiteit bestaat nooit even zonder doelgroep, want dan staat hij op het welkomscherm van andere tests.
+  psql(`
+    begin;
+    ${
+      opties.voorLid
+        ? `insert into public.groepen (naam, volgorde) values ('${groep}', 98);
+    insert into public.lid_groep (lid_id, groep_id)
+      select '${opties.voorLid}', id from public.groepen where naam = '${groep}';`
+        : ''
+    }
+    insert into public.activiteiten (id, naam, datum, verzameltijd, starttijd, eindtijd, locatie, status)
+    values ('${id}', '${naam}', ${opties.dag ?? VANDAAG}, '18:30', '20:00', '${opties.eindtijd ?? '23:59'}', 'Zaal Test, Kerkstraat 1',
+            '${opties.status ?? 'gepubliceerd'}');
+    ${
+      opties.voorLid
+        ? `insert into public.activiteit_groep (activiteit_id, groep_id)
+      select '${id}', id from public.groepen where naam = '${groep}';`
+        : ''
+    }
+    commit;
+  `);
   return id;
 }
 
@@ -229,24 +234,24 @@ test('onder de ondergrens na de deadline kan afmelden niet: de blokkade met het 
   await expect(page).toHaveURL(/\/$/);
 });
 
-test('wie een dienst of een beheerrol heeft, krijgt geen knop Afmelden maar een uitleg', async ({ page }) => {
+test('wie een dienst heeft, krijgt de aankondiging van twee stappen; een beheerrol alleen een uitleg', async ({
+  page,
+}) => {
   const { lidId } = await logInAlsLid(page);
   const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });
 
-  // Een dienst: eerst overdragen (R7), en dat scherm volgt in stap D.
+  // Een dienst: afmelden is eerst overdragen (R7). De twee stappen zelf staan in e2e/ruilen.spec.ts.
   const dienst = maakNaam('dienst');
   const dienstId = maakActiviteit(dienst, { voorLid: lidId });
   zetPlek(dienstId, 'eindverantwoordelijke', ger.id);
   zetPlek(dienstId, 'werker', lidId, 1);
   await page.goto(`/programma/${dienstId}`);
   await expect(statusPaneel(page).getByText('Je staat op aanwezig als werker.')).toBeVisible();
-  await expect(statusPaneel(page).getByRole('link', { name: /^Afmelden/ })).toHaveCount(0);
-  await expect(
-    statusPaneel(page).getByText(/Afmelden en je dienst overdragen kunnen hier nog niet/),
-  ).toBeVisible();
-  // Ook rechtstreeks naar het adres: een uitleg, geen formulier.
+  await expect(statusPaneel(page).getByRole('link', { name: 'Afmelden' })).toBeVisible();
+  await expect(statusPaneel(page).getByRole('link', { name: 'Dienst overdragen' })).toBeVisible();
+  // Afmelden met een dienst kondigt de twee stappen aan en toont geen bevestigingsformulier.
   await page.goto(`/afmelden/${dienstId}`);
-  await expect(page.getByRole('heading', { level: 1, name: 'Afmelden kan hier niet' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Afmelden in twee stappen' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Afmelden bevestigen' })).toHaveCount(0);
   await isNetjes(page);
 

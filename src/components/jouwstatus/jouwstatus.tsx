@@ -22,6 +22,8 @@ export interface StatusRegel {
   beheerHref?: string;
   /** Waar Afmelden heen gaat; leeg als het lid zich hier niet kan afmelden. */
   afmeldHref?: string;
+  /** Waar Dienst overdragen heen gaat; alleen met een dienst die het lid zelf kan overdragen. */
+  overdragenHref?: string;
   /** De serveractie voor Afmelding intrekken; leeg als er niets in te trekken valt. */
   intrekActie?: AfmeldActie;
   /** Een korte uitleg als er geen knop is terwijl een lid er een zou verwachten (BOB, een dienst). */
@@ -56,6 +58,16 @@ export function Jouwstatus({ regels }: { regels: StatusRegel[] }) {
                   {meerdere ? `Afmelden voor ${regel.naam}` : 'Afmelden'}
                 </Knop>
               </div>
+            )}
+            {regel.overdragenHref && (
+              <>
+                <p className={stijl.hulp}>Kun je wel komen, maar wil je alleen je dienst kwijt?</p>
+                <div className={stijl.knop}>
+                  <Knop href={regel.overdragenHref} soort="secundair" vol>
+                    {meerdere ? `Dienst overdragen voor ${regel.naam}` : 'Dienst overdragen'}
+                  </Knop>
+                </div>
+              </>
             )}
             {regel.intrekActie && (
               <div className={stijl.knop}>

@@ -3,6 +3,7 @@
 // trek_afmelding_in); dit bepaalt alleen wat een lid ervan ziet en leest.
 
 import { leesDetail } from '@/lib/activiteitformulier';
+import { isRuilbaar } from '@/lib/ruilen';
 
 /** Wat een formulier van afmelden of intrekken teruggeeft bij een fout; bij succes stuurt de server door naar een andere pagina. */
 export interface AfmeldStaat {
@@ -20,20 +21,22 @@ export const ingetrokkenHref = (id: string): string => `/afmelden/${id}/ingetrok
 /** Ruimte voor een toelichting. De database kapt op 500 tekens af; het veld laat er meer niet toe. */
 export const MAX_TOELICHTING = 500;
 
-/** Rollen die het lid niet zelf kan wijzigen of overdragen (R4): alleen het bestuur. */
-const ADMINROLLEN = new Set(['bob', 'eindverantwoordelijke']);
-
 /**
  * Wat het paneel "Jouw status" aanbiedt voor één activiteit. Afmelden kan alleen voor een gepubliceerde activiteit die nog
- * niet is geweest (R15), en alleen zonder dienst: met een dienst is het eerst overdragen (R7), en dat scherm volgt in stap D.
+ * niet is geweest (R15). Met een ruilbare dienst (werker, drankhaler, fotograaf) is afmelden eerst je dienst overdragen (R7,
+ * twee stappen) en kun je ook alleen je dienst overdragen; BOB en eindverantwoordelijke wijzigt alleen het bestuur (R4).
  * Een afmelding intrekken kan zolang de activiteit nog niet is geweest (R9).
  */
 export interface Aanbod {
   afmelden: boolean;
+  /** Alleen je dienst overdragen, zonder af te melden. */
+  overdragen: boolean;
   intrekken: boolean;
   /** Een korte uitleg als er geen knop is terwijl een lid er een zou verwachten. */
   hulp: string | null;
 }
+
+const NIETS: Aanbod = { afmelden: false, overdragen: false, intrekken: false, hulp: null };
 
 export function maakAanbod(
   activiteit: { status: string; eindigtOm: string },
@@ -43,23 +46,14 @@ export function maakAanbod(
 ): Aanbod {
   const open =
     activiteit.status === 'gepubliceerd' && new Date(activiteit.eindigtOm).getTime() > nu.getTime();
-  if (!open) return { afmelden: false, intrekken: false, hulp: null };
-  if (afgemeld) return { afmelden: false, intrekken: true, hulp: null };
-  if (rollen.some((rol) => ADMINROLLEN.has(rol))) {
-    return {
-      afmelden: false,
-      intrekken: false,
-      hulp: 'Deze rol wijzigt alleen het bestuur. Kun je niet komen, neem dan contact op met de eindverantwoordelijke.',
-    };
-  }
-  if (rollen.length > 0) {
-    return {
-      afmelden: false,
-      intrekken: false,
-      hulp: 'Afmelden en je dienst overdragen kunnen hier nog niet. Kun je niet komen, regel het dan met de eindverantwoordelijke.',
-    };
-  }
-  return { afmelden: true, intrekken: false, hulp: null };
+  if (!open) return NIETS;
+  if (afgemeld) return { ...NIETS, intrekken: true };
+  if (rollen.length === 0) return { ...NIETS, afmelden: true };
+  if (rollen.some(isRuilbaar)) return { ...NIETS, afmelden: true, overdragen: true };
+  return {
+    ...NIETS,
+    hulp: 'Deze rol wijzigt alleen het bestuur. Kun je niet komen, neem dan contact op met de eindverantwoordelijke.',
+  };
 }
 
 const MAANDEN = [
@@ -148,6 +142,7 @@ export type AfmeldUitkomst =
   | { soort: 'melding'; tekst: string }
   | { soort: 'ondergrens'; ondergrens: Ondergrens | null }
   | { soort: 'afgemeld' }
+  | { soort: 'eerst-ruilen' }
   | { soort: 'inloggen' };
 
 const ALGEMEEN = 'Het afmelden is niet gelukt. Probeer het nog eens; blijft het misgaan, laat het dan weten.';
@@ -168,11 +163,8 @@ export function vertaalAfmeldfout(code: string, detail: unknown): AfmeldUitkomst
           'Deze rol wijzigt alleen het bestuur. Kun je niet komen, neem dan contact op met de eindverantwoordelijke.',
       };
     case 'heeft_ruilbare_rol':
-      return {
-        soort: 'melding',
-        tekst:
-          'Je hebt bij deze activiteit nog een dienst, en die moet eerst over naar iemand anders. Dat kan hier nog niet; regel het met de eindverantwoordelijke.',
-      };
+      // Het lid heeft (intussen) een dienst: eerst overdragen. De pagina Afmelden legt de twee stappen uit.
+      return { soort: 'eerst-ruilen' };
     case 'activiteit_niet_open':
       return { soort: 'melding', tekst: openTekst(leesDetail(detail)) };
     default:

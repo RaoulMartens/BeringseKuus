@@ -132,9 +132,12 @@ test('het welkomscherm toont de activiteit van vandaag met tijden, rolbezetting 
   // Jouw status: één paneel zichtbaar (op een telefoon staat hij bovenaan, op een groot scherm in de zijkolom).
   const status = page.getByRole('region', { name: 'Jouw status' });
   await expect(status.getByText('Je staat op aanwezig als drankhaler.')).toBeVisible();
-  // Met een dienst geen knop Afmelden voor deze activiteit (eerst overdragen, R7); andere activiteiten van vandaag hebben er wel een.
-  await expect(status.getByRole('link', { name: new RegExp(`Afmelden.*${naam}`) })).toHaveCount(0);
-  await expect(status.getByText(/Afmelden en je dienst overdragen kunnen hier nog niet/)).toBeVisible();
+  // Met een ruilbare dienst: afmelden (eerst overdragen, R7) en alleen je dienst overdragen. Op Start staan ook de activiteiten
+  // van andere tests van vandaag, dus de knoppen heten "… voor <naam>"; hier telt alleen die van deze activiteit.
+  await expect(status.getByRole('link', { name: new RegExp(`^Afmelden( voor ${naam})?$`) })).toHaveCount(1);
+  await expect(
+    status.getByRole('link', { name: new RegExp(`^Dienst overdragen( voor ${naam})?$`) }),
+  ).toHaveCount(1);
 
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   expect(await geenZijwaartsSchuiven(page)).toBe(false);

@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import {
   afgemeldHref,
+  afmeldenHref,
   ingetrokkenHref,
   ondergrensQuery,
   vertaalAfmeldfout,
@@ -50,6 +51,8 @@ export async function meldAf(_vorige: AfmeldStaat, formulier: FormData): Promise
       return redirect('/mijn');
     case 'afgemeld':
       return redirect(afgemeldHref(id.data));
+    case 'eerst-ruilen':
+      return redirect(afmeldenHref(id.data));
     case 'ondergrens':
       return redirect(
         `/afmelden/${id.data}/kan-niet${uitkomst.ondergrens ? `?${ondergrensQuery(uitkomst.ondergrens)}` : ''}`,

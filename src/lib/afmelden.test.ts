@@ -14,30 +14,24 @@ import {
 
 const TOEKOMST = { status: 'gepubliceerd', eindigtOm: '2099-01-02T00:00:00Z' };
 const NU = new Date('2027-01-21T12:00:00Z');
+const NIETS = { afmelden: false, overdragen: false, intrekken: false, hulp: null };
 
 describe('maakAanbod', () => {
   it('biedt afmelden aan voor wie zonder dienst op aanwezig staat', () => {
-    expect(maakAanbod(TOEKOMST, NU, false, [])).toEqual({ afmelden: true, intrekken: false, hulp: null });
+    expect(maakAanbod(TOEKOMST, NU, false, [])).toEqual({ ...NIETS, afmelden: true });
   });
 
   it('biedt intrekken aan voor wie is afgemeld, ook als hij eerst een dienst had', () => {
-    expect(maakAanbod(TOEKOMST, NU, true, [])).toEqual({ afmelden: false, intrekken: true, hulp: null });
+    expect(maakAanbod(TOEKOMST, NU, true, [])).toEqual({ ...NIETS, intrekken: true });
   });
 
   it('biedt niets aan voor een activiteit die is geweest, geannuleerd of nog geen activiteit is (R15, R9)', () => {
     const geweest = { status: 'gepubliceerd', eindigtOm: '2027-01-21T11:59:59Z' };
-    expect(maakAanbod(geweest, NU, false, [])).toEqual({ afmelden: false, intrekken: false, hulp: null });
-    expect(maakAanbod(geweest, NU, true, [])).toEqual({ afmelden: false, intrekken: false, hulp: null });
-    expect(maakAanbod({ ...TOEKOMST, status: 'geannuleerd' }, NU, true, [])).toEqual({
-      afmelden: false,
-      intrekken: false,
-      hulp: null,
-    });
-    expect(maakAanbod({ ...TOEKOMST, status: 'concept' }, NU, false, [])).toEqual({
-      afmelden: false,
-      intrekken: false,
-      hulp: null,
-    });
+    expect(maakAanbod(geweest, NU, false, [])).toEqual(NIETS);
+    expect(maakAanbod(geweest, NU, true, [])).toEqual(NIETS);
+    expect(maakAanbod(geweest, NU, false, ['werker'])).toEqual(NIETS);
+    expect(maakAanbod({ ...TOEKOMST, status: 'geannuleerd' }, NU, true, [])).toEqual(NIETS);
+    expect(maakAanbod({ ...TOEKOMST, status: 'concept' }, NU, false, [])).toEqual(NIETS);
   });
 
   it('houdt een activiteit die precies nu eindigt voor voorbij (R16)', () => {
@@ -50,14 +44,15 @@ describe('maakAanbod', () => {
     for (const rol of ['bob', 'eindverantwoordelijke']) {
       const aanbod = maakAanbod(TOEKOMST, NU, false, [rol]);
       expect(aanbod.afmelden).toBe(false);
+      expect(aanbod.overdragen).toBe(false);
       expect(aanbod.hulp).toContain('alleen het bestuur');
     }
   });
 
-  it('biedt met een dienst nog geen afmelden aan: dat is eerst overdragen (R7, stap D)', () => {
-    const aanbod = maakAanbod(TOEKOMST, NU, false, ['werker']);
-    expect(aanbod.afmelden).toBe(false);
-    expect(aanbod.hulp).toContain('eindverantwoordelijke');
+  it('biedt met een ruilbare dienst afmelden (eerst overdragen, R7) en alleen overdragen aan', () => {
+    for (const rol of ['werker', 'drankhaler', 'fotograaf']) {
+      expect(maakAanbod(TOEKOMST, NU, false, [rol])).toEqual({ ...NIETS, afmelden: true, overdragen: true });
+    }
   });
 });
 
@@ -150,10 +145,7 @@ describe('vertaalAfmeldfout', () => {
 
   it('legt uit wat een lid met een dienst of beheerrol moet doen', () => {
     expect(vertaalAfmeldfout('heeft_adminrol', '{}')).toMatchObject({ soort: 'melding' });
-    expect(vertaalAfmeldfout('heeft_ruilbare_rol', '{}')).toMatchObject({
-      soort: 'melding',
-      tekst: expect.stringContaining('dienst') as unknown,
-    });
+    expect(vertaalAfmeldfout('heeft_ruilbare_rol', '{}')).toEqual({ soort: 'eerst-ruilen' });
   });
 
   it('geeft bij iets onverwachts een algemene melding zonder de code te noemen', () => {

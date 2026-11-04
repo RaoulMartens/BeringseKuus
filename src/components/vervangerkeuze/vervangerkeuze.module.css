@@ -1,0 +1,120 @@
+/* De lijst voor de vervanger: een zoekveld en keuzerondjes in dezelfde stijl als de aankruislijst (docs/visueel/stijl.css, sectie 7 en 13). */
+.keuze {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.zoeklabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.label {
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.zoek {
+  display: block;
+  width: 100%;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.telling {
+  margin: 0;
+  min-height: 1.4286em;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.groep {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.legenda {
+  padding: 0;
+  margin-bottom: var(--gap-field);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.lijst {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+}
+
+.optie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--control-default);
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst);
+  cursor: pointer;
+}
+
+.optie:hover {
+  background: var(--neutraal-hover);
+}
+
+.optie input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--thema-primair);
+}
+
+.naam {
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+
+/* Wie niet te kiezen is: zachtere tekst, geen aanwijzer; de reden staat erbij in woorden. */
+.uit {
+  cursor: default;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.uit:hover {
+  background: transparent;
+}
+
+.reden {
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst-zacht);
+  text-align: right;
+}
+
+@media (max-width: 700px) {
+  .optie {
+    flex-wrap: wrap;
+  }
+
+  .reden {
+    flex-basis: 100%;
+    padding-left: 32px;
+    text-align: left;
+  }
+}

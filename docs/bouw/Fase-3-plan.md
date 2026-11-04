@@ -72,6 +72,23 @@ komt met de overdracht. De wachtstand op Publiceren en Opslaan (F2-05): die knop
 
 Stappenbalk, vervangerlijst met redenen, de twee stappen als één taak, het afbreken na stap 1 (de overdracht blijft staan, zoals UC-003 AF-1 zegt).
 
+**Gebouwd (04-11-2026)**, naar de wireframes `ruilen-kies-vervanger`, `ruilen-bevestigen`, `ruilen-gelukt`, `ruilen-fout-afgemeld`, `ruilen-fout-dubbel`,
+`afmelden-eerst-ruilen`, `afmelden-stap1-*` en `afmelden-stap2-bevestigen`:
+
+- `/ruilen/<id>`: wie neemt je dienst over? Een lijst met keuzerondjes en een zoekveld; wie niet te kiezen is staat grijs met de reden (afgemeld, staat al op een
+  plek), uit `beschikbare_vervangers`. Het formulier is een gewone GET naar de bevestiging, dus het werkt zonder JavaScript.
+- `/ruilen/<id>/bevestigen`: wie neemt over, en dat het lid dit niet zelf terugdraait (precies twee knoppen). De server zoekt het slot zelf op uit de dienst van het
+  lid en neemt niets over uit het formulier. `/gelukt` toont het resultaat, na controle in de database dat de vervanger de plek echt heeft.
+- `/ruilen/<id>/niet-gelukt`: een vervanger die zich net afmeldde of ergens anders is ingedeeld, in de woorden van de twee foutwireframes; er is niets gewijzigd
+  en het lid kiest iemand anders. De pagina leest de stand uit de database en vertrouwt het adres niet.
+- Afmelden met een dienst: `/afmelden/<id>` kondigt de twee stappen aan (Stappenbalk, "Beginnen met stap 1"); de overdracht (`?taak=afmelden`) loopt zonder
+  tussenscherm door naar stap 2 (dezelfde bevestiging, met de Stappenbalk en wat er zojuist is gebeurd). Stopt het halverwege, dan blijft de overdracht staan en
+  zegt de pagina dat.
+- In het paneel "Jouw status": met een werker-, drankhaler- of fotograafdienst staan Afmelden en Dienst overdragen; BOB en eindverantwoordelijke houden de uitleg.
+- Nieuwe componenten: `Stappenbalk` (geordende lijst, `aria-current="step"`) en `Vervangerkeuze`. De Schakelaar hoort bij de bak (stap G).
+
+Afwijking van het wireframe `ruilen-gelukt`: de vervanger "heeft hiervan bericht gekregen" is er niet, want er gaan nog geen berichten uit (O-1). De pagina zegt dat eerlijk.
+
 ### Stap E: Mijn diensten
 
 De lijst (komend en geweest dit seizoen), het blok Afgemeld, de lege staat, en de ingang vanaf Start (de kaart onder de statuskaart, en de knop "Al je diensten"
