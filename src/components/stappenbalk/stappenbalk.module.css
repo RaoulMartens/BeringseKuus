@@ -1,0 +1,75 @@
+/* De Stappenbalk: twee stappen naast elkaar; op een telefoon onder elkaar. De huidige stap in de
+   themakleur, een klare stap met een groen vinkje, een stap die nog komt in zachte tekst. */
+.balk {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: var(--neutraal-kaart);
+  box-shadow: inset 0 0 0 1px var(--neutraal-lijn-sterk);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.nummer {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--neutraal-vlak);
+  font-variant-numeric: tabular-nums;
+}
+
+.nummer svg {
+  width: 20px;
+  height: 20px;
+}
+
+.huidig {
+  color: var(--neutraal-tekst);
+  box-shadow: inset 0 0 0 2px var(--thema-primair);
+}
+
+.huidig .nummer {
+  background: var(--thema-primair);
+  color: var(--thema-op-primair);
+}
+
+.klaar {
+  color: var(--neutraal-tekst);
+}
+
+.klaar .nummer {
+  background: transparent;
+  color: var(--status-succes);
+}
+
+.alleenSchermlezer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .balk {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

@@ -7,6 +7,7 @@ import { Rolbezetting } from '@/components/rolbezetting/rolbezetting';
 import type { StatusRegel } from '@/components/jouwstatus/jouwstatus';
 import { Tijdlijnkaartje } from '@/components/tijdlijnkaartje/tijdlijnkaartje';
 import { afmeldenHref, maakAanbod } from '@/lib/afmelden';
+import { ruilHref } from '@/lib/ruilen';
 import {
   groepeerRollen,
   isNogNietIngedeeld,
@@ -85,6 +86,7 @@ export function maakStatusRegel(
     tekst: zin.tekst,
     ...(beheren ? { beheerHref: `/beheer/activiteiten/${activiteit.id}` } : {}),
     ...(aanbod.afmelden ? { afmeldHref: afmeldenHref(activiteit.id) } : {}),
+    ...(aanbod.overdragen ? { overdragenHref: ruilHref(activiteit.id) } : {}),
     ...(aanbod.intrekken ? { intrekActie: trekAfmeldingIn } : {}),
     ...(aanbod.hulp ? { hulp: aanbod.hulp } : {}),
   };

@@ -11,6 +11,7 @@ export interface AfmeldActiviteit {
   naam: string;
   datum: string;
   verzameltijd: string | null;
+  starttijd: string | null;
   locatie: string | null;
   afmeldDeadline: string | null;
   eindigtOm: string;
@@ -21,7 +22,7 @@ export interface AfmeldActiviteit {
 export async function leesAfmeldActiviteit(supabase: Supabase, id: string): Promise<AfmeldActiviteit | null> {
   const { data, error } = await supabase
     .from('mijn_activiteiten')
-    .select('id, naam, datum, verzameltijd, locatie, afmeld_deadline, eindigt_om, status')
+    .select('id, naam, datum, verzameltijd, starttijd, locatie, afmeld_deadline, eindigt_om, status')
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(`activiteit niet te lezen: ${error.code ?? error.message}`);
@@ -32,6 +33,7 @@ export async function leesAfmeldActiviteit(supabase: Supabase, id: string): Prom
     naam: data.naam,
     datum: data.datum,
     verzameltijd: data.verzameltijd,
+    starttijd: data.starttijd,
     locatie: data.locatie,
     afmeldDeadline: data.afmeld_deadline,
     eindigtOm: data.eindigt_om,
