@@ -6,13 +6,16 @@ import { Knop } from '@/components/knop/knop';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { dagLabel, kiesWelkom } from '@/lib/ledenactiviteit';
+import { splitsDiensten } from '@/lib/mijndiensten';
 import { vandaagInNederland } from '@/lib/programma';
 import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { maakSupabase } from '@/lib/supabase/server';
 import { VERENIGING } from '@/lib/vereniging';
 
 import { Activiteitblok, maakStatusRegel } from './activiteitblok';
+import { Dienstenkaart } from './dienstenkaart';
 import { leesIndelingen, leesKomendeActiviteiten } from './ledenactiviteit';
+import { leesDiensten } from './programma/mijn/gegevens';
 import stijl from './ledenscherm.module.css';
 
 /**
@@ -68,6 +71,14 @@ export default async function Startpagina() {
       : [];
   });
 
+  // Mijn diensten (UC-007): staat het lid zelf in de rolbezetting, dan is de ingang "Al je diensten" op die rij; anders een kaart onder
+  // de statuskaart met hoeveel diensten er komen.
+  const heeftEigenRij = activiteiten.some((activiteit) =>
+    indelingen.get(activiteit.id)?.plekken.some((plek) => plek.lidId === gebruiker.lidId),
+  );
+  const aantalDiensten = heeftEigenRij ? 0 : splitsDiensten(await leesDiensten(supabase), nu).komend.length;
+  const dienstenkaart = heeftEigenRij ? null : <Dienstenkaart aantal={aantalDiensten} />;
+
   return (
     <Schermkader
       actief="start"
@@ -76,11 +87,13 @@ export default async function Startpagina() {
       zijkolom={
         <div className={stijl.nietOpMobiel}>
           <Jouwstatus regels={regels} />
+          {dienstenkaart}
         </div>
       }
     >
       <div className={stijl.alleenMobiel}>
         <Jouwstatus regels={regels} />
+        {dienstenkaart}
       </div>
       {activiteiten.map((activiteit) => {
         const indeling = indelingen.get(activiteit.id);
@@ -92,6 +105,7 @@ export default async function Startpagina() {
             eigenLidId={gebruiker.lidId}
             dag={dagLabel(activiteit.datum, vandaag)}
             metNaam
+            alleDienstenHref="/programma/mijn"
           />
         ) : null;
       })}

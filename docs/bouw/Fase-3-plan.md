@@ -94,6 +94,21 @@ Afwijking van het wireframe `ruilen-gelukt`: de vervanger "heeft hiervan bericht
 De lijst (komend en geweest dit seizoen), het blok Afgemeld, de lege staat, en de ingang vanaf Start (de kaart onder de statuskaart, en de knop "Al je diensten"
 op de eigen rij in de rolbezetting).
 
+**Gebouwd (04-11-2026)**, naar de wireframes `mijn-diensten` en `mijn-diensten-leeg` en UC-007:
+
+- `/programma/mijn`: de eigen plekken van het seizoen. **Komende diensten** op datum met de rol; **Afgemeld** met de activiteiten waarvoor je bent afgemeld (de regel
+  opent de activiteit, waar je de afmelding intrekt, R9); **Geweest dit seizoen** grijs onderaan. Leeg: "Je staat nog nergens als dienst ingedeeld." Alleen plekken,
+  niet "aanwezig zonder dienst" (besluit 15-10-2026). Alles komt uit de view `mijn_diensten` en `mijn_activiteiten`, dus een lid ziet alleen wat hij mag zien (R13, R15, R22),
+  ook een beheerder.
+- De **wisselaar** bovenaan het programma en bij Mijn diensten (de component Tellers): "komende activiteiten" en "komende diensten", het gekozen filter met een ring;
+  nog een keer klikken gaat terug naar alles. Het getal van de activiteiten is op beide schermen hetzelfde (`leesAantalKomende`).
+- Op **Start**: de knop "Al je diensten" op je eigen rij in de rolbezetting; wie geen eigen rij heeft (afgemeld, zonder dienst) ziet de kaart "Mijn diensten · N komende ›" onder
+  de statuskaart.
+- Zuivere logica met unit tests: `src/lib/mijndiensten.ts` (indeling komend en geweest, volgorde, R16 op het eindmoment); browsertests in `e2e/mijn-diensten.spec.ts`.
+
+**Bewust niet**: de zijkaart "Zet in je agenda" (UC-008, fase 7), de plek in de bak (stap G, aanname uit UC-007 AF-2), en op een telefoon de kaart "direct na het kaartje":
+de kaart staat daar direct onder de statuskaart bovenaan.
+
 ### Stap G: de bak
 
 Dit stelt besluit 2.4 van `Fase-2-plan.md` bij ("samen met fase 3"): de bak krijgt een eigen stap, vóór de eerste Bonte Avond op 15 januari 2027. De plek in de bak
