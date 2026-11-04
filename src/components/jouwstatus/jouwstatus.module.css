@@ -70,6 +70,28 @@
   height: 16px;
 }
 
+/* De knoppen Afmelden en Afmelding intrekken staan onder de zin, over de volle breedte van het paneel. */
+.knop {
+  margin-top: 4px;
+}
+
+.intrekken {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intrekken > button {
+  width: 100%;
+}
+
+.hulp {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst);
+}
+
 .uitleg {
   margin: 0;
   font-size: 0.875rem;

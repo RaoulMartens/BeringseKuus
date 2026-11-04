@@ -63,7 +63,9 @@ export default async function Startpagina() {
   );
   const regels = activiteiten.flatMap((activiteit) => {
     const indeling = indelingen.get(activiteit.id);
-    return indeling ? [maakStatusRegel(activiteit, indeling, gebruiker.lidId, gebruiker.isBeheerder)] : [];
+    return indeling
+      ? [maakStatusRegel(activiteit, indeling, gebruiker.lidId, gebruiker.isBeheerder, nu)]
+      : [];
   });
 
   return (

@@ -1,0 +1,79 @@
+/* De pagina's van afmelden: een kaart met de gegevens van de activiteit als rijen, de knoppen eronder; op een telefoon over de volle
+   breedte onder elkaar. */
+.rijen {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rij {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.rij dt {
+  margin: 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.rij dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tekst {
+  margin: 0;
+}
+
+.formulier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+.knoppen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.contact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contactNaam {
+  font-weight: 700;
+}
+
+.nummer {
+  font-variant-numeric: tabular-nums;
+}
+
+.reden {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .rij {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .knoppen {
+    flex-direction: column;
+  }
+
+  .knoppen > * {
+    width: 100%;
+  }
+}
