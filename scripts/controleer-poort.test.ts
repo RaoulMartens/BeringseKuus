@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   controleerEslint,
+  controleerHook,
   controleerPoort,
   controleerScripts,
   controleerTestinstellingen,
@@ -85,6 +86,49 @@ describe('package.json', () => {
   it('faalt als een stap mag mislukken', () => {
     const zacht = `${pakket.scripts['check:basis'] ?? ''} || true`;
     assert.notDeepEqual(controleerScripts(met({ 'check:basis': zacht })), []);
+  });
+
+  it('faalt als de databasetests niets meer draaien of de Node-tests van de scripts ontbreken (CR-07)', () => {
+    assert.deepEqual(controleerScripts(met({})), []);
+    assert.notDeepEqual(controleerScripts(met({ 'test:db': 'node -e 0' })), []);
+    assert.notDeepEqual(controleerScripts(met({ 'test:db': 'npm run supabase:start && true' })), []);
+    assert.notDeepEqual(
+      controleerScripts(
+        met({ test: (pakket.scripts.test ?? '').replace('scripts/**/*.test.ts', 'scripts/leeg/*.test.ts') }),
+      ),
+      [],
+    );
+  });
+
+  it('faalt bij elke toevoeging aan het test-script die tests laat verdwijnen of falen zonder dat het opvalt (FX-07)', () => {
+    const test = pakket.scripts.test ?? '';
+    for (const wijziging of [
+      `${test} || true`,
+      test.replace('vitest run', 'vitest run --exclude src/lib'),
+      test.replace('vitest run', 'vitest run -t programma'),
+      test.replace('vitest run', 'vitest run --passWithNoTests'),
+      test.replace('node --test', 'node --test --test-skip-pattern=.'),
+      test.replace(' && vitest run', ' && true'),
+    ]) {
+      assert.notEqual(wijziging, test);
+      const problemen = controleerScripts(met({ test: wijziging }));
+      assert.ok(
+        problemen.some((p) => p.startsWith('package.json: test moet')),
+        wijziging,
+      );
+    }
+  });
+
+  it('faalt als de hook voor een push de controle op de geschiedenis niet meer draait (CR-02)', () => {
+    const hook = lees('.githooks/pre-push');
+    assert.deepEqual(controleerHook(hook), []);
+    assert.deepEqual(controleerHook(hook.replace('controleer-repo.ts --push', 'echo')), [
+      '.githooks/pre-push: "controleer-repo.ts --push" ontbreekt',
+    ]);
+    assert.deepEqual(controleerHook(hook.replaceAll('controle:omwegen', 'iets')), [
+      '.githooks/pre-push: "controle:omwegen" ontbreekt',
+    ]);
+    assert.deepEqual(controleerHook(undefined), ['.githooks/pre-push ontbreekt']);
   });
 
   it('faalt als build:worker niet de OpenNext-build is', () => {
@@ -386,6 +430,29 @@ describe('testinstellingen', () => {
     assert.notDeepEqual(controleerTestinstellingen(vitest, node), []);
     const hergebruik = playwright.replace('reuseExistingServer: false', 'reuseExistingServer: true');
     assert.notDeepEqual(controleerTestinstellingen(vitest, hergebruik), []);
+  });
+
+  it('faalt als Vitest stilletjes minder tests vindt: een smaller include of een exclude (CR-07)', () => {
+    assert.deepEqual(controleerTestinstellingen(vitest, playwright), []);
+    const smal = vitest.replace(/include:\s*\[[^\]]*\]/, "include: ['src/lib/programma.test.ts']");
+    assert.notDeepEqual(controleerTestinstellingen(smal, playwright), []);
+    const zonderTsx = vitest.replace(", 'src/**/*.test.tsx'", '');
+    assert.notDeepEqual(controleerTestinstellingen(zonderTsx, playwright), []);
+    const uitgesloten = vitest.replace('environment:', "exclude: ['src/**/*.test.tsx'],\n    environment:");
+    assert.notDeepEqual(controleerTestinstellingen(uitgesloten, playwright), []);
+    const leeg = vitest.replace('passWithNoTests: false', 'passWithNoTests: true');
+    assert.notDeepEqual(controleerTestinstellingen(leeg, playwright), []);
+  });
+
+  it('faalt als Playwright tests verbergt met een ander filter of een andere testmap (CR-07)', () => {
+    const anderFilter = playwright.replace('testDir:', 'testIgnore: /inloggen/,\n  testDir:');
+    assert.notDeepEqual(controleerTestinstellingen(vitest, anderFilter), []);
+    const anderProject = playwright.replace('testMatch: DATABASE', 'testMatch: /^$/');
+    assert.notDeepEqual(controleerTestinstellingen(vitest, anderProject), []);
+    const andereMap = playwright.replace("testDir: './e2e'", "testDir: './e2e/klein'");
+    assert.notDeepEqual(controleerTestinstellingen(vitest, andereMap), []);
+    const alles = playwright.replace(/const DATABASE = \/.*\/;/, 'const DATABASE = /.*/;');
+    assert.notDeepEqual(controleerTestinstellingen(vitest, alles), []);
   });
 
   it('faalt als de browsertests met grep of grepInvert worden gefilterd (review F0-09)', () => {

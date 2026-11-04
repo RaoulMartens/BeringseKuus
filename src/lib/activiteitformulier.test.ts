@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   leesDetail,
   leesFormulier,
+  leesOpslagDoel,
   leesWaarden,
   nogNodigOmTePubliceren,
   tijdstipVoorVeld,
@@ -286,5 +287,68 @@ describe('leesWaarden', () => {
     expect(waarden.groepen).toEqual([UUID]);
     expect(waarden.plekToevoegen).toEqual(['werker:n1']);
     expect(waarden.plekWeghalen).toEqual([ANDERE_UUID]);
+  });
+});
+
+describe('leesOpslagDoel (CR-06)', () => {
+  const ID = '6a8653e2-8a75-492b-9fcc-7acd09bcd31d';
+  const formulier = (velden: Record<string, string>): FormData => {
+    const uit = new FormData();
+    for (const [sleutel, waarde] of Object.entries(velden)) uit.append(sleutel, waarde);
+    return uit;
+  };
+
+  it('een nieuwe activiteit heeft geen id en geen versie', () => {
+    expect(leesOpslagDoel(formulier({ modus: 'nieuw' }))).toEqual({ soort: 'nieuw' });
+    expect(leesOpslagDoel(formulier({ modus: 'nieuw', activiteit_id: '', versie: '' }))).toEqual({
+      soort: 'nieuw',
+    });
+  });
+
+  it('een nieuwe activiteit met een id of versie is een fout: dat is een bewerking die zich als nieuw voordoet', () => {
+    expect(leesOpslagDoel(formulier({ modus: 'nieuw', activiteit_id: ID }))).toEqual({
+      soort: 'fout',
+      reden: 'modus',
+    });
+    expect(leesOpslagDoel(formulier({ modus: 'nieuw', versie: '3' }))).toEqual({
+      soort: 'fout',
+      reden: 'modus',
+    });
+  });
+
+  it('bewerken vraagt een geldig id en een versie', () => {
+    expect(leesOpslagDoel(formulier({ modus: 'bewerken', activiteit_id: ID, versie: '7' }))).toEqual({
+      soort: 'bewerken',
+      id: ID,
+      versie: 7,
+    });
+  });
+
+  it('bewerken zonder id wordt geen nieuwe activiteit, ook niet met een versie erbij', () => {
+    const lijst: Record<string, string>[] = [
+      { modus: 'bewerken', versie: '7' },
+      { modus: 'bewerken', activiteit_id: '', versie: '7' },
+      { modus: 'bewerken', activiteit_id: 'geen-uuid', versie: '7' },
+    ];
+    for (const velden of lijst) {
+      expect(leesOpslagDoel(formulier(velden))).toEqual({ soort: 'fout', reden: 'id' });
+    }
+  });
+
+  it('bewerken zonder geldige versie is een fout', () => {
+    for (const versie of [undefined, '', '0', '-1', 'x', '1.5', '3000000000']) {
+      const velden: Record<string, string> = { modus: 'bewerken', activiteit_id: ID };
+      if (versie !== undefined) velden.versie = versie;
+      expect(leesOpslagDoel(formulier(velden))).toEqual({ soort: 'fout', reden: 'versie' });
+    }
+  });
+
+  it('zonder modus of met een onbekende modus gebeurt er niets', () => {
+    expect(leesOpslagDoel(formulier({}))).toEqual({ soort: 'fout', reden: 'modus' });
+    expect(leesOpslagDoel(formulier({ activiteit_id: ID, versie: '1' }))).toEqual({
+      soort: 'fout',
+      reden: 'modus',
+    });
+    expect(leesOpslagDoel(formulier({ modus: 'verwijderen' }))).toEqual({ soort: 'fout', reden: 'modus' });
   });
 });

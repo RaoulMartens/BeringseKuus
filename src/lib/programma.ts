@@ -130,3 +130,17 @@ export function maakProgramma(activiteiten: ProgrammaActiviteit[], nu: Date): Pr
   const geweest = gesorteerd.filter((a) => isGeweest(a, nu)).reverse();
   return { komende: perMaand(komende), geweest: perMaand(geweest), aantalKomende: komende.length };
 }
+
+/**
+ * Waar een rij in het programma naartoe gaat. Een lid opent de activiteit zoals een lid hem ziet. Het bestuur ziet ook wat een lid
+ * niet ziet: een concept, of een gepubliceerde activiteit voor een groep waar de beheerder zelf niet bij hoort. Die opent in
+ * beheer, anders zou de link een 404 geven (CR-12).
+ */
+export function programmaLink(
+  activiteit: Pick<ProgrammaActiviteit, 'id' | 'status'>,
+  zichtbaarAlsLid: boolean,
+): string {
+  return activiteit.status === 'concept' || !zichtbaarAlsLid
+    ? `/beheer/activiteiten/${activiteit.id}`
+    : `/programma/${activiteit.id}`;
+}

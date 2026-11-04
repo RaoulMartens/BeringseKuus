@@ -4,13 +4,22 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { controleer, laadVerbodenWoorden, leesTekst, type Opties } from './controleer-repo.ts';
+import {
+  commitsVanPush,
+  controleer,
+  controleerGeschiedenis,
+  controleerPush,
+  laadVerbodenWoorden,
+  leesPushRegels,
+  leesTekst,
+  type Opties,
+} from './controleer-repo.ts';
 
 const SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'controleer-repo.ts');
 const opgeruimd: string[] = [];
@@ -351,6 +360,13 @@ describe('adres', () => {
     assert.deepEqual(controleer(root, STANDAARD), []);
   });
 
+  it('laat het adres uit de Co-Authored-By-regel van Claude Code toe, maar geen ander noreply-adres', () => {
+    const goed = maakRepo({ 'docs/a.md': 'Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>' });
+    assert.deepEqual(controleer(goed, STANDAARD), []);
+    const fout = maakRepo({ 'docs/a.md': 'Co-Authored-By: Iemand <noreply@bedrijf.nl>' });
+    assert.equal(controleer(fout, STANDAARD).length, 1);
+  });
+
   it('zet het adres zelf niet in de melding', () => {
     assert.ok(
       !JSON.stringify(controleer(maakRepo({ 'docs/a.md': 'iemand@vereniging.nl' }), STANDAARD)).includes(
@@ -519,6 +535,111 @@ describe('met git', () => {
     writeFileSync(path.join(root, 'logo.png'), PNG);
     assert.deepEqual(regels(root), ['licentie']);
   });
+
+  it('faalt zodra de namenlijst zelf wordt bijgehouden, ook al staat hij in .gitignore (CR-03)', () => {
+    const root = gitRepo();
+    assert.deepEqual(regels(root), []);
+    execFileSync('git', ['add', '-f', '.verboden-woorden'], { cwd: root });
+    assert.deepEqual(regels(root), ['namenlijst-in-git']);
+    const r = controleer(root, STANDAARD)[0];
+    assert.ok(r && !r.melding.includes('Fictiefnaam'), 'de melding noemt geen woord uit de lijst');
+  });
+
+  it('faalt in een uitgepakte commit als de namenlijst erin staat (CR-03)', () => {
+    const root = maakRepo({ '.verboden-woorden': 'Fictiefnaam\n' });
+    assert.deepEqual(regels(root), []);
+    assert.deepEqual(
+      controleer(root, { ...STANDAARD, snapshot: true }).map((p) => p.regel),
+      ['namenlijst-in-git'],
+    );
+  });
+});
+
+describe('de geschiedenis van een push (CR-02)', () => {
+  const git = (root: string, ...argumenten: string[]): string =>
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Proef',
+        '-c',
+        'user.email=proef@example.com',
+        '-c',
+        'commit.gpgsign=false',
+        ...argumenten,
+      ],
+      { cwd: root, encoding: 'utf8' },
+    ).trim();
+  const NUL = '0'.repeat(40);
+
+  /** Een repository waar een verboden woord in de ene commit komt en in de volgende weer weg is. */
+  const repoMetTussencommit = (): { root: string; eerste: string; tweede: string; derde: string } => {
+    const root = maakRepo({ 'README.md': 'begin\n' });
+    git(root, 'init', '-q');
+    git(root, 'add', '-A');
+    git(root, 'commit', '-q', '-m', 'begin');
+    const eerste = git(root, 'rev-parse', 'HEAD');
+    writeFileSync(path.join(root, 'notitie.md'), 'Fictiefnaam is lid\n');
+    git(root, 'add', '-A');
+    git(root, 'commit', '-q', '-m', 'te veel');
+    const tweede = git(root, 'rev-parse', 'HEAD');
+    git(root, 'rm', '-q', 'notitie.md');
+    git(root, 'commit', '-q', '-m', 'weer weg');
+    return { root, eerste, tweede, derde: git(root, 'rev-parse', 'HEAD') };
+  };
+
+  it('leest de regels die git de hook geeft, en slaat het wegduwen van een ref over', () => {
+    const sha = 'a'.repeat(40);
+    assert.deepEqual(leesPushRegels(`refs/heads/x ${sha} refs/heads/x ${NUL}\n`), [
+      { lokaleSha: sha, remoteSha: NUL },
+    ]);
+    assert.deepEqual(leesPushRegels(`(delete) ${NUL} refs/heads/x ${sha}\n`), []);
+    assert.deepEqual(leesPushRegels(''), []);
+    assert.deepEqual(leesPushRegels('onzin'), []);
+  });
+
+  it('ziet een commit waarin iets stond dat in de volgende weer weg is: de werkmap is schoon, de push niet', () => {
+    const { root, tweede, derde } = repoMetTussencommit();
+    // De bestaande controle ziet alleen de werkmap en vindt niets.
+    assert.deepEqual(controleer(root, STANDAARD), []);
+    // Een nieuwe branch: alle commits die op geen remote staan.
+    const commits = commitsVanPush(root, [{ lokaleSha: derde, remoteSha: NUL }]);
+    assert.equal(commits.length, 3);
+    const problemen = controleerGeschiedenis(root, commits, STANDAARD);
+    assert.deepEqual(
+      problemen.map((p) => p.regel),
+      ['verboden-woord'],
+    );
+    assert.match(problemen[0]?.pad ?? '', new RegExp(`notitie\\.md \\(commit ${tweede.slice(0, 7)}\\)`));
+    assert.ok(!(problemen[0]?.melding ?? '').includes('Fictiefnaam'));
+  });
+
+  it('kijkt bij een bestaande branch alleen naar wat de push toevoegt', () => {
+    const { root, eerste, tweede, derde } = repoMetTussencommit();
+    // De remote heeft al de tweede commit: alleen de derde is nieuw, en die is schoon.
+    const nieuw = commitsVanPush(root, [{ lokaleSha: derde, remoteSha: tweede }]);
+    assert.deepEqual(nieuw, [derde]);
+    assert.deepEqual(controleerGeschiedenis(root, nieuw, STANDAARD), []);
+    // De remote heeft alleen de eerste: de tweede (met het woord) en de derde zijn nieuw.
+    assert.equal(commitsVanPush(root, [{ lokaleSha: derde, remoteSha: eerste }]).length, 2);
+  });
+
+  it('draait als hook: stdin van git, exitcode 1 met de commit erbij, en 0 zonder probleem', () => {
+    const { root, derde, tweede } = repoMetTussencommit();
+    const draaiPush = (invoer: string) =>
+      spawnSync('node', [SCRIPT, '--push', '--root', root], {
+        input: invoer,
+        encoding: 'utf8',
+        env: { ...process.env, VERBODEN_WOORDEN: 'Fictiefnaam' },
+      });
+    const fout = draaiPush(`refs/heads/proef ${derde} refs/heads/proef ${NUL}\n`);
+    assert.equal(fout.status, 1);
+    assert.match(String(fout.stderr), /FOUT \[verboden-woord\] notitie\.md \(commit [0-9a-f]{7}\):1/);
+    assert.ok(String(fout.stderr).includes(`(commit ${tweede.slice(0, 7)})`));
+    assert.ok(!String(fout.stderr).includes('Fictiefnaam'));
+    const goed = draaiPush(`refs/heads/proef ${derde} refs/heads/proef ${tweede}\n`);
+    assert.equal(goed.status, 0, String(goed.stderr));
+  });
 });
 
 describe('de opdrachtregel', () => {
@@ -536,5 +657,153 @@ describe('de opdrachtregel', () => {
     assert.match(String(r.stderr), /FOUT \[adres\] docs\/a\.md:2/);
     assert.match(String(r.stderr), /1 probleem/);
     assert.ok(!String(r.stderr).includes('vereniging.nl'));
+  });
+});
+
+describe('de push-controle: omwegen en de hook zelf (review van de fix-PR)', () => {
+  const gitIn = (root: string, ...argumenten: string[]): string =>
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Proef',
+        '-c',
+        'user.email=proef@example.com',
+        '-c',
+        'commit.gpgsign=false',
+        ...argumenten,
+      ],
+      { cwd: root, encoding: 'utf8' },
+    ).trim();
+  const NUL = '0'.repeat(40);
+  const nieuweRepo = (bestanden: Record<string, string>): string => {
+    const root = maakRepo({ 'README.md': 'begin\n', ...bestanden });
+    gitIn(root, 'init', '-q');
+    return root;
+  };
+  const commit = (root: string, bericht: string): string => {
+    gitIn(root, 'add', '-A', '-f');
+    gitIn(root, 'commit', '-q', '--allow-empty', '-m', bericht);
+    return gitIn(root, 'rev-parse', 'HEAD');
+  };
+  const push = (root: string, tip: string, remote = NUL, max?: number) =>
+    controleerPush(root, `refs/heads/x ${tip} refs/heads/x ${remote}\n`, STANDAARD, max);
+
+  it('ziet een bestand dat zichzelf verbergt met export-ignore in zijn eigen .gitattributes (FX-01)', () => {
+    const root = nieuweRepo({});
+    writeFileSync(path.join(root, '.gitattributes'), 'geheim.txt export-ignore\n');
+    writeFileSync(path.join(root, 'geheim.txt'), 'Fictiefnaam\n');
+    commit(root, 'met uitzondering');
+    gitIn(root, 'rm', '-q', 'geheim.txt');
+    const tip = commit(root, 'weer weg');
+    const uit = push(root, tip);
+    assert.equal(uit.fout, undefined);
+    assert.deepEqual(
+      uit.problemen.map((p) => p.regel),
+      ['verboden-woord'],
+    );
+    assert.match(uit.problemen[0]?.pad ?? '', /^geheim\.txt \(commit /);
+  });
+
+  it('ziet een bestand in een map die de gewone controle overslaat, zoals coverage/ en node_modules/ (FX-02)', () => {
+    const root = nieuweRepo({});
+    mkdirSync(path.join(root, 'coverage'), { recursive: true });
+    mkdirSync(path.join(root, 'node_modules', 'a'), { recursive: true });
+    writeFileSync(path.join(root, 'coverage', 'x.txt'), 'Fictiefnaam\n');
+    writeFileSync(path.join(root, 'node_modules', 'a', 'x.txt'), 'Fictiefnaam\n');
+    commit(root, 'in genegeerde mappen');
+    gitIn(root, 'rm', '-rq', 'coverage', 'node_modules');
+    const uit = push(root, commit(root, 'weer weg'));
+    assert.deepEqual(uit.problemen.map((p) => p.pad.replace(/ \(commit .*/, '')).sort(), [
+      'coverage/x.txt',
+      'node_modules/a/x.txt',
+    ]);
+  });
+
+  it('controleert ook het commitbericht (FX-04)', () => {
+    const root = nieuweRepo({});
+    const tip = commit(root, 'Fictiefnaam heeft meegedaan');
+    const uit = push(root, tip);
+    assert.deepEqual(
+      uit.problemen.map((p) => p.regel),
+      ['verboden-woord'],
+    );
+    assert.match(uit.problemen[0]?.pad ?? '', /^commitbericht \(commit /);
+    assert.ok(!(uit.problemen[0]?.melding ?? '').includes('Fictiefnaam'));
+  });
+
+  it('valt terug op "alles wat op geen remote staat" als de remote-sha lokaal onbekend is, zonder stacktrace (FX-03)', () => {
+    const root = nieuweRepo({});
+    const tip = commit(root, 'begin');
+    const uit = push(root, tip, 'f'.repeat(40));
+    assert.equal(uit.fout, undefined);
+    assert.equal(uit.commits, 1);
+  });
+
+  it('faalt dicht op invoer die niet van git lijkt, en op te veel commits (FX-03, FX-06)', () => {
+    const root = nieuweRepo({});
+    const tip = commit(root, 'begin');
+    assert.match(controleerPush(root, 'iets anders\n', STANDAARD).fout ?? '', /niet te lezen/);
+    // Leeg (geen regels) is een push zonder nieuwe commits: schoon.
+    assert.deepEqual(controleerPush(root, '', STANDAARD), { problemen: [], commits: 0 });
+    // Een ref wegduwen voegt niets toe en is geen fout.
+    assert.deepEqual(controleerPush(root, `(delete) ${NUL} refs/heads/x ${tip}\n`, STANDAARD), {
+      problemen: [],
+      commits: 0,
+    });
+    commit(root, 'twee');
+    const derde = commit(root, 'drie');
+    assert.match(push(root, derde, NUL, 2).fout ?? '', /3 nieuwe commits in één push; meer dan 2/);
+  });
+
+  /** Een werkrepo met de echte hook en het echte script, en een kale remote waar naartoe wordt gepusht. */
+  const hookOmgeving = (): { werk: string; remote: string } => {
+    const werk = maakRepo({
+      'package.json': JSON.stringify({
+        scripts: { 'controle:repo': 'node -e 0', 'controle:omwegen': 'node -e 0' },
+      }),
+    });
+    const remote = mkdtempSync(path.join(tmpdir(), 'controleer-repo-remote-'));
+    opgeruimd.push(remote);
+    execFileSync('git', ['init', '-q', '--bare'], { cwd: remote });
+    mkdirSync(path.join(werk, 'scripts'), { recursive: true });
+    mkdirSync(path.join(werk, '.githooks'), { recursive: true });
+    writeFileSync(path.join(werk, 'scripts', 'controleer-repo.ts'), readFileSync(SCRIPT));
+    const hook = path.join(path.dirname(SCRIPT), '..', '.githooks', 'pre-push');
+    writeFileSync(path.join(werk, '.githooks', 'pre-push'), readFileSync(hook), { mode: 0o755 });
+    gitIn(werk, 'init', '-q');
+    gitIn(werk, 'config', 'core.hooksPath', '.githooks');
+    gitIn(werk, 'remote', 'add', 'oorsprong', remote);
+    return { werk, remote };
+  };
+  const duw = (werk: string, vanNaar: string) =>
+    spawnSync('git', ['push', '-q', 'oorsprong', vanNaar], {
+      cwd: werk,
+      encoding: 'utf8',
+      env: { ...process.env, VERBODEN_WOORDEN: 'Fictiefnaam', NODE_TEST_CONTEXT: undefined },
+    });
+  const branchesOpRemote = (remote: string): string =>
+    execFileSync('git', ['for-each-ref', '--format=%(refname)'], { cwd: remote, encoding: 'utf8' }).trim();
+
+  it('de echte hook: een tussencommit met een verboden woord stopt de push, een schone push gaat door (FX-05)', () => {
+    const { werk, remote } = hookOmgeving();
+    writeFileSync(path.join(werk, 'notitie.md'), 'Fictiefnaam\n');
+    commit(werk, 'te veel');
+    gitIn(werk, 'rm', '-q', 'notitie.md');
+    commit(werk, 'weer weg');
+    // De werkmap is schoon, maar de eerste commit is dat niet: de push moet stoppen en de remote leeg blijven.
+    const geweigerd = duw(werk, 'HEAD:refs/heads/proef');
+    assert.notEqual(geweigerd.status, 0);
+    assert.match(String(geweigerd.stderr), /commit [0-9a-f]{7}/);
+    assert.equal(branchesOpRemote(remote), '');
+
+    // Een geschiedenis zonder dat woord gaat met dezelfde hook gewoon door.
+    gitIn(werk, 'checkout', '-q', '--orphan', 'schoon');
+    gitIn(werk, 'rm', '-rfq', '--cached', '.');
+    writeFileSync(path.join(werk, 'README.md'), 'begin\n');
+    commit(werk, 'schoon begin');
+    const goed = duw(werk, 'schoon:refs/heads/schoon');
+    assert.equal(goed.status, 0, String(goed.stderr));
+    assert.equal(branchesOpRemote(remote), 'refs/heads/schoon');
   });
 });

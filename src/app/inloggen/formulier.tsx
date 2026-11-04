@@ -18,6 +18,8 @@ const CODE_FOUTEN = {
   vorm: 'Vul de volledige cijfercode uit je mail in.',
   code: 'Deze code klopt niet of is verlopen. Controleer de code of vraag een nieuwe aan.',
   'te-vaak': 'Te vaak geprobeerd. Wacht een paar minuten en probeer het opnieuw.',
+  storing:
+    'De inlogdienst reageert nu niet. Dat ligt niet aan jou of je code. Probeer het over een paar minuten opnieuw.',
 };
 
 interface Eigenschappen {

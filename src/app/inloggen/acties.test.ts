@@ -82,6 +82,18 @@ describe('inloggen met een mailcode', () => {
     expect((await bevestigInlogcode(BEGIN, formulier('lid@example.com', '00123456'))).fout).toBe('te-vaak');
   });
 
+  it('zegt bij een storing van de inlogdienst dat het een storing is, niet dat de code niet klopt (CR-10)', async () => {
+    for (const status of [500, 503, 0]) {
+      auth.bevestig.mockResolvedValue({
+        error: { code: 'unexpected_failure', name: 'AuthRetryableFetchError', status },
+      });
+      expect((await bevestigInlogcode(BEGIN, formulier('lid@example.com', '00123456'))).fout).toBe('storing');
+    }
+    // Een fout zonder status of met een clientfout blijft een foute code.
+    auth.bevestig.mockResolvedValue({ error: { code: 'otp_expired', name: 'AuthApiError', status: 403 } });
+    expect((await bevestigInlogcode(BEGIN, formulier('lid@example.com', '00123456'))).fout).toBe('code');
+  });
+
   it('gaat na een goede code altijd naar mijn account, ongeacht een meegestuurd doeladres', async () => {
     const data = formulier('lid@example.com', '00123456');
     data.set('redirect', 'https://example.org/elders');

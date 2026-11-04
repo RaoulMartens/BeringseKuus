@@ -9,6 +9,7 @@ import {
   maakTijdlijn,
   nogNietIngevuld,
   rolLabel,
+  telefoonBijEindverantwoordelijke,
   statusZin,
   volgendeDag,
   type LedenActiviteit,
@@ -229,5 +230,31 @@ describe('jouw status', () => {
       soort: 'afgemeld',
       tekst: 'Je bent afgemeld.',
     });
+  });
+});
+
+describe('telefoonBijEindverantwoordelijke (CR-09)', () => {
+  const plekken = [
+    { rol: 'werker', lidId: 'a', naam: 'Anne Smeets' },
+    { rol: 'eindverantwoordelijke', lidId: 'g', naam: 'Ger Hermans' },
+  ];
+
+  it('geeft het nummer als het contact dezelfde persoon is als de eindverantwoordelijke op het scherm', () => {
+    expect(
+      telefoonBijEindverantwoordelijke(plekken, { naam: 'Ger Hermans', telefoon: '06 12 34 56 78' }),
+    ).toBe('06 12 34 56 78');
+  });
+
+  it('geeft niets als het bestuur daartussen een ander heeft gekozen: het nummer hoort niet bij de naam', () => {
+    expect(
+      telefoonBijEindverantwoordelijke(plekken, { naam: 'Piet Opvolger', telefoon: '06 87 65 43 21' }),
+    ).toBeNull();
+  });
+
+  it('geeft niets zonder contact of zonder eindverantwoordelijke op het scherm', () => {
+    expect(telefoonBijEindverantwoordelijke(plekken, null)).toBeNull();
+    expect(
+      telefoonBijEindverantwoordelijke([plekken[0]!], { naam: 'Ger Hermans', telefoon: '06 12 34 56 78' }),
+    ).toBeNull();
   });
 });

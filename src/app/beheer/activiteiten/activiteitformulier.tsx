@@ -94,6 +94,7 @@ export function Activiteitformulier({
         aria-hidden="true"
         className={stijl.standaardknop}
       />
+      <input type="hidden" name="modus" value={activiteitId ? 'bewerken' : 'nieuw'} />
       {activiteitId && <input type="hidden" name="activiteit_id" value={activiteitId} />}
       {versie !== null && <input type="hidden" name="versie" value={versie} />}
 

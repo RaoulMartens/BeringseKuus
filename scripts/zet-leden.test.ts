@@ -79,6 +79,25 @@ test('magBestand: een symlink van buiten naar een bestand in de repository telt 
   }
 });
 
+test('magBestand: een bestand dat met twee punten begint, ligt gewoon in de map (CR-13)', () => {
+  const map = mkdtempSync(path.join(tmpdir(), 'zet-leden-'));
+  try {
+    mkdirSync(path.join(map, '..lijsten'));
+    writeFileSync(path.join(map, '..pilot.csv'), 'tekst');
+    writeFileSync(path.join(map, '..lijsten', 'x.csv'), 'tekst');
+    writeFileSync(path.join(map, '..pilot.leden.csv'), 'tekst');
+    assert.match(magBestand(path.join(map, '..pilot.csv'), map) ?? '', /niet \*\.leden\.csv/);
+    assert.match(magBestand(path.join(map, '..lijsten', 'x.csv'), map) ?? '', /niet \*\.leden\.csv/);
+    assert.equal(magBestand(path.join(map, '..pilot.leden.csv'), map), null);
+    // Een echte stap omhoog blijft buiten de repository.
+    const binnen = path.join(map, 'repo');
+    mkdirSync(binnen);
+    assert.equal(magBestand(path.join(map, '..pilot.csv'), binnen), null);
+  } finally {
+    rmSync(map, { recursive: true, force: true });
+  }
+});
+
 test('magBestand: buiten de repository mag alles, binnen alleen een bestand dat git negeert', () => {
   assert.equal(magBestand('/ergens/anders/lijst.csv', '/projecten/repo'), null);
   assert.equal(magBestand('/projecten/repo/pilot.leden.csv', '/projecten/repo'), null);

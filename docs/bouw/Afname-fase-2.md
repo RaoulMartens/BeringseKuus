@@ -227,3 +227,30 @@ dit is het advies.
 | De functie die leden inactief zet (fase 4) neemt de lock of herhaalt de toets op de eindverantwoordelijke | F2-12, R2-17 |
 | De bak (`bak_actief`): de plek en het scherm, vóór de eerste bak in januari | Besluit 2.4 |
 | Een eigen zoekveld in de keuzelijst van een plek; "Nieuwe helper toevoegen" in het scherm | Punt 4, fase 4 |
+
+## 8. Review van code en build door ChatGPT (04-11-2026)
+
+Een tweede, onafhankelijke review (een ander model dan dat de code schreef) op `main` `811ee14`: 16 bevindingen, geen onjuiste, geen inbraak of
+omzeiling van de MFA van het bestuur. Het rapport en de beoordeling per bevinding staan bij de stage-documenten (`Review-code-chatgpt.md`,
+`Beoordeling-review-code-chatgpt.md`). Wat ermee is gedaan:
+
+| ID | Wat | Afhandeling |
+|---|---|---|
+| CR-02 | De controle vóór een push zag tussencommits niet | **Opgelost** (de hook geeft de nieuwe commits door; elke commit wordt als volledige map plus commitbericht gecontroleerd; de poort bewaakt de hook). De eigen review van die oplossing vond twee omwegen (`export-ignore`, genegeerde mappen) die ook zijn dichtgezet |
+| CR-03 | De namenlijst mocht in git staan | **Opgelost** (de controle faalt als hij bijgehouden wordt) |
+| CR-07 | De poort kon groen lijken zonder dat tests draaien | **Opgelost**: exacte scripts (`test`, `test:db`), vaste Vitest- en Playwright-instellingen, en na het draaien het bewijs dat **elk** testbestand in het rapport van zijn runner staat (`controle:overgeslagen`) |
+| CR-04 | De import kon een eindverantwoordelijke zijn activiteit ontnemen | **Opgelost** (een groepswijziging die een ingedeeld lid zijn dienst laat kwijtraken wordt geweigerd) |
+| CR-16 | Een onderbroken import liet een half lid achter | **Opgelost** (de volgende run maakt het af; opruimfouten worden gemeld) |
+| CR-06 | Bewerken zonder id werd een nieuw concept | **Opgelost** (`modus` nieuw of bewerken in het formulier) |
+| CR-09 | Verkeerd nummer bij een wissel van eindverantwoordelijke | **Opgelost** voor het gewone geval (het nummer alleen bij dezelfde naam). Twee leden met dezelfde volledige naam blijven een beperking: een `lid_id` in `contact_eindverantwoordelijke` vraagt een migratie in twee stappen (CR-11) |
+| CR-10 | Een storing werd getoond als foute code | **Opgelost** voor het inlogformulier; de MFA-acties zijn nog niet nagelopen |
+| CR-12, CR-13 | Een 404-link voor het bestuur; een bestandsnaam met `..` | **Opgelost** |
+| CR-01 | Een ingesteld wachtwoord werkt na incidentherstel | **Open: draaiboek** (lid inactief, sessies weg, gebruiker blokkeren, testen met een schone client) en een technische maatregel na onderzoek; voorwaarde voor echte leden |
+| CR-08 | De OTP-API verraadt of een adres bestaat | **Geaccepteerd risico**, vast te leggen in `Inloggen.md` (inherent aan Supabase met een publieke sleutel) |
+| CR-11 | Migratie en vorige client | **Afspraak** in `hosting.md` (uitbreiden en opruimen in twee stappen), vóór de eerste migratie met echte data |
+| CR-05, CR-14, CR-15 | Verwijderen met een oude bevestiging; een niet-bestaande zomertijd; een test als bestuur | **Na de pilot** |
+
+**De push-controle en de poort kregen een eigen review door een schone chat** (zoals `CLAUDE.md` voor de poort eist). Die vond twee omwegen in mijn
+nieuwe push-controle en de zwakte van een controle op bronstekst; alle drie zijn verwerkt. Bewust niet gedaan: de auteur en de berichten van geannoteerde tags worden niet
+gecontroleerd (een auteur is openbaar bedoeld), en de aanname dat elke remote openbaar is blijft een aanname. De workflow in GitHub controleert de geschiedenis van een pull request
+niet, alleen de uitgecheckte staat.

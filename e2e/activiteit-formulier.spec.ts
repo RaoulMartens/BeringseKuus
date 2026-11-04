@@ -193,6 +193,41 @@ test('een concept bewerken: de velden staan er, een lege plek gaat weg en de ver
   ).toBe('1');
 });
 
+test('een bewerking waar het id of de modus ontbreekt, wordt geen nieuw concept (CR-06)', async ({
+  page,
+}) => {
+  aangemaakt.push(await logInAlsBeheerder(page));
+  const naam = maakNaam('zonder-id');
+  await page.goto('/beheer/activiteiten/nieuw');
+  await vulIn(page, naam, '2099-03-09');
+  await opslaan(page).click();
+  await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
+  const id = activiteitId(naam);
+  await page.getByRole('link', { name: new RegExp(naam) }).click();
+
+  // Een formulier waar het id ontbreekt (een fout in de pagina of in de browser): geen nieuw concept met dezelfde naam.
+  await page.locator('input[name="activiteit_id"]').evaluate((veld) => veld.remove());
+  await page.getByLabel('Locatie *').fill('Zonder id');
+  await opslaan(page).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'bestaat niet meer' })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}$`));
+
+  // Hetzelfde zonder versie, en zonder modus.
+  await page.reload();
+  await page.locator('input[name="versie"]').evaluate((veld) => veld.remove());
+  await opslaan(page).click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Iemand anders heeft deze activiteit net gewijzigd' }),
+  ).toBeVisible();
+  await page.reload();
+  await page.locator('input[name="modus"]').evaluate((veld) => veld.remove());
+  await opslaan(page).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Het opslaan is niet gelukt' })).toBeVisible();
+
+  expect(psql(`select count(*) from public.activiteiten where naam = '${naam}';`).trim()).toBe('1');
+  expect(psql(`select locatie from public.activiteiten where id = '${id}';`).trim()).toBe('Testlocatie');
+});
+
 test('als een ander tussendoor heeft opgeslagen, gaat jouw wijziging niet door en blijft je invoer staan', async ({
   page,
 }) => {

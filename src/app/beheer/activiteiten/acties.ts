@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   leesDetail,
   leesFormulier,
+  leesOpslagDoel,
   leesWaarden,
   vertaalOpslagfout,
   type Waarden,
@@ -48,12 +49,12 @@ export async function slaActiviteitOp(_vorige: FormulierStaat, formulier: FormDa
   await eisBeheer();
   const waarden = leesWaarden(formulier);
 
-  const idTekst = formulier.get('activiteit_id');
-  const id = typeof idTekst === 'string' && idTekst !== '' ? ID.safeParse(idTekst) : null;
-  if (id && !id.success) return antwoord({}, vertaalOpslagfout('activiteit_onbekend', {}).melding, waarden);
-  const versie = id ? VERSIE.safeParse(formulier.get('versie')) : null;
-  if (versie && !versie.success) {
-    return antwoord({}, vertaalOpslagfout('versie_verouderd', {}).melding, waarden);
+  // Nieuw of bewerken staat er uitdrukkelijk in: een bewerking zonder id of versie wordt nooit een nieuw concept (CR-06).
+  const doel = leesOpslagDoel(formulier);
+  if (doel.soort === 'fout') {
+    const code =
+      doel.reden === 'versie' ? 'versie_verouderd' : doel.reden === 'id' ? 'activiteit_onbekend' : '';
+    return antwoord({}, vertaalOpslagfout(code, {}).melding, waarden);
   }
 
   const uitkomst = leesFormulier(formulier);
@@ -63,11 +64,11 @@ export async function slaActiviteitOp(_vorige: FormulierStaat, formulier: FormDa
 
   const supabase = await maakSupabase();
   const { data, error } = await supabase.rpc('activiteit_opslaan', {
-    p_activiteit_id: id?.data,
+    p_activiteit_id: doel.soort === 'bewerken' ? doel.id : undefined,
     p_velden: { ...uitkomst.velden },
     p_wijzigingen: uitkomst.wijzigingen.map((wijziging) => ({ ...wijziging })),
     p_publiceren: false,
-    p_verwachte_versie: versie?.data,
+    p_verwachte_versie: doel.soort === 'bewerken' ? doel.versie : undefined,
   });
 
   if (error) {
