@@ -36,12 +36,31 @@ export function uitStatus(status: unknown): LokaleSupabase {
   return uitkomst;
 }
 
-export function leesLokaleSupabase(): LokaleSupabase {
-  const uit = execFileSync('npx', ['supabase', 'status', '-o', 'json'], {
+const draaiStatus = (): string =>
+  execFileSync('npx', ['supabase', 'status', '-o', 'json'], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
+
+/**
+ * `draai` geeft de uitvoer van `supabase status -o json`. Die geeft exitcode 1 (met toch de volledige JSON) zodra een
+ * uitgesloten service niet draait, bijvoorbeeld na `supabase db reset` of `npm run test:db`; dan staat de database er
+ * wel. Daarom gaat dit op de uitvoer en niet op de exitcode: zonder JSON is de omgeving er echt niet.
+ */
+export function leesLokaleSupabase(draai: () => string = draaiStatus): LokaleSupabase {
+  let uit: string;
+  try {
+    uit = draai();
+  } catch (fout) {
+    const stdout =
+      typeof fout === 'object' && fout !== null ? (fout as { stdout?: unknown }).stdout : undefined;
+    uit = typeof stdout === 'string' ? stdout : '';
+  }
   // Soms staat er een regel tekst voor of na het JSON-blok; neem alleen het blok.
-  const blok = uit.slice(uit.indexOf('{'), uit.lastIndexOf('}') + 1);
-  return uitStatus(JSON.parse(blok));
+  const begin = uit.indexOf('{');
+  const einde = uit.lastIndexOf('}');
+  if (begin < 0 || einde < begin) {
+    throw new Error('de lokale Supabase draait niet: draai eerst npm run supabase:start');
+  }
+  return uitStatus(JSON.parse(uit.slice(begin, einde + 1)));
 }

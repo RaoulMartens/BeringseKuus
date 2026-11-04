@@ -140,7 +140,7 @@ describe('vertaalOpslagfout: indelen', () => {
 
   it('zegt bij een eindverantwoordelijke zonder telefoonnummer dat leden hem moeten kunnen bellen', () => {
     expect(vertaalOpslagfout('eindverantwoordelijke_verplicht', { reden: 'telefoon' }).fouten.plekken).toBe(
-      'De eindverantwoordelijke heeft geen telefoonnummer, en leden moeten hem kunnen bellen. Kies iemand met een telefoonnummer.',
+      'De eindverantwoordelijke heeft geen telefoonnummer, en leden moeten hem kunnen bellen. Kies iemand met een telefoonnummer, of vraag de bouwer van het platform het nummer in de ledenlijst te zetten.',
     );
     expect(vertaalOpslagfout('eindverantwoordelijke_verplicht', { reden: 'leeg' }).fouten.plekken).toContain(
       'kan niet worden weggehaald',
