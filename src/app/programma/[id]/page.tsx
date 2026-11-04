@@ -35,7 +35,8 @@ export default async function ActiviteitVoorLid({ params }: { params: Promise<{ 
 
   const indeling = (await leesIndelingen(supabase, [activiteit.id], gebruiker.lidId)).get(activiteit.id);
   if (!indeling) notFound();
-  const regels = [maakStatusRegel(activiteit, indeling, gebruiker.lidId, gebruiker.isBeheerder)];
+  const nu = new Date();
+  const regels = [maakStatusRegel(activiteit, indeling, gebruiker.lidId, gebruiker.isBeheerder, nu)];
 
   return (
     <Schermkader

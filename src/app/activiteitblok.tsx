@@ -6,6 +6,7 @@ import { Icoon } from '@/components/icoon/icoon';
 import { Rolbezetting } from '@/components/rolbezetting/rolbezetting';
 import type { StatusRegel } from '@/components/jouwstatus/jouwstatus';
 import { Tijdlijnkaartje } from '@/components/tijdlijnkaartje/tijdlijnkaartje';
+import { afmeldenHref, maakAanbod } from '@/lib/afmelden';
 import {
   groepeerRollen,
   isNogNietIngedeeld,
@@ -16,6 +17,7 @@ import {
   type LedenActiviteit,
 } from '@/lib/ledenactiviteit';
 
+import { trekAfmeldingIn } from './afmelden/acties';
 import type { Indeling } from './ledenactiviteit';
 
 import stijl from './activiteitblok.module.css';
@@ -69,14 +71,21 @@ export function maakStatusRegel(
   indeling: Indeling,
   eigenLidId: string,
   beheren: boolean,
+  nu: Date,
 ): StatusRegel {
   const groepen = groepeerRollen(indeling.plekken, eigenLidId);
-  const zin = statusZin(maakJouwstatus(activiteit.naam, groepen, indeling.afgemeld));
+  const status = maakJouwstatus(activiteit.naam, groepen, indeling.afgemeld);
+  const zin = statusZin(status);
+  // Welke knoppen er staan: afmelden zonder dienst, intrekken als je bent afgemeld, en een uitleg bij een beheerrol of dienst.
+  const aanbod = maakAanbod(activiteit, nu, indeling.afgemeld, status.rollen);
   return {
     id: activiteit.id,
     naam: activiteit.naam,
     soort: zin.soort,
     tekst: zin.tekst,
     ...(beheren ? { beheerHref: `/beheer/activiteiten/${activiteit.id}` } : {}),
+    ...(aanbod.afmelden ? { afmeldHref: afmeldenHref(activiteit.id) } : {}),
+    ...(aanbod.intrekken ? { intrekActie: trekAfmeldingIn } : {}),
+    ...(aanbod.hulp ? { hulp: aanbod.hulp } : {}),
   };
 }

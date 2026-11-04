@@ -54,6 +54,20 @@ controleer dus eerst lokaal en laat de review eerst gebeuren. Zonder `drop` van 
 De schermen en serveracties (Zod), de Schakelaar en de wachtstand. Per scherm axe op 1200 en 375 px, een vergelijking met het visuele ontwerp,
 en browsertests uit de dekkingsmatrix.
 
+**Gebouwd (04-11-2026)**, naar de wireframes `afmelden-bevestigen`, `afmelden-gelukt`, `afmelden-fout-ondergrens` en `afmelding-ingetrokken`:
+
+- `/afmelden/<id>`: de bevestiging (kaart met wat je afmeldt, je dienst, de deadline; een toelichting die alleen het bestuur leest; Afmelden bevestigen en Annuleren).
+- `/afmelden/<id>/gelukt`, `/ingetrokken` en `/kan-niet` (de blokkade van R8 met het nummer van de eindverantwoordelijke en de twee redenen). Die laatste
+  krijgt alleen aantallen in het adres.
+- In het paneel "Jouw status": de knop Afmelden voor wie op aanwezig staat zonder dienst, en Afmelding intrekken (direct, zonder bevestigingspagina: het kan
+  terug en raakt niemand) voor wie is afgemeld, op Start en in het programma (R9). Een beheerrol of een dienst krijgt een uitleg in plaats van een knop.
+- Een wachtstand op de nieuwe knoppen (`Verzendknop`): dubbel klikken maakt één afmelding.
+- Wat de knoppen aanbieden staat op één plek (`maakAanbod`, `src/lib/afmelden.ts`) met unit tests; de pagina's en acties hebben browsertests (`e2e/afmelden.spec.ts`).
+
+**Bewust nog niet** (stap D): afmelden met een dienst, dus de twee stappen met de Stappenbalk; tot dan zegt het paneel dat het hier nog niet kan en dat het lid het met de
+eindverantwoordelijke regelt. Het blok "Let op: je eerder overgedragen dienst komt niet terug" op de pagina na het intrekken: een lid kan zijn eigen overdracht niet lezen, dat
+komt met de overdracht. De wachtstand op Publiceren en Opslaan (F2-05): die knoppen staan buiten hun formulier en vragen een kleine ombouw.
+
 ### Stap D: dienst overdragen en afmelden met een dienst
 
 Stappenbalk, vervangerlijst met redenen, de twee stappen als één taak, het afbreken na stap 1 (de overdracht blijft staan, zoals UC-003 AF-1 zegt).
