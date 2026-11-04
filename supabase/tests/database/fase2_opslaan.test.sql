@@ -582,16 +582,21 @@ reset role;
 -- ===== De bewaker: wie schrijft er in rol_slots en activiteit_groep =====
 -- activiteit_opslaan verhoogt de versie zelf. Komt er een functie bij die in deze tabellen schrijft, dan faalt deze test:
 -- pas de lijst aan en beslis of de versie omhoog moet (Datamodel-fase-2.md punt 2).
--- Zoekt breed: elke functie die een van de twee tabellen noemt én een schrijfwoord of dynamische SQL gebruikt, behalve de
--- drie hulpen van deze test. Dat vangt ook merge, truncate en execute format(...) (R3-03).
+-- ruil_dienst (fase 3) staat er bewust bij en verhoogt de versie bewust NIET: de acties van een lid verhogen de versie niet
+-- (Datamodel-fase-3.md 3.3); een eigen test in fase3_afmelden_ruilen.test.sql bewijst dat.
+-- Zoekt op schrijven: een schrijfopdracht die een van de twee tabellen noemt (insert into, update, delete from, merge into,
+-- truncate), of een functie die een van de twee tabellen noemt en dynamische SQL gebruikt (execute). Een functie die de
+-- tabellen alleen leest (meld_af, beschikbare_vervangers) valt er dus buiten, merge, truncate en execute format(...) niet (R3-03).
+-- De drie hulpen van deze test doen niet mee.
 select is(
   (select coalesce(array_agg(p.proname::text order by p.proname), '{}')
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in ('public', 'intern') and p.proname not in ('t_os', 't_oz', 't_v')
       and p.prosrc ~* '(rol_slots|activiteit_groep)'
-      and p.prosrc ~* '\m(insert|update|delete|merge|truncate|execute)\M'),
-  array['activiteit_opslaan'],
-  'alleen activiteit_opslaan schrijft in rol_slots en activiteit_groep (de versie gaat daar omhoog)');
+      and (p.prosrc ~* '(insert\s+into|update|delete\s+from|merge\s+into|truncate)\s+(only\s+)?(public\.)?(rol_slots|activiteit_groep)'
+           or p.prosrc ~* '\mexecute\M')),
+  array['activiteit_opslaan', 'ruil_dienst'],
+  'alleen activiteit_opslaan en ruil_dienst schrijven in rol_slots en activiteit_groep');
 
 select * from finish();
 rollback;

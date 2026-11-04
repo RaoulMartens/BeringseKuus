@@ -236,7 +236,7 @@ Elke regel krijgt een test die eerst rood is, zoals in fase 2. pgTAP draait als 
   dienst buiten zijn doelgroep en geen concept** (de test van `mijn_activiteiten` als voorbeeld); `eindigt_om` zit in het resultaat.
 - **Bewakers:** de aangepaste bewaker (punt 5); elk roltype heeft precies één van `ruilbaar_door_lid` en `alleen_admin`.
 - **Rechten:** alle functies voor `anon` geweigerd; de naamlijsten in `rechten.test.sql` kennen ze; `intern.*` blijft dicht.
-- **Gelijktijdig** (`e2e/gelijktijdig.spec.ts`, ook rood zonder de lock; bij "precies één slaagt" ook de eindtoestand: nooit een lid dat tegelijk afgemeld en ingedeeld is):
+- **Gelijktijdig** (`e2e/ledenacties-gelijktijdig.spec.ts`, ook rood zonder de lock; bij "precies één slaagt" ook de eindtoestand: nooit een lid dat tegelijk afgemeld en ingedeeld is):
   twee afmeldingen bij 14 aanwezig en minimum 13 (de tweede wordt geweigerd); twee `meld_af`-aanroepen van hetzelfde lid (`al_afgemeld`, geen `23505`); een vervanger die
   zich afmeldt terwijl hij wordt aangewezen; twee overdrachten naar dezelfde vervanger voor verschillende slots (`dubbelboeking`); twee ruilen op hetzelfde slot; een ruil
   tegen `activiteit_opslaan` op hetzelfde slot (`slot_gewijzigd` of `geen_bezetter`, nooit een deadlock); een ruil naar B terwijl de beheerder B op een ander slot indeelt
@@ -256,7 +256,7 @@ Elke regel krijgt een test die eerst rood is, zoals in fase 2. pgTAP draait als 
 | R15, R16 | `activiteit_niet_open`, `activiteit_voorbij`, verborgen = onbekend | — | Terug naar Start |
 | R22 (ook voor een beheerder) | `mijn_diensten` met `aal2` | — | `mijn-diensten` |
 | V8 5.7 (Mijn diensten) | `mijn_diensten`, afmeldingen | De lijst, het blok Afgemeld en de lege staat | `mijn-diensten`, `mijn-diensten-leeg` |
-| Gelijktijdigheid | `e2e/gelijktijdig.spec.ts` | — | — |
+| Gelijktijdigheid | `e2e/ledenacties-gelijktijdig.spec.ts` | — | — |
 
 ## 7. Besluiten van de bouwer (04-11-2026) en open punten
 
@@ -282,3 +282,10 @@ Na de review door een schone chat (04-11-2026) verwerkt: de versie bij `ruil_die
 - **O-3** De wachtstand op de knoppen (F2-05) hoort bij de eerste knop met een gevolg: afmelden. Daar komt hij mee.
 - **O-4** Ledenbeheer (fase 4) en `leden:zet` wijzigen `leden.actief` en `lid_groep` zonder de lock op de activiteit. Voor de vervanger sluit `for share` het gat; voor de
   telling van aanwezigen heeft fase 4 een eigen regel nodig (de lock nemen op de activiteiten waar het lid in de doelgroep zit, of de toets herhalen). Op de lijst "Van fase 3 naar fase 4".
+- **O-4a** Lock-volgorde voor fase 4: ledenbeheer neemt eerst de locks op de activiteiten waar het lid in de doelgroep zit (in vaste volgorde, op id), en wijzigt daarna pas de
+  `leden`-rijen. `ruil_dienst` neemt de activiteit en daarna `for share` op de vervanger; een pad dat eerst `leden` wijzigt en daarna de activiteit wil, kan een deadlock geven. Vandaag
+  bestaat dat pad niet (`leden:zet` neemt geen activiteit-lock), maar een lang lopende `leden:zet`-transactie laat een ruil wel wachten.
+- **O-5** De slothouder die een vervanger zoekt, ziet wie van de doelgroep zich heeft afgemeld of al is ingedeeld (`beschikbare_vervangers`). Dat is wat UC-002 vraagt, maar
+  `afmeldingen` is voor leden verder privé: leg het aan de opdrachtgever voor als bewust gekozen. Toelichting, e-mail en telefoon lekken niet.
+- **O-6** Besluit 3.5 wijkt af van R9 en UC-003 (een afmelding op een geannuleerde activiteit is niet meer in te trekken). Neem het mee bij de volgende ronde van `use-cases.md` in de ontwerpmap.
+- **O-7** `beschikbare_vervangers.reden` is `null` bij `beschikbaar = true`; de gegenereerde types zeggen `string`. De code die de functie aanroept, behandelt `null` expliciet.

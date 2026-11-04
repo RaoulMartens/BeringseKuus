@@ -36,7 +36,8 @@ select ok(not has_function_privilege('authenticated', 'public.proef_functie()', 
 -- precies de functies die de app aanroept (Datamodel-fase-1.md punt 6, Datamodel-fase-2.md punt 6): de schrijf- en
 -- leesfuncties van het bestuur, beheerstatus voor de beveiligingsstap, het seizoen van vandaag (huidig_seizoen) en
 -- het telefoonnummer van de eindverantwoordelijke (contact_eindverantwoordelijke, R10: de enige route naar een nummer
--- van een ander lid). Voor anon niets.
+-- van een ander lid), en de ledenhandelingen van fase 3 (Datamodel-fase-3.md punt 5): meld_af, trek_afmelding_in,
+-- ruil_dienst en beschikbare_vervangers. Voor anon niets.
 select is_empty(
   $$ select p.oid::regprocedure::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -48,7 +49,8 @@ select is_empty(
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
         and p.proname <> all (array['activiteit_opslaan', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus',
-                                    'huidig_seizoen', 'contact_eindverantwoordelijke']) $$,
+                                    'huidig_seizoen', 'contact_eindverantwoordelijke', 'meld_af',
+                                    'trek_afmelding_in', 'ruil_dienst', 'beschikbare_vervangers']) $$,
   'ingelogd: in public alleen de functies die de app aanroept zijn uit te voeren'
 );
 
@@ -134,12 +136,12 @@ create function pg_temp.leesbaar_voor_ingelogd() returns setof text language sql
      and (has_table_privilege('authenticated', c.oid, 'select')
        or has_any_column_privilege('authenticated', c.oid, 'select'))
      and (c.relkind in ('m', 'f') or c.relname <> all (array['verenigingen', 'verenigingsinstellingen', 'roltypen',
-       'groepen', 'leden', 'leden_prive', 'lid_groep', 'activiteiten', 'mijn_activiteiten', 'activiteit_groep',
+       'groepen', 'leden', 'leden_prive', 'lid_groep', 'activiteiten', 'mijn_activiteiten', 'mijn_diensten', 'activiteit_groep',
        'rol_slots', 'afmeldingen', 'wijzigingen_log']))
 $$;
 
 -- Wat een ingelogd lid bewust mag lezen (Datamodel-fase-1.md punt 6), met rechten per rij op elke tabel; wat een lid
--- ervan ziet, toetst fase1_rechten.test.sql. mijn_activiteiten is een view met security_invoker.
+-- ervan ziet, toetst fase1_rechten.test.sql. mijn_activiteiten en mijn_diensten zijn views met security_invoker.
 -- Eerst bewijzen dat deze test rood kan worden (review PR19-04): een tabel die ingelogd leesbaar is en niet op de
 -- lijst staat, komt in het resultaat. Daarna weg, en dan de echte toets.
 create table public.proef_lezen (id int primary key);

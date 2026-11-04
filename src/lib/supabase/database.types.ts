@@ -577,6 +577,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      mijn_diensten: {
+        Row: {
+          activiteit_id: string;
+          begint_om: string;
+          datum: string;
+          eindigt_om: string;
+          eindtijd: string | null;
+          locatie: string | null;
+          naam: string;
+          rol_slot_id: string;
+          rol_type: string;
+          ruilbaar: boolean;
+          seizoen: number;
+          starttijd: string | null;
+          verzameltijd: string | null;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: 'rol_slots_activiteit_id_fkey';
+            columns: ['activiteit_id'];
+            isOneToOne: false;
+            referencedRelation: 'activiteiten';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'rol_slots_activiteit_id_fkey';
+            columns: ['activiteit_id'];
+            isOneToOne: false;
+            referencedRelation: 'mijn_activiteiten';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'rol_slots_rol_type_fkey';
+            columns: ['rol_type'];
+            isOneToOne: false;
+            referencedRelation: 'roltypen';
+            referencedColumns: ['code'];
+          },
+        ];
+      };
     };
     Functions: {
       activiteit_opslaan: {
@@ -608,6 +649,16 @@ export type Database = {
         }[];
       };
       beheerstatus: { Args: Record<PropertyKey, never>; Returns: string };
+      beschikbare_vervangers: {
+        Args: { p_activiteit_id: string };
+        Returns: {
+          achternaam: string;
+          beschikbaar: boolean;
+          lid_id: string;
+          reden: string;
+          voornaam: string;
+        }[];
+      };
       concept_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
       contact_eindverantwoordelijke: {
         Args: { p_activiteit: string };
@@ -618,6 +669,9 @@ export type Database = {
         }[];
       };
       huidig_seizoen: { Args: Record<PropertyKey, never>; Returns: number };
+      meld_af: { Args: { p_activiteit_id: string; p_toelichting?: string }; Returns: Json };
+      ruil_dienst: { Args: { p_rol_slot_id: string; p_vervanger_id: string }; Returns: Json };
+      trek_afmelding_in: { Args: { p_activiteit_id: string }; Returns: Json };
     };
     Enums: {
       [_ in never]: never;
