@@ -45,7 +45,7 @@ Elke stap is een eigen pull request met de hele poort groen. Migraties, rechten 
 
 Eén migratie met de vier functies, de view en de rechten; pgTAP per controle (`fase3_*.test.sql`); de rechtentest met haar twee
 naamlijsten (`rechten.test.sql`, regel 59 tot 66 en 135 tot 139); de bewaker in `fase2_opslaan.test.sql` (versmallen, `ruil_dienst` op de lijst)
-en de nieuwe bewaker op de vlaggen van `roltypen`; de gelijktijdigheidstests in `e2e/gelijktijdig.spec.ts`, ook een ruil tegen
+en de nieuwe bewaker op de vlaggen van `roltypen`; de gelijktijdigheidstests in `e2e/ledenacties-gelijktijdig.spec.ts`, ook een ruil tegen
 `activiteit_opslaan` met twee sessies; de databasetypen. De migratie komt via de job `migraties` direct online:
 controleer dus eerst lokaal en laat de review eerst gebeuren. Zonder `drop` van bestaande objecten.
 

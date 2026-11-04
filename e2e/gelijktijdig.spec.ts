@@ -48,11 +48,17 @@ test.beforeAll(() => {
 });
 
 test.afterAll(() => {
-  // De gepubliceerde testactiviteiten verwijdert alleen de eigenaar, met het vangnet even uit.
+  // De gepubliceerde testactiviteiten verwijdert alleen de eigenaar, zonder het vangnet. Niet met `alter table ... disable
+  // trigger`: dat neemt een tabelslot dat op lopende schrijvers wacht en intussen alle andere schrijvers op activiteiten
+  // ophoudt, ook in specs die tegelijk draaien. Daarom eerst de rijen eronder weg, en dan de activiteit zonder triggers
+  // (`session_replication_role`, alleen deze sessie).
   psql(`
-    alter table public.activiteiten disable trigger activiteit_vangnet_verwijderen;
+    delete from public.afmeldingen where activiteit_id in ('${concept1}', '${concept2}', '${concept3}');
+    delete from public.activiteit_groep where activiteit_id in ('${concept1}', '${concept2}', '${concept3}');
+    delete from public.rol_slots where activiteit_id in ('${concept1}', '${concept2}', '${concept3}');
+    set session_replication_role = replica;
     delete from public.activiteiten where id in ('${concept1}', '${concept2}', '${concept3}');
-    alter table public.activiteiten enable trigger activiteit_vangnet_verwijderen;
+    reset session_replication_role;
     delete from public.wijzigingen_log where omschrijving like 'Gelijktijdig %';
     delete from public.leden_prive where lid_id = '${lid}';
     delete from public.leden where id = '${lid}';
