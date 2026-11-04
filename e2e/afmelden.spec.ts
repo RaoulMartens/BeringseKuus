@@ -25,7 +25,7 @@ const aangemaakt: string[] = [];
 
 test.afterAll(async () => {
   ruimActiviteitenOp(`E2E Afmelden % ${kenmerk}`);
-  psql(`delete from public.groepen where naam = 'E2E Afmelden ${kenmerk}';`);
+  psql(`delete from public.groepen where naam like 'E2E Afmelden g% ${kenmerk}';`);
   ruimTestledenOp(kenmerk);
   for (const uid of aangemaakt.splice(0)) await ruimLidOp(uid);
 });
@@ -40,12 +40,17 @@ async function logInAlsLid(page: Page): Promise<{ lidId: string }> {
   return { lidId: lidIdVan(uid) };
 }
 
-/** Een gepubliceerde activiteit (tijden en locatie zijn nodig, R21); vandaag tot kort voor middernacht, tenzij `dag` anders zegt. */
+/**
+ * Een gepubliceerde activiteit (tijden en locatie zijn nodig, R21); vandaag tot kort voor middernacht, tenzij `dag` anders zegt.
+ * Met `voorLid` is de activiteit alleen voor dit lid: een eigen groep met alleen hem. Zo staat hij niet op het welkomscherm van
+ * een ander lid (de tests van andere bestanden draaien ernaast en tellen wat er vandaag op Start staat), en staat het aantal
+ * aanwezigen vast (één), wat de test van de ondergrens nodig heeft.
+ */
 function maakActiviteit(
   naam: string,
-  opties: { dag?: string; eindtijd?: string; status?: string } = {},
+  opties: { dag?: string; eindtijd?: string; status?: string; voorLid?: string } = {},
 ): string {
-  return psql(`
+  const id = psql(`
     insert into public.activiteiten (naam, datum, verzameltijd, starttijd, eindtijd, locatie, status)
     values ('${naam}', ${opties.dag ?? VANDAAG}, '18:30', '20:00', '${opties.eindtijd ?? '23:59'}', 'Zaal Test, Kerkstraat 1',
             '${opties.status ?? 'gepubliceerd'}')
@@ -53,6 +58,17 @@ function maakActiviteit(
   `)
     .trim()
     .split('\n')[0]!;
+  if (opties.voorLid) {
+    const groep = `E2E Afmelden g${crypto.randomUUID().slice(0, 8)} ${kenmerk}`;
+    psql(`
+      insert into public.groepen (naam, volgorde) values ('${groep}', 98);
+      insert into public.lid_groep (lid_id, groep_id)
+        select '${opties.voorLid}', id from public.groepen where naam = '${groep}';
+      insert into public.activiteit_groep (activiteit_id, groep_id)
+        select '${id}', id from public.groepen where naam = '${groep}';
+    `);
+  }
+  return id;
 }
 
 function zetPlek(activiteitId: string, rol: string, bezetterId: string | null, volgorde = 0): void {
@@ -90,7 +106,7 @@ test('afmelden zonder dienst, het resultaat, en weer intrekken', async ({ page }
   const { lidId } = await logInAlsLid(page);
   const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });
   const naam = maakNaam('hoofdpad');
-  const id = maakActiviteit(naam);
+  const id = maakActiviteit(naam, { voorLid: lidId });
   zetPlek(id, 'eindverantwoordelijke', ger.id);
 
   // Van Start naar de bevestiging: wat je afmeldt, je dienst, de deadline en een toelichting.
@@ -143,7 +159,7 @@ test('een afgemeld lid ziet het op Start en in het programma, en kan overal intr
   const { lidId } = await logInAlsLid(page);
   const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });
   const naam = maakNaam('intrekken');
-  const id = maakActiviteit(naam);
+  const id = maakActiviteit(naam, { voorLid: lidId });
   zetPlek(id, 'eindverantwoordelijke', ger.id);
   psql(
     `insert into public.afmeldingen (activiteit_id, lid_id, toelichting) values ('${id}', '${lidId}', 'Ziek');`,
@@ -181,17 +197,12 @@ test('onder de ondergrens na de deadline kan afmelden niet: de blokkade met het 
   const { lidId } = await logInAlsLid(page);
   const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });
   const naam = maakNaam('ondergrens');
-  const id = maakActiviteit(naam);
+  // Alleen voor dit lid: één aanwezige, het minimum is één, en de deadline is voorbij.
+  const id = maakActiviteit(naam, { voorLid: lidId });
   zetPlek(id, 'eindverantwoordelijke', ger.id);
-  // Een eigen groep met alleen dit lid: één aanwezige, het minimum is één, en de deadline is voorbij.
-  psql(`
-    insert into public.groepen (naam, volgorde) values ('E2E Afmelden ${kenmerk}', 98) on conflict do nothing;
-    insert into public.lid_groep (lid_id, groep_id)
-      select '${lidId}', id from public.groepen where naam = 'E2E Afmelden ${kenmerk}';
-    insert into public.activiteit_groep (activiteit_id, groep_id)
-      select '${id}', id from public.groepen where naam = 'E2E Afmelden ${kenmerk}';
-    update public.activiteiten set min_aanwezigen = 1, afmeld_deadline = now() - interval '1 day' where id = '${id}';
-  `);
+  psql(
+    `update public.activiteiten set min_aanwezigen = 1, afmeld_deadline = now() - interval '1 day' where id = '${id}';`,
+  );
 
   await page.goto(`/afmelden/${id}`);
   await expect(page.getByText(/\(verstreken\)/)).toBeVisible();
@@ -224,7 +235,7 @@ test('wie een dienst of een beheerrol heeft, krijgt geen knop Afmelden maar een 
 
   // Een dienst: eerst overdragen (R7), en dat scherm volgt in stap D.
   const dienst = maakNaam('dienst');
-  const dienstId = maakActiviteit(dienst);
+  const dienstId = maakActiviteit(dienst, { voorLid: lidId });
   zetPlek(dienstId, 'eindverantwoordelijke', ger.id);
   zetPlek(dienstId, 'werker', lidId, 1);
   await page.goto(`/programma/${dienstId}`);
@@ -241,7 +252,7 @@ test('wie een dienst of een beheerrol heeft, krijgt geen knop Afmelden maar een 
 
   // Een beheerrol (BOB): alleen het bestuur wijzigt die.
   const bobNaam = maakNaam('bob');
-  const bobId = maakActiviteit(bobNaam, { dag: `${VANDAAG} + 1` });
+  const bobId = maakActiviteit(bobNaam, { dag: `${VANDAAG} + 1`, voorLid: lidId });
   zetPlek(bobId, 'eindverantwoordelijke', ger.id);
   zetPlek(bobId, 'bob', lidId, 1);
   await page.goto(`/programma/${bobId}`);
@@ -252,7 +263,7 @@ test('wie een dienst of een beheerrol heeft, krijgt geen knop Afmelden maar een 
 test('dubbel klikken op Afmelden bevestigen geeft één afmelding en geen fout', async ({ page }) => {
   const { lidId } = await logInAlsLid(page);
   const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });
-  const id = maakActiviteit(maakNaam('dubbel'));
+  const id = maakActiviteit(maakNaam('dubbel'), { voorLid: lidId });
   zetPlek(id, 'eindverantwoordelijke', ger.id);
 
   await page.goto(`/afmelden/${id}`);
