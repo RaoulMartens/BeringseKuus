@@ -59,7 +59,6 @@
   align-items: center;
   gap: 4px;
   align-self: flex-start;
-  margin-left: 28px;
   font: 600 0.875rem/1.4286 var(--font-tekst);
   color: var(--neutraal-tekst);
   text-underline-offset: 3px;
@@ -70,8 +69,12 @@
   height: 16px;
 }
 
-/* De knoppen Afmelden en Afmelding intrekken staan onder de zin, over de volle breedte van het paneel. */
+/* De knoppen Afmelden en Afmelding intrekken staan onder de zin, over de volle breedte van het paneel. Een flexkolom, want
+   `vol` van de knop (align-self: stretch) werkt alleen in een flexcontainer; in een gewoon blokje bleef de knop zo breed als
+   zijn tekst en stond hij niet op één lijn met de rest van het paneel. */
 .knop {
+  display: flex;
+  flex-direction: column;
   margin-top: 4px;
 }
 
