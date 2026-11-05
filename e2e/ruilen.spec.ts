@@ -303,9 +303,9 @@ test('wie niets over te dragen heeft, krijgt een uitleg; een ongeldige keuze gaa
   await expect(page).toHaveURL(new RegExp(`/ruilen/${tweede.id}$`));
   await page.goto(`/ruilen/${tweede.id}/bevestigen?vervanger=${truus.id}`);
   await expect(page).toHaveURL(new RegExp(`/ruilen/${tweede.id}$`));
-  // Het resultaat van een overdracht die er niet is, bestaat niet.
+  // Het resultaat van een overdracht die er niet is (het lid heeft zijn dienst nog), bestaat niet: terug naar de lijst.
   await page.goto(`/ruilen/${tweede.id}/gelukt?v=${truus.id}`);
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(new RegExp(`/ruilen/${tweede.id}$`));
 });
 
 test('dubbel klikken op Dienst overdragen geeft één overdracht en geen fout', async ({ page }) => {
@@ -319,6 +319,93 @@ test('dubbel klikken op Dienst overdragen geeft één overdracht en geen fout', 
   await expect(page).toHaveURL(new RegExp(`/ruilen/${id}/gelukt`));
   await expect(geenFoutmelding(page)).toHaveCount(0);
   expect(bezetter(dienst)).toBe(truus.id);
+});
+
+test('een verouderde bevestiging draagt niets over: de dienst is intussen een andere geworden', async ({
+  page,
+}) => {
+  const { lidId } = await logInAlsLid(page);
+  const truus = maakTestlid('Truus', kenmerk);
+  const { id } = maakActiviteit(maakNaam('verouderd'), [lidId, truus.id]);
+  const dienst = zetPlek(id, 'werker', lidId, 1);
+
+  // Op de bevestiging staat de dienst als werker; het bestuur deelt het lid intussen in als fotograaf.
+  await page.goto(`/ruilen/${id}/bevestigen?vervanger=${truus.id}`);
+  await expect(page.getByText('Rol')).toBeVisible();
+  psql(`update public.rol_slots set rol_type = 'fotograaf' where id = '${dienst}';`);
+  await page.getByRole('button', { name: 'Dienst overdragen' }).click();
+
+  // Niets is weggegeven: terug naar Start met de actuele stand.
+  await expect(page).toHaveURL(/\/$/);
+  expect(bezetter(dienst)).toBe(lidId);
+  expect(plekken(id, truus.id)).toBe('0');
+});
+
+test('een vervalst adres laat een resultaatpagina niets beweren wat er niet is gebeurd', async ({ page }) => {
+  const { lidId } = await logInAlsLid(page);
+  const truus = maakTestlid('Truus', kenmerk);
+  const { id } = maakActiviteit(maakNaam('vervalst'), [lidId, truus.id]);
+  zetPlek(id, 'werker', lidId, 1);
+  zetPlek(id, 'fotograaf', truus.id, 2);
+
+  // "Overgedragen aan Truus" terwijl het lid zelf nog zijn dienst heeft: terug naar de lijst.
+  await page.goto(`/ruilen/${id}/gelukt?v=${truus.id}`);
+  await expect(page).toHaveURL(new RegExp(`/ruilen/${id}$`));
+  // "Truus heeft zich net afgemeld" terwijl Truus dat niet heeft gedaan: terug naar de lijst.
+  await page.goto(`/ruilen/${id}/niet-gelukt?reden=afgemeld&v=${truus.id}`);
+  await expect(page).toHaveURL(new RegExp(`/ruilen/${id}$`));
+  // Wel klopt: Truus staat al ingedeeld.
+  await page.goto(`/ruilen/${id}/niet-gelukt?reden=dubbel&v=${truus.id}`);
+  await expect(page.getByRole('heading', { level: 1, name: 'Dit lid staat al ingedeeld' })).toBeVisible();
+
+  // "Afmelden kan nu niet" zonder dat de deadline voorbij is: gewoon afmelden.
+  const zonder = maakActiviteit(maakNaam('zonder deadline'), [lidId]);
+  await page.goto(`/afmelden/${zonder.id}/kan-niet?min=1&nu=1`);
+  await expect(page).toHaveURL(new RegExp(`/afmelden/${zonder.id}$`));
+});
+
+test('afmelden met een dienst: de overdracht staat, ook als het afmelden daarna op de ondergrens strandt', async ({
+  page,
+}) => {
+  const { lidId } = await logInAlsLid(page);
+  const truus = maakTestlid('Truus', kenmerk);
+  const { id } = maakActiviteit(maakNaam('strandt'), [lidId, truus.id]);
+  const dienst = zetPlek(id, 'werker', lidId, 1);
+  // De doelgroep is dit lid, Truus en de eindverantwoordelijke: drie aanwezigen, het minimum is drie, de deadline is voorbij.
+  psql(
+    `update public.activiteiten set min_aanwezigen = 3, afmeld_deadline = now() - interval '1 day' where id = '${id}';`,
+  );
+
+  await page.goto(`/ruilen/${id}?taak=afmelden`);
+  await page.getByRole('radio', { name: new RegExp(truus.naam) }).check();
+  await page.getByRole('button', { name: 'Verder' }).click();
+  await page.getByRole('button', { name: 'Dienst overdragen' }).click();
+  await expect(page).toHaveURL(new RegExp(`/afmelden/${id}\\?stap=2`));
+  await page.getByRole('button', { name: 'Afmelden bevestigen' }).click();
+
+  // Je bent je dienst kwijt en niet afgemeld, zoals de aankondiging zei.
+  await expect(page).toHaveURL(new RegExp(`/afmelden/${id}/kan-niet\\?min=3&nu=3$`));
+  await expect(page.getByRole('heading', { level: 1, name: 'Afmelden kan nu niet' })).toBeVisible();
+  expect(bezetter(dienst)).toBe(truus.id);
+  expect(afmeldingen(id, lidId)).toBe('0');
+  expect(plekken(id, lidId)).toBe('0');
+});
+
+test('zoeken zonder te kiezen: Verder wijst naar het zichtbare keuzerondje, ook als de eerste verborgen zijn', async ({
+  page,
+}) => {
+  const { lidId } = await logInAlsLid(page);
+  const anna = maakTestlid('Anna', kenmerk);
+  const piet = maakTestlid('Piet', kenmerk);
+  const { id } = maakActiviteit(maakNaam('zoeken'), [lidId, anna.id, piet.id]);
+  zetPlek(id, 'werker', lidId, 1);
+
+  await page.goto(`/ruilen/${id}`);
+  await page.getByLabel('Zoek op naam').fill('Piet');
+  await page.getByRole('button', { name: 'Verder' }).click();
+  // De browser blokkeert het formulier en zet de focus op het enige zichtbare rondje: er is een zichtbare plek om te kiezen.
+  await expect(page).toHaveURL(new RegExp(`/ruilen/${id}$`));
+  await expect(page.getByRole('radio', { name: new RegExp(piet.naam) })).toBeFocused();
 });
 
 test('de pagina’s van het overdragen: niet ingelogd naar het inloggen, een verborgen activiteit bestaat niet', async ({

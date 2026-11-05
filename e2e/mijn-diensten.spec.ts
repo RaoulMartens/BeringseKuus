@@ -128,7 +128,8 @@ test('Mijn diensten: komende diensten op datum, afgemeld, en wat al geweest is',
   const afgemeldBlok = blok(page, 'Afgemeld');
   await expect(afgemeldBlok.getByRole('listitem')).toHaveCount(1);
   await expect(afgemeldBlok).toContainText(afgemeld);
-  await expect(afgemeldBlok).toContainText('afgemeld');
+  // Het label zelf, niet de naam van de activiteit (die bevat het woord ook).
+  await expect(afgemeldBlok.getByText('afgemeld', { exact: true })).toBeVisible();
 
   // Geweest dit seizoen: grijs onderaan.
   await expect(page.getByRole('heading', { level: 2, name: 'Geweest dit seizoen' })).toBeVisible();

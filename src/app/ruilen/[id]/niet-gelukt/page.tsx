@@ -12,7 +12,7 @@ import { leesNietGelukt, leesTaak, ruilHref } from '@/lib/ruilen';
 
 import stijl from '../../../afmelden/afmelden.module.css';
 import { laadOverdracht } from '../../context';
-import { leesDienstVan, leesLidNaam } from '../../gegevens';
+import { leesDienstVan, leesLidNaam, leesVervangers } from '../../gegevens';
 
 export const metadata: Metadata = { title: 'Dit lid kan niet overnemen – Ledenplatform' };
 
@@ -37,6 +37,20 @@ export default async function OverdrachtNietGelukt({
   const taak = leesTaak(zoek.taak);
   const { activiteit, dienst } = ctx;
   if (!reden || !vervangerId.success) redirect(ruilHref(activiteit.id, taak));
+
+  // Wat het adres beweert, controleert de pagina met wat dit lid zelf mag lezen: de vervanger staat in de lijst met de reden uit het adres
+  // (afgemeld, al ingedeeld), of staat er niet in (een reden "ongeldig": een externe helper, een inactief lid, iemand buiten de doelgroep).
+  // Klopt het niet, dan is er niets misgegaan en gaat het lid terug naar de lijst.
+  const vervanger = (await leesVervangers(ctx.supabase, activiteit.id)).find(
+    (v) => v.id === vervangerId.data,
+  );
+  const klopt =
+    reden === 'afgemeld'
+      ? vervanger?.reden === 'afgemeld'
+      : reden === 'dubbel'
+        ? vervanger?.reden === 'al_ingedeeld'
+        : vervanger === undefined;
+  if (!klopt) redirect(ruilHref(activiteit.id, taak));
 
   const naam = (await leesLidNaam(ctx.supabase, vervangerId.data)) ?? 'Deze persoon';
   const vervangerDienst =

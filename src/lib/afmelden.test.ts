@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   deadlineTekst,
+  deadlineVoorbij,
   leesOndergrensQuery,
   maakAanbod,
   momentTekst,
@@ -172,5 +173,38 @@ describe('vertaalIntrekfout', () => {
       tekst: expect.stringContaining('geannuleerd') as unknown,
     });
     expect(vertaalIntrekfout('raar', '{}')).toMatchObject({ soort: 'melding' });
+  });
+});
+
+describe('deadlineVoorbij', () => {
+  const deadline = '2027-01-22T11:00:00Z';
+
+  it('is er pas strikt na het deadline-moment, en nooit zonder deadline (R8)', () => {
+    expect(deadlineVoorbij(deadline, new Date('2027-01-22T10:59:59Z'))).toBe(false);
+    expect(deadlineVoorbij(deadline, new Date(deadline))).toBe(false);
+    expect(deadlineVoorbij(deadline, new Date('2027-01-22T11:00:01Z'))).toBe(true);
+    expect(deadlineVoorbij(null, new Date('2099-01-01T00:00:00Z'))).toBe(false);
+  });
+});
+
+describe('maakAanbod bij een rol die alleen het bestuur wijzigt', () => {
+  const contact = { naam: 'Ger Hermans', telefoon: '06 12 34 56 78' };
+
+  it('verwijst een BOB naar de eindverantwoordelijke met naam en nummer', () => {
+    const hulp = maakAanbod(TOEKOMST, NU, false, ['bob'], contact).hulp;
+    expect(hulp).toContain('bel dan Ger Hermans, de eindverantwoordelijke: 06 12 34 56 78.');
+  });
+
+  it('noemt zonder nummer alleen de naam, en zonder contact de rol', () => {
+    expect(maakAanbod(TOEKOMST, NU, false, ['bob'], { naam: 'Ger Hermans', telefoon: null }).hulp).toContain(
+      'bel dan Ger Hermans, de eindverantwoordelijke.',
+    );
+    expect(maakAanbod(TOEKOMST, NU, false, ['bob'], null).hulp).toContain('met de eindverantwoordelijke.');
+  });
+
+  it('verwijst de eindverantwoordelijke zelf naar het bestuur, niet naar zichzelf', () => {
+    const hulp = maakAanbod(TOEKOMST, NU, false, ['eindverantwoordelijke'], contact).hulp;
+    expect(hulp).toContain('contact op met het bestuur');
+    expect(hulp).not.toContain('Ger Hermans');
   });
 });

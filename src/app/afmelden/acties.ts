@@ -25,6 +25,11 @@ const TOELICHTING = z.string().max(5000);
 
 const ONBEKEND = vertaalAfmeldfout('activiteit_niet_open', '{}');
 
+/** De foutcode voor het log: bij een bedoelde fout (BK001) de code uit het bericht, anders de code van de database. Geen persoonsgegevens. */
+function foutcode(error: { code?: string; message: string }): string {
+  return error.code === 'BK001' ? error.message : (error.code ?? error.message);
+}
+
 /** Een lid meldt zich af, met een toelichting die alleen het bestuur leest. */
 export async function meldAf(_vorige: AfmeldStaat, formulier: FormData): Promise<AfmeldStaat> {
   if (!(await huidigeAuthGebruiker())) redirect('/inloggen');
@@ -33,6 +38,7 @@ export async function meldAf(_vorige: AfmeldStaat, formulier: FormData): Promise
   const toelichting = TOELICHTING.safeParse(formulier.get('toelichting') ?? '');
   if (!toelichting.success)
     return { melding: 'De toelichting is te lang. Maak hem korter en probeer het nog eens.' };
+  const getypt = toelichting.data;
 
   const supabase = await maakSupabase();
   const { error } = await supabase.rpc('meld_af', {
@@ -41,12 +47,12 @@ export async function meldAf(_vorige: AfmeldStaat, formulier: FormData): Promise
   });
   if (!error) redirect(afgemeldHref(id.data));
 
-  console.error(`niet afgemeld: ${error.code ?? error.message}`);
+  console.error(`niet afgemeld: ${foutcode(error)}`);
   const uitkomst =
     error.code === 'BK001' ? vertaalAfmeldfout(error.message, error.details) : vertaalAfmeldfout('', '{}');
   switch (uitkomst.soort) {
     case 'melding':
-      return { melding: uitkomst.tekst };
+      return { melding: uitkomst.tekst, toelichting: getypt };
     case 'inloggen':
       return redirect('/mijn');
     case 'afgemeld':
@@ -70,7 +76,7 @@ export async function trekAfmeldingIn(_vorige: AfmeldStaat, formulier: FormData)
   const { error } = await supabase.rpc('trek_afmelding_in', { p_activiteit_id: id.data });
   if (!error) redirect(ingetrokkenHref(id.data));
 
-  console.error(`afmelding niet ingetrokken: ${error.code ?? error.message}`);
+  console.error(`afmelding niet ingetrokken: ${foutcode(error)}`);
   const uitkomst =
     error.code === 'BK001' ? vertaalIntrekfout(error.message, error.details) : vertaalIntrekfout('', '{}');
   switch (uitkomst.soort) {

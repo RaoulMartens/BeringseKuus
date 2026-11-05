@@ -289,3 +289,4 @@ Na de review door een schone chat (04-11-2026) verwerkt: de versie bij `ruil_die
   `afmeldingen` is voor leden verder privé: leg het aan de opdrachtgever voor als bewust gekozen. Toelichting, e-mail en telefoon lekken niet.
 - **O-6** Besluit 3.5 wijkt af van R9 en UC-003 (een afmelding op een geannuleerde activiteit is niet meer in te trekken). Neem het mee bij de volgende ronde van `use-cases.md` in de ontwerpmap.
 - **O-7** `beschikbare_vervangers.reden` is `null` bij `beschikbaar = true`; de gegenereerde types zeggen `string`. De code die de functie aanroept, behandelt `null` expliciet.
+- **O-8** Horen BOB en eindverantwoordelijke in Mijn diensten? De view laat nu alleen de bak weg; het project zegt dat BOB geen Mijn diensten heeft. Besluit van de ontwerper (zie `Afname-fase-3.md` punt 3, B4).

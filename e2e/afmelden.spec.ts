@@ -268,6 +268,42 @@ test('wie een dienst heeft, krijgt de aankondiging van twee stappen; een beheerr
   await expect(statusPaneel(page).getByRole('link', { name: /^Afmelden/ })).toHaveCount(0);
 });
 
+test('een dienst die er tijdens het afmelden bijkomt, brengt het lid naar de twee stappen', async ({
+  page,
+}) => {
+  const { lidId } = await logInAlsLid(page);
+  const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });
+  const id = maakActiviteit(maakNaam('dienst erbij'), { voorLid: lidId });
+  zetPlek(id, 'eindverantwoordelijke', ger.id);
+
+  // Het lid staat op de gewone bevestiging; het bestuur deelt hem intussen in als werker.
+  await page.goto(`/afmelden/${id}`);
+  await expect(page.getByRole('button', { name: 'Afmelden bevestigen' })).toBeVisible();
+  zetPlek(id, 'werker', lidId, 1);
+  await page.getByRole('button', { name: 'Afmelden bevestigen' }).click();
+
+  // Niet afgemeld, maar de aankondiging van de twee stappen (R7).
+  await expect(page.getByRole('heading', { level: 1, name: 'Afmelden in twee stappen' })).toBeVisible();
+  expect(afmeldingen(id, lidId)).toBe('0');
+});
+
+test('een foutmelding bij het afmelden laat de toelichting staan', async ({ page }) => {
+  const { lidId } = await logInAlsLid(page);
+  const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });
+  const id = maakActiviteit(maakNaam('toelichting'), { voorLid: lidId });
+  zetPlek(id, 'eindverantwoordelijke', ger.id);
+
+  await page.goto(`/afmelden/${id}`);
+  await page.getByLabel('Toelichting (optioneel)').fill('Ik ben ziek.');
+  // De activiteit wordt intussen geannuleerd: het afmelden kan niet meer.
+  psql(`update public.activiteiten set status = 'geannuleerd' where id = '${id}';`);
+  await page.getByRole('button', { name: 'Afmelden bevestigen' }).click();
+
+  await expect(page.getByRole('alert').filter({ hasText: 'geannuleerd' })).toBeVisible();
+  await expect(page.getByLabel('Toelichting (optioneel)')).toHaveValue('Ik ben ziek.');
+  expect(afmeldingen(id, lidId)).toBe('0');
+});
+
 test('dubbel klikken op Afmelden bevestigen geeft één afmelding en geen fout', async ({ page }) => {
   const { lidId } = await logInAlsLid(page);
   const ger = maakTestlid('Ger', kenmerk, { telefoon: '06 12 34 56 78', magEindverantwoordelijke: true });

@@ -19,11 +19,14 @@ const START: AfmeldStaat = { melding: null };
 export function Ruilformulier({
   activiteitId,
   vervangerId,
+  rol,
   taak,
   terugHref,
 }: {
   activiteitId: string;
   vervangerId: string;
+  /** De rol van de dienst zoals de pagina hem toont. */
+  rol: string;
   taak: 'afmelden' | null;
   terugHref: string;
 }) {
@@ -33,6 +36,7 @@ export function Ruilformulier({
     <form action={actie} className={stijl.formulier}>
       <input type="hidden" name="activiteit_id" value={activiteitId} />
       <input type="hidden" name="vervanger_id" value={vervangerId} />
+      <input type="hidden" name="rol" value={rol} />
       {taak && <input type="hidden" name="taak" value={taak} />}
       {staat.melding && (
         <Melding soort="fout" rol="alert">

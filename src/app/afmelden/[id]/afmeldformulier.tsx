@@ -29,6 +29,7 @@ export function Afmeldformulier({ activiteitId, terugHref }: { activiteitId: str
         label="Toelichting (optioneel)"
         hulp="Alleen het bestuur leest dit mee. Laat leeg als je niets kwijt wilt."
         maxLength={MAX_TOELICHTING}
+        defaultValue={staat.toelichting ?? ''}
         rows={3}
       />
       {staat.melding && (

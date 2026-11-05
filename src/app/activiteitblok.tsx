@@ -88,7 +88,14 @@ export function maakStatusRegel(
   const status = maakJouwstatus(activiteit.naam, groepen, indeling.afgemeld);
   const zin = statusZin(status);
   // Welke knoppen er staan: afmelden zonder dienst, intrekken als je bent afgemeld, en een uitleg bij een beheerrol of dienst.
-  const aanbod = maakAanbod(activiteit, nu, indeling.afgemeld, status.rollen);
+  const ev = indeling.plekken.find((plek) => plek.rol === 'eindverantwoordelijke');
+  const aanbod = maakAanbod(
+    activiteit,
+    nu,
+    indeling.afgemeld,
+    status.rollen,
+    ev ? { naam: ev.naam, telefoon: indeling.telefoon } : null,
+  );
   return {
     id: activiteit.id,
     naam: activiteit.naam,

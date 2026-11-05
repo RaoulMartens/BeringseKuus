@@ -8,6 +8,8 @@ import { isRuilbaar } from '@/lib/ruilen';
 /** Wat een formulier van afmelden of intrekken teruggeeft bij een fout; bij succes stuurt de server door naar een andere pagina. */
 export interface AfmeldStaat {
   melding: string | null;
+  /** Wat het lid had getypt, terug in het veld na een fout: een formulier dat een antwoord krijgt, maakt zijn velden anders leeg. */
+  toelichting?: string;
 }
 
 /** Een serveractie van afmelden of intrekken, zoals de formulieren hem aanroepen. */
@@ -38,11 +40,31 @@ export interface Aanbod {
 
 const NIETS: Aanbod = { afmelden: false, overdragen: false, intrekken: false, hulp: null };
 
+/** Wie je kunt bellen als je een rol hebt die alleen het bestuur wijzigt: de eindverantwoordelijke van de activiteit (UC-003 AF-2). */
+export interface Contact {
+  naam: string;
+  telefoon: string | null;
+}
+
+function beheerrolHulp(rollen: string[], eindverantwoordelijke: Contact | null): string {
+  const basis = 'Deze rol wijzigt alleen het bestuur.';
+  // De eindverantwoordelijke zelf kan niet naar zichzelf verwijzen: het contact is het bestuur.
+  if (rollen.includes('eindverantwoordelijke')) {
+    return `${basis} Kun je niet komen, neem dan contact op met het bestuur.`;
+  }
+  if (eindverantwoordelijke) {
+    const nummer = eindverantwoordelijke.telefoon ? `: ${eindverantwoordelijke.telefoon}` : '';
+    return `${basis} Kun je niet komen, bel dan ${eindverantwoordelijke.naam}, de eindverantwoordelijke${nummer}.`;
+  }
+  return `${basis} Kun je niet komen, neem dan contact op met de eindverantwoordelijke.`;
+}
+
 export function maakAanbod(
   activiteit: { status: string; eindigtOm: string },
   nu: Date,
   afgemeld: boolean,
   rollen: string[],
+  eindverantwoordelijke: Contact | null = null,
 ): Aanbod {
   const open =
     activiteit.status === 'gepubliceerd' && new Date(activiteit.eindigtOm).getTime() > nu.getTime();
@@ -50,10 +72,7 @@ export function maakAanbod(
   if (afgemeld) return { ...NIETS, intrekken: true };
   if (rollen.length === 0) return { ...NIETS, afmelden: true };
   if (rollen.some(isRuilbaar)) return { ...NIETS, afmelden: true, overdragen: true };
-  return {
-    ...NIETS,
-    hulp: 'Deze rol wijzigt alleen het bestuur. Kun je niet komen, neem dan contact op met de eindverantwoordelijke.',
-  };
+  return { ...NIETS, hulp: beheerrolHulp(rollen, eindverantwoordelijke) };
 }
 
 const MAANDEN = [
@@ -86,10 +105,15 @@ export function momentTekst(iso: string): string {
   return `${waarde('day')} ${maand}, ${waarde('hour')}:${waarde('minute')}`;
 }
 
+/** Is de deadline voorbij? Op het deadline-moment zelf nog niet (R8: strikt na); zonder deadline nooit. */
+export function deadlineVoorbij(deadline: string | null, nu: Date): boolean {
+  return deadline !== null && nu.getTime() > new Date(deadline).getTime();
+}
+
 /** De regel "Afmeld-deadline" van de bevestigingspagina. Op het deadline-moment zelf mag je nog vrij afmelden (R8). */
 export function deadlineTekst(deadline: string | null, nu: Date): string {
   if (!deadline) return 'Geen deadline: je kunt je vrij afmelden';
-  const verstreken = nu.getTime() > new Date(deadline).getTime();
+  const verstreken = deadlineVoorbij(deadline, nu);
   return `${momentTekst(deadline)} (${verstreken ? 'verstreken' : 'nog niet verstreken'})`;
 }
 
