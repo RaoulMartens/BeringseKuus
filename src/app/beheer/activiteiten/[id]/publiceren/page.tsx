@@ -8,11 +8,12 @@ import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { eisBeheer } from '@/lib/beheer';
+import { huidigeGebruiker } from '@/lib/gebruiker';
 import { langeDag } from '@/lib/programma';
-import { aantalIngedeeld, nogLeegTekst, zichtbaarVoorTekst } from '@/lib/publiceren';
+import { aantalIngedeeld, nogLeegTekst, zelfNietZichtbaarTekst, zichtbaarVoorTekst } from '@/lib/publiceren';
 import { maakSupabase } from '@/lib/supabase/server';
 
-import { leesActiviteit, leesGroepen } from '../../gegevens';
+import { leesActiviteit, leesEigenGroepen, leesGroepen } from '../../gegevens';
 
 import { Publiceerformulier } from './publiceerformulier';
 import stijl from './publiceren.module.css';
@@ -36,7 +37,13 @@ export default async function Publiceren({ params }: { params: Promise<{ id: str
   // Alleen een concept is te publiceren; bij een andere status is er niets te bevestigen.
   if (activiteit.status !== 'concept') redirect(terugHref);
 
-  const { groepen, aantalLeden } = await leesGroepen(supabase);
+  const gebruiker = await huidigeGebruiker();
+  const [{ groepen, aantalLeden }, eigenGroepen] = await Promise.all([
+    leesGroepen(supabase),
+    gebruiker ? leesEigenGroepen(supabase, gebruiker.lidId) : Promise.resolve([]),
+  ]);
+  // Zit de beheerder zelf niet in de doelgroep, dan ziet hij de activiteit na het publiceren niet op Start: dat zegt de pagina vooraf.
+  const zelfNiet = zelfNietZichtbaarTekst(activiteit.gekozenGroepen, groepen, eigenGroepen);
   const kanPubliceren = activiteit.nogNodig.length === 0;
   const nogLeeg = nogLeegTekst(activiteit.plekken);
   const ev = activiteit.eindverantwoordelijke;
@@ -61,6 +68,8 @@ export default async function Publiceren({ params }: { params: Promise<{ id: str
           </ul>
         </Melding>
       )}
+
+      {zelfNiet && <Melding soort="info">{zelfNiet}</Melding>}
 
       <Kaart titel={`${activiteit.naam} — ${langeDag(activiteit.datum)}`} lijst>
         <Lijst>

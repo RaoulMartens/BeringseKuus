@@ -5,7 +5,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-import { logInAlsBeheerder, maakTestlid, ruimActiviteitenOp, ruimTestledenOp } from './beheer-hulp.ts';
+import {
+  lidIdVan,
+  logInAlsBeheerder,
+  maakTestlid,
+  ruimActiviteitenOp,
+  ruimTestledenOp,
+} from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { ruimLidOp } from './mfa-hulp.ts';
 import { WCAG } from './normen.ts';
@@ -21,6 +27,7 @@ const aangemaakt: string[] = [];
 
 test.afterAll(async () => {
   ruimActiviteitenOp(`E2E Publiceren % ${kenmerk}`);
+  psql(`delete from public.groepen where naam like 'E2E Publiceren groep % ${kenmerk}';`);
   psql(`delete from public.wijzigingen_log where omschrijving like '%E2E Publiceren % ${kenmerk}%';`);
   ruimTestledenOp(kenmerk);
   for (const uid of aangemaakt.splice(0)) await ruimLidOp(uid);
@@ -35,7 +42,11 @@ function status(id: string): string {
 }
 
 /** Een nieuw concept met alles wat publiceren eist, behalve (naar keuze) de eindtijd; bewaard via "Opslaan als concept". */
-async function maakConcept(page: Page, naam: string, opties: { eindtijd: boolean; telefoon: boolean }) {
+async function maakConcept(
+  page: Page,
+  naam: string,
+  opties: { eindtijd: boolean; telefoon: boolean; groep?: { id: string; naam: string } },
+) {
   const ger = maakTestlid(`Ger${reeks}`, kenmerk, {
     magEindverantwoordelijke: true,
     ...(opties.telefoon ? { telefoon: '06 12 34 56 78' } : {}),
@@ -47,6 +58,11 @@ async function maakConcept(page: Page, naam: string, opties: { eindtijd: boolean
   if (opties.eindtijd) await page.getByLabel('Eindtijd *').fill('23:00');
   await page.getByLabel('Locatie *').fill('De Wieksjlaag');
   await page.getByLabel('Eindverantwoordelijke', { exact: true }).selectOption({ label: ger.naam });
+  if (opties.groep) {
+    // Wie op een plek staat, moet in de doelgroep zitten (R22): de eindverantwoordelijke dus ook.
+    psql(`insert into public.lid_groep (lid_id, groep_id) values ('${ger.id}', '${opties.groep.id}');`);
+    await page.getByRole('checkbox', { name: new RegExp(opties.groep.naam) }).check();
+  }
   await page.getByRole('button', { name: 'Opslaan als concept' }).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
   await page.getByRole('link', { name: new RegExp(naam) }).click();
@@ -68,6 +84,8 @@ test('Publiceren vraagt eerst een bevestiging; Annuleren laat het concept staan,
   await expect(page.getByText(/Zichtbaar voor: Alle \d+ actieve leden/)).toBeVisible();
   await expect(page.getByText(/Eindverantwoordelijke: Ger\d+ .*, 06 12 34 56 78/)).toBeVisible();
   await expect(page.getByText('Terugzetten naar concept kan hierna niet meer.')).toBeVisible();
+  // Zonder doelgroep ziet iedereen de activiteit, de beheerder ook: dan geen waarschuwing.
+  await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);
   // Er is niemand een bericht beloofd: dat gaat in deze versie nog niet uit.
   await expect(page.getByText('Berichten naar leden gaan in deze versie nog niet uit.')).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
@@ -159,4 +177,66 @@ test('Enter in een veld slaat op als concept en gaat niet naar de bevestiging va
   // De standaardknop voor Enter is geen tabstop en wordt niet voorgelezen.
   await page.goto('/beheer/activiteiten/nieuw');
   await expect(page.locator('form button[aria-hidden=true]')).toHaveAttribute('tabindex', '-1');
+});
+
+/** Een eigen groep voor deze test (ruimt afterAll op), zodat de activiteit niet bij andere tests zichtbaar wordt. */
+function maakGroep(): { id: string; naam: string } {
+  reeks += 1;
+  const naam = `E2E Publiceren groep ${reeks} ${kenmerk}`;
+  const id = crypto.randomUUID();
+  psql(`insert into public.groepen (id, naam, volgorde) values ('${id}', '${naam}', ${900 + reeks});`);
+  return { id, naam };
+}
+
+test('publiceren voor een groep waar de beheerder zelf niet in zit: de pagina zegt dat vooraf en erna, en biedt geen dode link', async ({
+  page,
+}) => {
+  aangemaakt.push(await logInAlsBeheerder(page));
+  const groep = maakGroep();
+  const naam = maakNaam('buitengroep');
+  const { id } = await maakConcept(page, naam, { eindtijd: true, telefoon: true, groep });
+  const tekst = `Jij zit zelf niet in ${groep.naam}, dus je ziet deze activiteit zelf niet op Start of Programma.`;
+
+  // Vooraf: op de bevestiging, als hint en niet als blokkade.
+  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
+  await expect(page.getByText(tekst)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Publiceren' })).toBeEnabled();
+  expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+
+  // Erna: in het overzicht staat het naast de melding dat het gepubliceerd is.
+  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await expect(page).toHaveURL(/\/beheer\?gepubliceerd=/);
+  await expect(page.getByText(`${naam} is gepubliceerd.`)).toBeVisible();
+  await expect(page.getByText(tekst)).toBeVisible();
+
+  // Op de activiteit zelf: dezelfde uitleg, en geen link "Zo zien leden het" naar een scherm dat voor hem dicht is.
+  await page.goto(`/beheer/activiteiten/${id}`);
+  await expect(page.getByText(tekst)).toBeVisible();
+  await expect(page.locator('a', { hasText: 'Zo zien leden het' })).toHaveCount(0);
+  expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+});
+
+test('zit de beheerder zelf wel in de groep, dan geen waarschuwing en blijft "Zo zien leden het"', async ({
+  page,
+}) => {
+  const uid = await logInAlsBeheerder(page);
+  aangemaakt.push(uid);
+  const groep = maakGroep();
+  psql(`insert into public.lid_groep (lid_id, groep_id) values ('${lidIdVan(uid)}', '${groep.id}');`);
+  const naam = maakNaam('ingroep');
+  const { id } = await maakConcept(page, naam, { eindtijd: true, telefoon: true, groep });
+
+  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
+  await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await expect(page).toHaveURL(/\/beheer\?gepubliceerd=/);
+  await expect(page.getByText(`${naam} is gepubliceerd.`)).toBeVisible();
+  await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);
+
+  await page.goto(`/beheer/activiteiten/${id}`);
+  await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);
+  // Op een telefoon staat de link niet in de balk onderaan; hij staat dan wel in het scherm maar is verborgen (Statuspaneel).
+  await expect(page.locator('a', { hasText: 'Zo zien leden het' })).toHaveCount(1);
 });

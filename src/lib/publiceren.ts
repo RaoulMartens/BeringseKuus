@@ -52,6 +52,26 @@ export function zichtbaarVoorTekst(
   return `Alleen leden van ${opsomming(namen)}`;
 }
 
+/**
+ * Een beheerder die publiceert voor een groep waar hij zelf niet in zit, ziet de activiteit zelf niet op Start of Programma
+ * (R22: wie niet in de doelgroep zit, ziet hem niet; het bestuur heeft hierin geen uitzondering). Dat is een hint, geen
+ * blokkade: de tekst zegt het vooraf, zodat een lege Start na het publiceren niet verrast. Null als de beheerder de
+ * activiteit wel ziet: er is geen doelgroep (iedereen ziet hem) of hij zit in minstens een van de gekozen groepen.
+ */
+export function zelfNietZichtbaarTekst(
+  gekozenGroepen: string[],
+  groepen: { id: string; naam: string }[],
+  eigenGroepen: string[],
+): string | null {
+  const namen = gekozenGroepen.flatMap((id) => {
+    const groep = groepen.find((g) => g.id === id);
+    return groep ? [groep.naam] : [];
+  });
+  if (namen.length === 0) return null;
+  if (gekozenGroepen.some((id) => eigenGroepen.includes(id))) return null;
+  return `Jij zit zelf niet in ${opsomming(namen)}, dus je ziet deze activiteit zelf niet op Start of Programma. Leden in ${namen.length === 1 ? 'die groep' : 'die groepen'} zien hem wel.`;
+}
+
 const ONTBREEKT: Record<string, string> = {
   starttijd: 'de starttijd',
   eindtijd: 'de eindtijd',

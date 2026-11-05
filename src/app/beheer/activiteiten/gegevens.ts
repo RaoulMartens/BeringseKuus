@@ -4,6 +4,7 @@
 import { nogNodigOmTePubliceren, tijdstipVoorVeld, tijdVoorVeld } from '@/lib/activiteitformulier';
 import type { ActiviteitStatus } from '@/lib/programma';
 import { isActiviteitStatus } from '@/lib/programma';
+import { zelfNietZichtbaarTekst } from '@/lib/publiceren';
 import type { maakSupabase } from '@/lib/supabase/server';
 
 import type { Groep } from './activiteitformulier';
@@ -39,6 +40,37 @@ export async function leesGroepen(supabase: Supabase): Promise<{ groepen: Groep[
     })),
     aantalLeden: leden.count ?? 0,
   };
+}
+
+/** De groepen waar dit lid in zit; een beheerder leest ook zijn eigen koppelingen (lid_groep, eigen_of_beheerder). */
+export async function leesEigenGroepen(supabase: Supabase, lidId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('lid_groep').select('groep_id').eq('lid_id', lidId);
+  if (error) throw new Error(`eigen groepen niet te lezen: ${error.code ?? error.message}`);
+  return data.map((regel) => regel.groep_id);
+}
+
+/**
+ * De waarschuwing als de ingelogde beheerder deze activiteit zelf niet ziet omdat hij niet in de doelgroep zit, of null.
+ * Voor schermen die de doelgroep en de groepen zelf nog niet hebben gelezen (het beheeroverzicht na het publiceren).
+ */
+export async function leesZelfNietZichtbaar(
+  supabase: Supabase,
+  activiteitId: string,
+  lidId: string,
+): Promise<string | null> {
+  const [gekozen, groepen, eigen] = await Promise.all([
+    supabase.from('activiteit_groep').select('groep_id').eq('activiteit_id', activiteitId),
+    supabase.from('groepen').select('id, naam'),
+    leesEigenGroepen(supabase, lidId),
+  ]);
+  if (gekozen.error)
+    throw new Error(`doelgroep niet te lezen: ${gekozen.error.code ?? gekozen.error.message}`);
+  if (groepen.error) throw new Error(`groepen niet te lezen: ${groepen.error.code ?? groepen.error.message}`);
+  return zelfNietZichtbaarTekst(
+    gekozen.data.map((regel) => regel.groep_id),
+    groepen.data,
+    eigen,
+  );
 }
 
 export interface ActiviteitGegevens {
