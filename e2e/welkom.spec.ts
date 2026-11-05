@@ -245,6 +245,20 @@ test('het bestuur ziet een link om de activiteit te beheren, een gewoon lid niet
     'href',
     `/beheer/activiteiten/${id}`,
   );
+
+  // Uitlijning in het paneel: de knop Afmelden en de link naar beheer beginnen op dezelfde lijn, en de knop vult het paneel
+  // (even veel ruimte links als rechts). Een link die tegen de tekst van de zin aan staat, viel hier eerder uit de pas.
+  const paneel = page.getByRole('region', { name: 'Jouw status' });
+  const afmelden = paneel.getByRole('link', { name: 'Afmelden', exact: true });
+  await expect(afmelden).toBeVisible();
+  const [kader, knop, beheren] = await Promise.all([
+    paneel.boundingBox(),
+    afmelden.boundingBox(),
+    paneel.getByRole('link', { name: 'Deze activiteit beheren' }).boundingBox(),
+  ]);
+  if (!kader || !knop || !beheren) throw new Error('paneel, knop of link heeft geen afmetingen');
+  expect(Math.abs(knop.x - beheren.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(knop.x - kader.x - (kader.x + kader.width - (knop.x + knop.width)))).toBeLessThanOrEqual(1);
 });
 
 test('een gewoon lid heeft geen link naar beheer', async ({ page }) => {

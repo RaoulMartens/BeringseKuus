@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { aantalIngedeeld, nogLeegTekst, vertaalPubliceerfout, zichtbaarVoorTekst } from './publiceren';
+import {
+  aantalIngedeeld,
+  nogLeegTekst,
+  vertaalPubliceerfout,
+  zelfNietZichtbaarTekst,
+  zichtbaarVoorTekst,
+} from './publiceren';
 
 describe('nogLeegTekst', () => {
   it('is leeg als alles is ingedeeld', () => {
@@ -61,6 +67,43 @@ describe('zichtbaarVoorTekst', () => {
 
   it('slaat een groep over die er niet meer is, en valt dan terug op iedereen', () => {
     expect(zichtbaarVoorTekst(['9'], groepen, 42)).toBe('Alle 42 actieve leden');
+  });
+});
+
+describe('zelfNietZichtbaarTekst', () => {
+  const groepen = [
+    { id: '1', naam: 'Bestuur' },
+    { id: '2', naam: 'Raad van Elf' },
+    { id: '3', naam: 'Dames' },
+  ];
+
+  it('zegt niets zonder doelgroep: iedereen ziet de activiteit, de beheerder ook', () => {
+    expect(zelfNietZichtbaarTekst([], groepen, [])).toBeNull();
+    expect(zelfNietZichtbaarTekst([], groepen, ['1'])).toBeNull();
+  });
+
+  it('zegt niets als de beheerder in een van de gekozen groepen zit', () => {
+    expect(zelfNietZichtbaarTekst(['1'], groepen, ['1'])).toBeNull();
+    expect(zelfNietZichtbaarTekst(['1', '2'], groepen, ['2', '3'])).toBeNull();
+  });
+
+  it('waarschuwt als de beheerder in geen van de gekozen groepen zit, met de naam van de groep', () => {
+    expect(zelfNietZichtbaarTekst(['2'], groepen, [])).toBe(
+      'Jij zit zelf niet in Raad van Elf, dus je ziet deze activiteit zelf niet op Start of Programma. Leden in die groep zien hem wel.',
+    );
+    expect(zelfNietZichtbaarTekst(['2'], groepen, ['1', '3'])).toContain(
+      'Jij zit zelf niet in Raad van Elf,',
+    );
+  });
+
+  it('noemt meer groepen in meervoud', () => {
+    expect(zelfNietZichtbaarTekst(['1', '2'], groepen, ['3'])).toBe(
+      'Jij zit zelf niet in Bestuur en Raad van Elf, dus je ziet deze activiteit zelf niet op Start of Programma. Leden in die groepen zien hem wel.',
+    );
+  });
+
+  it('negeert een groep die er niet meer is: dan is er geen doelgroep', () => {
+    expect(zelfNietZichtbaarTekst(['9'], groepen, [])).toBeNull();
   });
 });
 

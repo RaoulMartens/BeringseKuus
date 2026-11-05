@@ -18,10 +18,12 @@ import {
   type OverzichtRegel,
   type OverzichtRij,
 } from '@/lib/beheeroverzicht';
+import { huidigeGebruiker } from '@/lib/gebruiker';
 import { vandaagInNederland } from '@/lib/programma';
 import { naamUitLog } from '@/lib/verwijderen';
 import { maakSupabase } from '@/lib/supabase/server';
 
+import { leesZelfNietZichtbaar } from './activiteiten/gegevens';
 import stijl from './beheer.module.css';
 
 export const metadata: Metadata = { title: 'Beheer – Ledenplatform' };
@@ -128,6 +130,14 @@ export default async function Beheer({
     ? overzichtsrijen.find((rij) => rij.activiteitId === gepubliceerd.data)
     : undefined;
 
+  // Na het publiceren voor een groep waar de beheerder zelf niet in zit: Start toont hem niet, dus zegt het scherm dat erbij.
+  let zelfNiet: string | null = null;
+  if (nuGepubliceerd && nuGepubliceerd.status !== 'concept') {
+    const gebruiker = await huidigeGebruiker();
+    if (gebruiker)
+      zelfNiet = await leesZelfNietZichtbaar(supabase, nuGepubliceerd.activiteitId, gebruiker.lidId);
+  }
+
   // Een verwijderd concept bestaat niet meer: de naam staat nog in het wijzigingenlog (alleen voor een beheerder te lezen).
   let verwijderdeNaam: string | null | undefined;
   if (verwijderd.success) {
@@ -181,6 +191,7 @@ export default async function Beheer({
           <strong>{nuGepubliceerd.naam} is gepubliceerd.</strong> Leden zien hem nu.
         </Melding>
       )}
+      {zelfNiet && <Melding soort="info">{zelfNiet}</Melding>}
       {verwijderdeNaam !== undefined && (
         <Melding soort="succes">
           <strong>
