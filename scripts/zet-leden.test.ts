@@ -4,7 +4,22 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 
-import { leesArgumenten, leesOnlineDoel, magBestand } from './zet-leden.ts';
+import { foutTekst, leesArgumenten, leesOnlineDoel, magBestand } from './zet-leden.ts';
+
+test('foutTekst: code en melding; zonder code "onbekend", zonder melding alleen de code', () => {
+  assert.equal(
+    foutTekst({ code: '42501', message: 'permission denied for table groepen' }),
+    '42501: permission denied for table groepen',
+  );
+  // Een foute sleutel heeft geen code: dan is de melding het enige houvast.
+  assert.equal(foutTekst({ message: 'Invalid API key' }), 'onbekend: Invalid API key');
+  assert.equal(foutTekst({ code: '42501', message: '  ' }), '42501');
+  assert.equal(foutTekst({ code: null, message: null }), 'onbekend');
+});
+
+test('foutTekst: een lange melding wordt afgekapt', () => {
+  assert.equal(foutTekst({ code: 'x', message: 'a'.repeat(500) }).length, 'x: '.length + 200);
+});
 
 test('leesArgumenten: een bestand, met of zonder --ja en --online, in elke volgorde', () => {
   assert.deepEqual(leesArgumenten(['lijst.leden.csv']), {

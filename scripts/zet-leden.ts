@@ -103,6 +103,19 @@ export function magBestand(bestand: string, repo: string): string | null {
   return null;
 }
 
+/**
+ * De foutcode en de melding van Supabase, zodat "onbekend" nooit het enige is wat de bouwer ziet (een foute sleutel heeft
+ * geen code, alleen een melding: "Invalid API key"). Alleen de melding, niet de details of de hint: die kunnen de waarde
+ * van een rij noemen (een e-mailadres bij een dubbele sleutel), en de uitvoer wordt gekopieerd en gedeeld. Een waarde uit het
+ * bestand kan nog wel in de melding staan (bij een ongeldige invoer, `invalid input syntax for type …: "waarde"`): kijk dus
+ * eerst naar de uitvoer voor je hem deelt.
+ */
+export function foutTekst(fout: { code?: string | null; message?: string | null }): string {
+  const code = fout.code ?? 'onbekend';
+  const melding = fout.message?.trim().slice(0, 200);
+  return melding ? `${code}: ${melding}` : code;
+}
+
 // ===== Lezen wat er al staat =====
 
 /** Het aantal rijen dat de Supabase-API per aanvraag teruggeeft (supabase/config.toml, max_rows). */
@@ -111,7 +124,7 @@ const MAX_RIJEN = 1000;
 /** De groepen: naam en id. */
 export async function leesGroepen(klant: Klant): Promise<Map<string, string>> {
   const { data, error } = await klant.from('groepen').select('id, naam');
-  if (error) throw new Error(`groepen niet te lezen (${error.code ?? 'onbekend'})`);
+  if (error) throw new Error(`groepen niet te lezen (${foutTekst(error)})`);
   return new Map(data.map((groep) => [groep.naam, groep.id]));
 }
 
@@ -136,13 +149,12 @@ export async function leesBestaand(
       .gt('activiteiten.eindigt_om', nu),
     klant.from('activiteit_groep').select('activiteit_id, groep_id'),
   ]);
-  if (leden.error) throw new Error(`leden niet te lezen (${leden.error.code ?? 'onbekend'})`);
-  if (prive.error) throw new Error(`ledengegevens niet te lezen (${prive.error.code ?? 'onbekend'})`);
-  if (koppelingen.error)
-    throw new Error(`groepen van leden niet te lezen (${koppelingen.error.code ?? 'onbekend'})`);
-  if (slots.error) throw new Error(`indelingen niet te lezen (${slots.error.code ?? 'onbekend'})`);
+  if (leden.error) throw new Error(`leden niet te lezen (${foutTekst(leden.error)})`);
+  if (prive.error) throw new Error(`ledengegevens niet te lezen (${foutTekst(prive.error)})`);
+  if (koppelingen.error) throw new Error(`groepen van leden niet te lezen (${foutTekst(koppelingen.error)})`);
+  if (slots.error) throw new Error(`indelingen niet te lezen (${foutTekst(slots.error)})`);
   if (activiteitGroepen.error)
-    throw new Error(`doelgroepen niet te lezen (${activiteitGroepen.error.code ?? 'onbekend'})`);
+    throw new Error(`doelgroepen niet te lezen (${foutTekst(activiteitGroepen.error)})`);
   // De API geeft hooguit 1000 rijen per aanvraag. Op die grens zouden we een deel van de leden niet zien en dus dubbel aanmaken.
   if (
     [leden.data, prive.data, koppelingen.data, slots.data, activiteitGroepen.data].some(
@@ -215,7 +227,7 @@ export async function leesAccounts(klant: Klant): Promise<Map<string, string>> {
   let pagina: number | null = 1;
   while (pagina !== null) {
     const { data, error } = await klant.auth.admin.listUsers({ page: pagina, perPage: 1000 });
-    if (error) throw new Error(`inlogaccounts niet te lezen (${error.code ?? 'onbekend'})`);
+    if (error) throw new Error(`inlogaccounts niet te lezen (${foutTekst(error)})`);
     for (const gebruiker of data.users) {
       if (gebruiker.email) accounts.set(gebruiker.email.toLowerCase(), gebruiker.id);
     }
@@ -246,7 +258,7 @@ async function zorgVoorAccount(
       ? { id: bestaand, nieuw: false }
       : { fout: 'inlogaccount bestaat maar is niet te vinden' };
   }
-  return { fout: `inlogaccount niet te maken (${gemaakt.error.code ?? 'onbekend'})` };
+  return { fout: `inlogaccount niet te maken (${foutTekst(gemaakt.error)})` };
 }
 
 function groepIds(namen: string[], groepen: Map<string, string>): string[] {
@@ -277,7 +289,7 @@ async function nieuwLid(
     const aanwezig = await klant.from('leden').select('id').eq('auth_user_id', account.id).maybeSingle();
     if (aanwezig.error) {
       if (account.nieuw) await klant.auth.admin.deleteUser(account.id);
-      return `lid niet te lezen (${aanwezig.error.code ?? 'onbekend'})`;
+      return `lid niet te lezen (${foutTekst(aanwezig.error)})`;
     }
     if (aanwezig.data) {
       const privegegevens = await klant
@@ -285,8 +297,7 @@ async function nieuwLid(
         .select('lid_id')
         .eq('lid_id', aanwezig.data.id)
         .maybeSingle();
-      if (privegegevens.error)
-        return `ledengegevens niet te lezen (${privegegevens.error.code ?? 'onbekend'})`;
+      if (privegegevens.error) return `ledengegevens niet te lezen (${foutTekst(privegegevens.error)})`;
       if (privegegevens.data) return 'dit inlogaccount hoort al bij een ander lid; niets gewijzigd';
       lidId = aanwezig.data.id;
       eigenLid = false;
@@ -294,7 +305,7 @@ async function nieuwLid(
         .from('leden')
         .update({ voornaam: regel.voornaam, achternaam: regel.achternaam })
         .eq('id', lidId);
-      if (naam.error) return `halve toestand niet af te maken (${naam.error.code ?? 'onbekend'})`;
+      if (naam.error) return `halve toestand niet af te maken (${foutTekst(naam.error)})`;
     }
   }
 
@@ -327,7 +338,7 @@ async function nieuwLid(
       .select('id')
       .single();
     if (lid.error) {
-      return `lid niet aan te maken (${lid.error.code ?? 'onbekend'})${await opruimen()}`;
+      return `lid niet aan te maken (${foutTekst(lid.error)})${await opruimen()}`;
     }
     lidId = lid.data.id;
   }
@@ -339,7 +350,7 @@ async function nieuwLid(
     mag_eindverantw: regel.magEindverantwoordelijke ?? false,
   });
   if (prive.error) {
-    return `ledengegevens niet te zetten (${prive.error.code ?? 'onbekend'})${await opruimen()}`;
+    return `ledengegevens niet te zetten (${foutTekst(prive.error)})${await opruimen()}`;
   }
   const ids = groepIds(regel.groepen ?? [], groepen);
   if (ids.length > 0) {
@@ -348,7 +359,7 @@ async function nieuwLid(
       .from('lid_groep')
       .insert(ids.map((groep) => ({ lid_id: gekozenLid, groep_id: groep })));
     if (koppeling.error) {
-      return `groepen niet te zetten (${koppeling.error.code ?? 'onbekend'})${await opruimen()}`;
+      return `groepen niet te zetten (${foutTekst(koppeling.error)})${await opruimen()}`;
     }
   }
   return null;
@@ -366,7 +377,7 @@ async function werkBij(
     const koppel = await klant.from('leden').update({ auth_user_id: account.id }).eq('id', bestaand.lidId);
     if (koppel.error) {
       if (account.nieuw) await klant.auth.admin.deleteUser(account.id);
-      return `inlogaccount niet te koppelen (${koppel.error.code ?? 'onbekend'})`;
+      return `inlogaccount niet te koppelen (${foutTekst(koppel.error)})`;
     }
   }
   if (wijzigingen.includes('naam')) {
@@ -374,7 +385,7 @@ async function werkBij(
       .from('leden')
       .update({ voornaam: regel.voornaam, achternaam: regel.achternaam })
       .eq('id', bestaand.lidId);
-    if (naam.error) return `naam niet te wijzigen (${naam.error.code ?? 'onbekend'})`;
+    if (naam.error) return `naam niet te wijzigen (${foutTekst(naam.error)})`;
   }
   const prive: Database['public']['Tables']['leden_prive']['Update'] = {};
   if (wijzigingen.includes('telefoon')) prive.telefoon = regel.telefoon;
@@ -383,19 +394,19 @@ async function werkBij(
     prive.mag_eindverantw = regel.magEindverantwoordelijke ?? false;
   if (Object.keys(prive).length > 0) {
     const gezet = await klant.from('leden_prive').update(prive).eq('lid_id', bestaand.lidId);
-    if (gezet.error) return `ledengegevens niet te wijzigen (${gezet.error.code ?? 'onbekend'})`;
+    if (gezet.error) return `ledengegevens niet te wijzigen (${foutTekst(gezet.error)})`;
   }
   const eraf = groepIds(actie.groepenEraf, groepen);
   if (eraf.length > 0) {
     const weg = await klant.from('lid_groep').delete().eq('lid_id', bestaand.lidId).in('groep_id', eraf);
-    if (weg.error) return `groepen niet te wijzigen (${weg.error.code ?? 'onbekend'})`;
+    if (weg.error) return `groepen niet te wijzigen (${foutTekst(weg.error)})`;
   }
   const erbij = groepIds(actie.groepenErbij, groepen);
   if (erbij.length > 0) {
     const toe = await klant
       .from('lid_groep')
       .insert(erbij.map((groep) => ({ lid_id: bestaand.lidId, groep_id: groep })));
-    if (toe.error) return `groepen niet te wijzigen (${toe.error.code ?? 'onbekend'})`;
+    if (toe.error) return `groepen niet te wijzigen (${foutTekst(toe.error)})`;
   }
   return null;
 }
