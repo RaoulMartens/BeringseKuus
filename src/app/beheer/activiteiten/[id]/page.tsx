@@ -9,11 +9,13 @@ import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { Statuspaneel } from '@/components/statuspaneel/statuspaneel';
 import { eisBeheer } from '@/lib/beheer';
+import { huidigeGebruiker } from '@/lib/gebruiker';
 import { langeDag } from '@/lib/programma';
+import { zelfNietZichtbaarTekst } from '@/lib/publiceren';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { Activiteitformulier, FORMULIER_ID } from '../activiteitformulier';
-import { leesActiviteit, leesAfgemeld, leesGroepen, leesKandidaten } from '../gegevens';
+import { leesActiviteit, leesAfgemeld, leesEigenGroepen, leesGroepen, leesKandidaten } from '../gegevens';
 
 import stijl from './activiteit.module.css';
 
@@ -57,11 +59,18 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
   }
   const gepubliceerd = activiteit.status === 'gepubliceerd';
 
-  const [{ groepen, aantalLeden }, kandidaten, afgemeld] = await Promise.all([
+  const gebruiker = await huidigeGebruiker();
+  const [{ groepen, aantalLeden }, kandidaten, afgemeld, eigenGroepen] = await Promise.all([
     leesGroepen(supabase),
     leesKandidaten(supabase),
     leesAfgemeld(supabase, activiteit.id),
+    gebruiker ? leesEigenGroepen(supabase, gebruiker.lidId) : Promise.resolve([]),
   ]);
+  // Bij een gepubliceerde activiteit voor een groep waar de beheerder zelf niet in zit, bestaat "Zo zien leden het" voor hem
+  // niet (het ledenscherm is er dicht): de pagina zegt waarom, in plaats van een link naar niet gevonden.
+  const zelfNiet = gepubliceerd
+    ? zelfNietZichtbaarTekst(activiteit.gekozenGroepen, groepen, eigenGroepen)
+    : null;
   return (
     <Schermkader
       actief="beheer"
@@ -73,9 +82,11 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
             status="Gepubliceerd"
             uitleg="Leden zien deze activiteit. Een wijziging zien ze meteen; er gaat nog geen bericht uit."
             onderaan={
-              <Knop href={`/programma/${activiteit.id}`} soort="tekst">
-                Zo zien leden het
-              </Knop>
+              zelfNiet ? undefined : (
+                <Knop href={`/programma/${activiteit.id}`} soort="tekst">
+                  Zo zien leden het
+                </Knop>
+              )
             }
           >
             <Knop type="submit" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
@@ -103,6 +114,7 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         )
       }
     >
+      {zelfNiet && <Melding soort="info">{zelfNiet}</Melding>}
       <Activiteitformulier
         activiteitId={activiteit.id}
         versie={activiteit.versie}
