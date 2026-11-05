@@ -5,7 +5,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(89);
+select plan(92);
 
 -- Gebruikers en leden, als postgres. De naam is de sleutel in de tests.
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
@@ -447,6 +447,36 @@ select is_empty(
 select ok(not has_table_privilege('service_role', 'public.wijzigingen_log', 'update')
       and not has_table_privilege('service_role', 'public.wijzigingen_log', 'delete'),
   'service_role mag de auditlog niet wijzigen of wissen');
+-- Lokaal geeft Supabase service_role vanzelf rechten op elke tabel; online niet (42501 op groepen bij npm run leden:zet).
+-- De migratie 20261105120000 geeft ze uitdrukkelijk. Let op: deze drie tests slagen lokaal ook zonder die migratie, want
+-- lokaal bestaan de rechten al; ze houden de uitkomst vast (wie leest en schrijft met service_role kan dat op elke tabel,
+-- de auditlog alleen lezen en toevoegen, ook op een tabel die later bijkomt) en zouden online falen zonder de migratie.
+-- Dat de migratie zelf werkt, is gecontroleerd door lokaal eerst alle rechten van service_role in te trekken en dan de
+-- migratie uit te voeren (zie de pull request).
+select is_empty(
+  $$ select c.relname::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind in ('r', 'p')
+        and not (has_table_privilege('service_role', c.oid, 'select') and has_table_privilege('service_role', c.oid, 'insert')
+                 and (c.relname = 'wijzigingen_log'
+                      or (has_table_privilege('service_role', c.oid, 'update') and has_table_privilege('service_role', c.oid, 'delete')))) $$,
+  'service_role mag op elke tabel in public lezen en invoegen, en wijzigen en wissen (de auditlog uitgezonderd)');
+create table public.t_rechten_probe (id int);
+-- Elk recht apart: has_table_privilege met een lijst is waar zodra één van de rechten er is.
+select ok(has_table_privilege('service_role', 'public.t_rechten_probe', 'select')
+      and has_table_privilege('service_role', 'public.t_rechten_probe', 'insert')
+      and has_table_privilege('service_role', 'public.t_rechten_probe', 'update')
+      and has_table_privilege('service_role', 'public.t_rechten_probe', 'delete'),
+  'een tabel die later bijkomt, krijgt lees- en schrijfrechten voor service_role');
+drop table public.t_rechten_probe;
+select is(
+  (select count(distinct a.privilege_type)::int
+     from pg_default_acl d
+     join pg_namespace n on n.oid = d.defaclnamespace
+    cross join lateral aclexplode(d.defaclacl) a
+    where n.nspname = 'public' and d.defaclrole = 'postgres'::regrole and d.defaclobjtype = 'r'
+      and a.grantee = 'service_role'::regrole and a.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')),
+  4,
+  'de standaardrechten van postgres in public geven service_role lezen, invoegen, wijzigen en wissen op nieuwe tabellen');
 set local role service_role;
 select lives_ok($$ insert into public.activiteiten (naam, datum) values ('T Service', '2099-07-01') $$,
   'service_role kan een activiteit invoegen: de gegenereerde kolommen werken met zijn rechten (DM-22)');
