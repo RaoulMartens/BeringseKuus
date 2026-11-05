@@ -64,7 +64,8 @@ export function Vervangerkeuze({
                     name="vervanger"
                     value={v.id}
                     disabled={!v.beschikbaar}
-                    required
+                    // Alleen wat zichtbaar is mag verplicht zijn: een verborgen verplicht rondje houdt het formulier stil tegen (B5).
+                    required={!verborgen}
                     aria-describedby={v.beschikbaar ? undefined : redenId}
                   />
                   <span className={stijl.naam}>{v.naam}</span>

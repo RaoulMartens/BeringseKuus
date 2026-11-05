@@ -85,13 +85,15 @@ export default async function BevestigOverdracht({
         </dl>
         <p className={stijl.tekst}>
           Zodra je bevestigt is de dienst van {gekozen.naam} en is die verantwoordelijk. Dit kun je niet zelf
-          terugdraaien — alleen het bestuur kan een indeling nog wijzigen.
+          terugdraaien — alleen het bestuur kan een indeling nog wijzigen. {gekozen.naam} krijgt hier geen
+          bericht van: zorg dat die het weet.
           {taak ? ' Daarna volgt stap 2: je afmelding zelf.' : ''}
         </p>
       </Kaart>
       <Ruilformulier
         activiteitId={activiteit.id}
         vervangerId={gekozen.id}
+        rol={dienst.rol}
         taak={taak}
         terugHref={terugHref}
       />

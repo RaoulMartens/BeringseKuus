@@ -9,6 +9,7 @@ import { Schermkader } from '@/components/schermkader/schermkader';
 import { afmeldenHref } from '@/lib/afmelden';
 import { rolLabel } from '@/lib/ledenactiviteit';
 import { langeDag } from '@/lib/programma';
+import { isRuilbaar, ruilHref } from '@/lib/ruilen';
 
 import stijl from '../../../afmelden/afmelden.module.css';
 import { laadLid } from '../../context';
@@ -30,13 +31,16 @@ export default async function Overgedragen({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ v?: string | string[] }>;
 }) {
-  const { supabase, activiteit } = await laadLid(params);
+  const { supabase, gebruiker, activiteit } = await laadLid(params);
   const vervangerId = z.uuid().safeParse((await searchParams).v);
   if (!vervangerId.success) redirect('/');
 
+  // Wat het adres beweert, controleert de pagina: het lid heeft zelf geen plek meer bij deze activiteit, en de vervanger heeft er een
+  // die een lid kan overdragen. Anders is er niets overgedragen (of niet door dit lid) en gaat het lid terug naar de lijst of Start.
+  if (await leesDienstVan(supabase, activiteit.id, gebruiker.lidId)) redirect(ruilHref(activiteit.id));
   const dienst = await leesDienstVan(supabase, activiteit.id, vervangerId.data);
   const naam = dienst ? await leesLidNaam(supabase, vervangerId.data) : null;
-  if (!dienst || !naam) redirect('/');
+  if (!dienst || !naam || !isRuilbaar(dienst.rol)) redirect('/');
   const rol = rolLabel(dienst.rol) ?? dienst.rol;
 
   return (

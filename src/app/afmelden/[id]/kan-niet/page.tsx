@@ -6,7 +6,13 @@ import { Kaart } from '@/components/kaart/kaart';
 import { Knop } from '@/components/knop/knop';
 import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
-import { leesOndergrensQuery, momentTekst, ONDERGRENS_TEKST } from '@/lib/afmelden';
+import {
+  afmeldenHref,
+  deadlineVoorbij,
+  leesOndergrensQuery,
+  momentTekst,
+  ONDERGRENS_TEKST,
+} from '@/lib/afmelden';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { maakSupabase } from '@/lib/supabase/server';
@@ -38,6 +44,9 @@ export default async function AfmeldenKanNiet({
   const supabase = await maakSupabase();
   const activiteit = await leesAfmeldActiviteit(supabase, id.data);
   if (!activiteit) notFound();
+
+  // De blokkade bestaat alleen na de deadline (R8): is die er niet of niet voorbij, dan is er niets te melden en kan het lid zich gewoon afmelden.
+  if (!deadlineVoorbij(activiteit.afmeldDeadline, new Date())) redirect(afmeldenHref(activiteit.id));
 
   const cijfers = leesOndergrensQuery(await searchParams);
   const { data: contacten, error } = await supabase.rpc('contact_eindverantwoordelijke', {

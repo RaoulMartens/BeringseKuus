@@ -20,7 +20,8 @@ export const metadata: Metadata = { title: 'Weer aanwezig – Ledenplatform' };
 /**
  * Na het intrekken van een afmelding (UC-003 AF-6, afmelding-ingetrokken): je staat weer op aanwezig. Staat er nog een afmelding,
  * dan is er niets ingetrokken en gaat het lid terug naar het resultaat van het afmelden. Een eerder overgedragen dienst komt niet terug
- * (R9); de pagina zegt dat nog niet, want een lid kan zijn eigen overdracht niet lezen. Dat komt met de overdracht (stap D).
+ * (R9); de pagina zegt dat nog niet, want een lid kan zijn eigen overdracht niet lezen (het wijzigingenlog is voor het bestuur). Dat
+ * vraagt een leesroute en staat op de lijst "Van fase 3 naar pilot B" in Afname-fase-3.md.
  */
 export default async function Ingetrokken({ params }: { params: Promise<{ id: string }> }) {
   if (!(await huidigeAuthGebruiker())) redirect('/inloggen');

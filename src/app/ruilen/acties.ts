@@ -18,6 +18,8 @@ import { leesDienstVan } from './gegevens';
 const FORMULIER = z.object({
   activiteit_id: z.uuid(),
   vervanger_id: z.uuid(),
+  // De rol zoals de bevestigingspagina hem toonde: is de dienst intussen een andere geworden, dan gaat er niets weg (B1).
+  rol: z.string().min(1).max(40),
   taak: z.literal('afmelden').optional(),
 });
 
@@ -27,6 +29,7 @@ export async function ruilDienst(_vorige: AfmeldStaat, formulier: FormData): Pro
   const invoer = FORMULIER.safeParse({
     activiteit_id: formulier.get('activiteit_id'),
     vervanger_id: formulier.get('vervanger_id'),
+    rol: formulier.get('rol'),
     taak: formulier.get('taak') || undefined,
   });
   if (!invoer.success)
@@ -38,7 +41,9 @@ export async function ruilDienst(_vorige: AfmeldStaat, formulier: FormData): Pro
   if (!gebruiker) redirect('/mijn');
   const supabase = await maakSupabase();
   const dienst = await leesDienstVan(supabase, activiteitId, gebruiker.lidId);
-  if (!dienst) return redirect('/');
+  // Geen dienst meer, of een andere dan op de bevestigingspagina stond (het bestuur deelde het lid intussen anders in): niets
+  // overdragen, en terug naar Start met de actuele bezetting (UC-002 AF-6). Een overdracht kan niet worden teruggedraaid.
+  if (!dienst || dienst.rol !== invoer.data.rol) return redirect('/');
 
   const { error } = await supabase.rpc('ruil_dienst', {
     p_rol_slot_id: dienst.slotId,
@@ -47,7 +52,9 @@ export async function ruilDienst(_vorige: AfmeldStaat, formulier: FormData): Pro
   if (!error)
     return redirect(taak ? stap2Href(activiteitId, vervangerId) : geluktHref(activiteitId, vervangerId));
 
-  console.error(`dienst niet overgedragen: ${error.code ?? error.message}`);
+  console.error(
+    `dienst niet overgedragen: ${error.code === 'BK001' ? error.message : (error.code ?? error.message)}`,
+  );
   const uitkomst =
     error.code === 'BK001' ? vertaalRuilfout(error.message, error.details) : vertaalRuilfout('', '{}');
   switch (uitkomst.soort) {

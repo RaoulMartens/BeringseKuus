@@ -1,7 +1,7 @@
 // Het paneel "Jouw status" (docs/visueel, `.wf-status-zin`): wat er over jou bij de activiteit staat, op één plek in de
 // zijkolom. Bij twee activiteiten op één dag staat er per activiteit een regel (UC-001 AF-8). Hier staan ook de knoppen
 // Afmelden (naar de bevestigingspagina) en Afmelding intrekken (direct, het kan terug), en voor het bestuur de link naar
-// beheer. Dienst overdragen volgt in fase 3, stap D. Welke knop er staat, beslist maakAanbod in src/lib/afmelden.ts.
+// beheer; met een dienst die een lid zelf kan overdragen ook Dienst overdragen. Welke knop er staat, beslist maakAanbod in src/lib/afmelden.ts.
 
 import Link from 'next/link';
 import { useId } from 'react';
