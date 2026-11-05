@@ -80,6 +80,14 @@
   height: 16px;
 }
 
+/* De link op je eigen rij ('Al je diensten'): een rustige tekstlink, geen knop. */
+.eigenLink {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neutraal-tekst);
+  text-underline-offset: 3px;
+}
+
 .onderaan {
   margin: 12px 0 0;
   font-size: 0.875rem;

@@ -93,6 +93,9 @@ const geenZijwaartsSchuiven = (page: Page) =>
 
 /** Toegankelijk (WCAG) en op deze breedte niets dat opzij schuift. */
 async function isNetjes(page: Page): Promise<void> {
+  // Eerst de pagina en de lettertypen af: axe meet de grootte van knoppen en links, en die verandert als de lettertypen laden.
+  await page.waitForLoadState('load');
+  await page.evaluate(() => document.fonts.ready);
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   expect(await geenZijwaartsSchuiven(page)).toBe(false);
 }

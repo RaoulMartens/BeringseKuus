@@ -30,3 +30,7 @@
   font: 700 1.25rem/1.4 var(--font-titel);
   color: var(--neutraal-tekst);
 }
+
+.leeg {
+  margin: 0;
+}
