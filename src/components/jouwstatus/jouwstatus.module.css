@@ -1,18 +1,25 @@
-/* Het paneel "Jouw status": een kaart in de zijkolom; op een telefoon staat hij bovenaan (de opdrachtgever, 09-10: "Je staat op
-   aanwezig" voor het kaartje). */
+/* Het paneel "Jouw status" (docs/visueel/stijl.css, sectie 13g): een kaart in de zijkolom. De status is de kop, de uitleg is klein
+   en zacht, de hoofdactie staat eronder en het alternatief apart onder een lijn. */
 .kaart {
   background: var(--neutraal-kaart);
   border-radius: var(--radius-card);
   padding: var(--padding-card);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-.kop {
-  margin: 0;
-  font: 700 1.25rem/1.4 var(--font-titel);
-  color: var(--thema-primair-tekst);
+/* Alleen voor een schermlezer: geeft het paneel zijn naam ("Jouw status"). */
+.verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .regels {
@@ -21,44 +28,104 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 24px;
 }
 
 .regel {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
+/* 1 De status als kop: groot, in de titelletter, in de kleur van de status (groen aanwezig, de themakleur bij afgemeld). */
 .zin {
   margin: 0;
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font: 400 1rem/1.5 var(--font-tekst);
-  color: var(--neutraal-tekst);
+  align-items: center;
+  gap: 10px;
+  font: 700 1.125rem/1.4444 var(--font-titel);
+}
+
+.zin > span {
+  text-wrap: balance; /* de zin breekt gelijk af ("…aanwezig, / zonder dienst.") in plaats van met één los woord */
 }
 
 .icoon {
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+}
+
+.aanwezig {
+  color: var(--status-succes-tekst);
 }
 
 .aanwezig .icoon {
   color: var(--status-succes);
 }
 
-.afgemeld .icoon {
-  color: var(--status-info);
+.afgemeld {
+  color: color-mix(in oklch, var(--thema-primair-tekst), black 20%);
 }
 
+.afgemeld .icoon {
+  color: var(--thema-primair);
+}
+
+/* 2 De uitleg: klein en zacht, direct onder de status. */
+.uitleg {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5385;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.hulp {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst);
+}
+
+/* 3 De hoofdactie: een knop zo breed als zijn tekst, links uitgelijnd. */
+.knop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+.intrekken {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* 4 Het alternatief: apart onder een lijn, met een kleinere vraag erboven. */
+.tweedeKeus {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--neutraal-lijn);
+}
+
+.vraag {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5385;
+  color: var(--neutraal-tekst);
+}
+
+.tweedeKeus > .knop {
+  margin-top: 12px;
+}
+
+/* Voor het bestuur: een tekstlink onderaan de statuskaart. */
 .beheer {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   align-self: flex-start;
+  margin-top: 16px;
   font: 600 0.875rem/1.4286 var(--font-tekst);
   color: var(--neutraal-tekst);
   text-underline-offset: 3px;
@@ -69,37 +136,57 @@
   height: 16px;
 }
 
-/* De knoppen Afmelden en Afmelding intrekken staan onder de zin, over de volle breedte van het paneel. Een flexkolom, want
-   `vol` van de knop (align-self: stretch) werkt alleen in een flexcontainer; in een gewoon blokje bleef de knop zo breed als
-   zijn tekst en stond hij niet op één lijn met de rest van het paneel. */
-.knop {
-  display: flex;
-  flex-direction: column;
-  margin-top: 4px;
-}
+/* Op een telefoon: knoppen over de volle breedte; met twee knoppen (Afmelden en Dienst overdragen) naast elkaar, zonder de uitleg
+   en de vraag: naast elkaar leest de vraag als bijschrift van beide knoppen (visueel ontwerp, INDEX punt 69). */
+@media (max-width: 700px) {
+  /* De knop zet zelf align-self: flex-start; hier telt de breedte van het paneel (specifieker dan de klasse van de knop). */
+  .regel .knop > *,
+  .intrekken > button {
+    align-self: stretch;
+  }
 
-.intrekken {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+  .tweeKnoppen {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 8px;
+    align-items: stretch;
+  }
 
-.intrekken > button {
-  width: 100%;
-}
+  .tweeKnoppen > * {
+    grid-column: 1 / -1;
+  }
 
-.hulp {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.4286;
-  color: var(--neutraal-tekst);
-}
+  .tweeKnoppen > .zin {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
 
-.uitleg {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.4286;
-  color: var(--neutraal-tekst-zacht);
+  .tweeKnoppen > .uitleg,
+  .tweeKnoppen .vraag {
+    display: none;
+  }
+
+  .tweeKnoppen > .knop {
+    grid-column: 1;
+  }
+
+  .tweeKnoppen > .tweedeKeus {
+    display: contents;
+  }
+
+  .tweeKnoppen .tweedeKeus > .knop {
+    grid-column: 2;
+    margin-top: 16px;
+  }
+
+  /* Een smalle telefoon: de tekst mag breken in plaats van het paneel opzij te laten schuiven. */
+  .tweeKnoppen .knop {
+    min-width: 0;
+  }
+
+  .tweeKnoppen .knop a {
+    padding: 0 8px;
+  }
 }
 
 @supports (corner-shape: squircle) {
