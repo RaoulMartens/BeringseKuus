@@ -154,89 +154,62 @@ describe('vertaalOpslagfout: indelen', () => {
   });
 });
 
-describe('leesFormulier: een eigen rol en iemand van buiten', () => {
-  it('stuurt een vaste rol als rol_type en een ingetypte rol als rol_naam, ook met een dubbele punt erin', () => {
-    const uit = plekken({ plek_toevoegen: ['tapper:n1', '  Bar:  boven :n2'] });
+describe('leesFormulier: de nieuwe rollen en iemand van buiten de vereniging', () => {
+  it('stuurt een rol uit de lijst als rol_type; een rol die er niet uit komt (geen "Anders") weigert hij', () => {
+    const uit = plekken({ plek_toevoegen: ['tapper:n1', 'bonnenkassa:n2'] });
     expect(uit.ok && uit.wijzigingen).toEqual([
       { handeling: 'plek_toevoegen', rol_type: 'tapper', tijdelijk_id: 'n1' },
-      { handeling: 'plek_toevoegen', rol_naam: 'Bar: boven', tijdelijk_id: 'n2' },
+      { handeling: 'plek_toevoegen', rol_type: 'bonnenkassa', tijdelijk_id: 'n2' },
     ]);
+    for (const waarde of ['Garderobe:n1', 'bar boven:n1', 'tapper:n1:x']) {
+      expect(plekken({ plek_toevoegen: waarde }).ok, waarde).toBe(false);
+    }
   });
 
-  it('weigert een ingetypte rol van meer dan 40 tekens, met een uitleg bij de plekken', () => {
-    const uit = plekken({ plek_toevoegen: `${'x'.repeat(41)}:n1` });
-    expect(uit.ok).toBe(false);
-    if (!uit.ok) expect(uit.fouten.plekken).toContain('40 tekens');
-  });
-
-  it('zet een nieuwe helper op een nieuwe plek, met het e-mailadres in kleine letters of leeg', () => {
+  it('zet iemand van buiten op een nieuwe plek met alleen een naam, zonder dubbele spaties', () => {
     const uit = plekken({
-      plek_toevoegen: ['tapper:n1', 'ober:n2'],
+      plek_toevoegen: 'tapper:n1',
       plek_nieuw_n1: '__helper',
-      helper_voornaam__plek_nieuw_n1: ' Kees ',
-      helper_achternaam__plek_nieuw_n1: 'Buurman',
-      helper_email__plek_nieuw_n1: '',
-      plek_nieuw_n2: '__helper',
-      helper_voornaam__plek_nieuw_n2: 'Els',
-      helper_achternaam__plek_nieuw_n2: 'Buurvrouw',
-      helper_email__plek_nieuw_n2: 'Els@Example.com',
+      helper_naam__plek_nieuw_n1: '  Kees   van Buuren ',
     });
-    expect(uit.ok && uit.wijzigingen.slice(2)).toEqual([
+    expect(uit.ok && uit.wijzigingen).toEqual([
+      { handeling: 'plek_toevoegen', rol_type: 'tapper', tijdelijk_id: 'n1' },
       {
         handeling: 'toewijzen',
         tijdelijk_id: 'n1',
-        nieuwe_helper: { voornaam: 'Kees', achternaam: 'Buurman', email: null },
-        verwachte_bezetter: null,
-      },
-      {
-        handeling: 'toewijzen',
-        tijdelijk_id: 'n2',
-        nieuwe_helper: { voornaam: 'Els', achternaam: 'Buurvrouw', email: 'els@example.com' },
+        nieuwe_helper: 'Kees van Buuren',
         verwachte_bezetter: null,
       },
     ]);
   });
 
-  it('zet een nieuwe helper op een bestaande plek en geeft mee wie er stond', () => {
+  it('zet iemand van buiten op een bestaande plek en geeft mee wie er stond', () => {
     const uit = plekken({
       [`plek_${SLOT}`]: '__helper',
       [`plek_was_${SLOT}`]: OUD_LID,
-      [`helper_voornaam__plek_${SLOT}`]: 'Kees',
-      [`helper_achternaam__plek_${SLOT}`]: 'Buurman',
+      [`helper_naam__plek_${SLOT}`]: 'Kees',
     });
     expect(uit.ok && uit.wijzigingen).toEqual([
-      {
-        handeling: 'toewijzen',
-        rol_slot_id: SLOT,
-        nieuwe_helper: { voornaam: 'Kees', achternaam: 'Buurman', email: null },
-        verwachte_bezetter: OUD_LID,
-      },
+      { handeling: 'toewijzen', rol_slot_id: SLOT, nieuwe_helper: 'Kees', verwachte_bezetter: OUD_LID },
     ]);
   });
 
-  it('weigert een helper zonder achternaam of met een e-mailadres dat niet klopt, en als eindverantwoordelijke', () => {
-    const fout: Record<string, string>[] = [
-      { helper_voornaam__plek_nieuw_n1: 'Kees', helper_achternaam__plek_nieuw_n1: '' },
-      {
-        helper_voornaam__plek_nieuw_n1: 'Kees',
-        helper_achternaam__plek_nieuw_n1: 'Buurman',
-        helper_email__plek_nieuw_n1: 'geen-adres',
-      },
-    ];
-    for (const velden of fout) {
-      const uit = plekken({ plek_toevoegen: 'tapper:n1', plek_nieuw_n1: '__helper', ...velden });
-      expect(uit.ok, JSON.stringify(velden)).toBe(false);
-      if (!uit.ok) expect(uit.fouten.plekken).toContain('voor- en achternaam');
+  it('weigert een lege of te lange naam, en iemand van buiten als eindverantwoordelijke', () => {
+    for (const naam of ['', '   ', 'x'.repeat(101)]) {
+      const uit = plekken({
+        plek_toevoegen: 'tapper:n1',
+        plek_nieuw_n1: '__helper',
+        helper_naam__plek_nieuw_n1: naam,
+      });
+      expect(uit.ok, JSON.stringify(naam)).toBe(false);
+      if (!uit.ok) expect(uit.fouten.plekken).toContain('Vul de naam in');
     }
     expect(plekken({ plek_eindverantwoordelijke: '__helper' }).ok).toBe(false);
   });
 
-  it('zet de foutcodes van een helper en een eigen rol bij de plekken', () => {
-    expect(vertaalOpslagfout('email_bestaat', {}).fouten.plekken).toContain('hoort al bij iemand');
-    expect(vertaalOpslagfout('veld_ongeldig', { veld: 'helper_email' }).fouten.plekken).toContain(
-      'voor- en achternaam',
+  it('zet een fout in de naam bij de plekken', () => {
+    expect(vertaalOpslagfout('veld_ongeldig', { veld: 'helper_naam' }).fouten.plekken).toContain(
+      'Vul de naam in',
     );
-    expect(vertaalOpslagfout('veld_ongeldig', { veld: 'rol_naam' }).fouten.plekken).toContain('40 tekens');
-    expect(vertaalOpslagfout('niet_ondersteund', {}).fouten.plekken).toContain('andere naam');
   });
 });

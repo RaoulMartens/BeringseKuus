@@ -267,7 +267,7 @@ export type Database = {
       leden_prive: {
         Row: {
           beheerder_sinds: string | null;
-          email: string | null;
+          email: string;
           is_admin: boolean;
           lid_id: string;
           mag_bob: boolean;
@@ -277,7 +277,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           beheerder_sinds?: string | null;
-          email?: string | null;
+          email: string;
           is_admin?: boolean;
           lid_id: string;
           mag_bob?: boolean;
@@ -286,7 +286,7 @@ export type Database = {
         };
         Update: {
           beheerder_sinds?: string | null;
-          email?: string | null;
+          email?: string;
           is_admin?: boolean;
           lid_id?: string;
           mag_bob?: boolean;

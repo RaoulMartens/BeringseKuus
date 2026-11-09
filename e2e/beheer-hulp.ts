@@ -86,11 +86,8 @@ export function ruimTestledenOp(kenmerk: string): void {
   `);
 }
 
-/** Een plek toevoegen in de rolbezetting: de rol kiezen onder "Plek toevoegen" (een code, of "Anders" met een naam). */
-export async function voegPlekToe(page: Page, rol: string, andereNaam?: string): Promise<void> {
-  await page
-    .getByLabel('Plek toevoegen', { exact: true })
-    .selectOption(andereNaam === undefined ? rol : '__anders');
-  if (andereNaam !== undefined) await page.getByLabel('Naam van de rol', { exact: true }).fill(andereNaam);
+/** Een plek toevoegen in de rolbezetting: de rol (de code, "tapper") kiezen onder "Plek toevoegen". */
+export async function voegPlekToe(page: Page, rol: string): Promise<void> {
+  await page.getByLabel('Plek toevoegen', { exact: true }).selectOption(rol);
   await page.getByRole('button', { name: 'Toevoegen', exact: true }).click();
 }

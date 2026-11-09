@@ -27,7 +27,6 @@ const aangemaakt: string[] = [];
 
 test.afterAll(async () => {
   ruimActiviteitenOp(`E2E Indelen % ${kenmerk}`);
-  psql(`delete from public.roltypen where code like '% ${kenmerk}';`);
   psql(`delete from public.wijzigingen_log where omschrijving like '%E2E Indelen % ${kenmerk}%';`);
   ruimTestledenOp(kenmerk);
   for (const uid of aangemaakt.splice(0)) await ruimLidOp(uid);
@@ -258,27 +257,32 @@ test('het formulier met keuzelijsten heeft geen toegankelijkheidsfouten en schui
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
 });
 
-test('een eigen rol intypen (Anders) en iemand van buiten de vereniging toevoegen, zonder e-mailadres', async ({
+test('de rollen komen uit de lijst; iemand van buiten de vereniging zet je erop met alleen een naam', async ({
   page,
 }) => {
   aangemaakt.push(await logInAlsBeheerder(page));
   const gijs = maakTestlid('Gijs', kenmerk, { magEindverantwoordelijke: true });
-  const naam = maakNaam('anders');
-  const rol = `Garderobe ${kenmerk}`;
+  const naam = maakNaam('buiten');
 
   await begin(page, naam, '2099-04-09');
-  // Werker is te algemeen: hij staat niet meer in de lijst, de nieuwe rollen wel.
+  // Werker is te algemeen en "Anders" bestaat niet: alleen de rollen uit de lijst.
   const rolkeuze = page.getByLabel('Plek toevoegen', { exact: true });
-  await expect(rolkeuze.getByRole('option', { name: 'Werker' })).toHaveCount(0);
-  for (const nieuw of ['Tapper', 'Buffet', 'Ober', 'Bonnenkassa', 'Anders…'])
-    await expect(rolkeuze.getByRole('option', { name: nieuw, exact: true })).toHaveCount(1);
+  await expect(rolkeuze.getByRole('option')).toHaveText([
+    'Tapper',
+    'Buffet',
+    'Ober',
+    'Bonnenkassa',
+    'Drankhaler',
+    'Fotograaf',
+    'BOB',
+  ]);
 
-  await voegPlekToe(page, '', rol);
-  await expect(page.getByRole('heading', { level: 3, name: rol })).toBeVisible();
-  const nieuwePlek = plek(page, `Nieuwe plek 1 van ${rol.toLowerCase()}`);
+  await voegPlekToe(page, 'bonnenkassa');
+  const nieuwePlek = plek(page, 'Nieuwe plek 1 van bonnenkassa');
   await nieuwePlek.selectOption({ label: 'Iemand van buiten de vereniging…' });
-  await page.getByLabel('Voornaam', { exact: true }).fill('Henk');
-  await page.getByLabel('Achternaam', { exact: true }).fill(kenmerk);
+  await page
+    .getByLabel('Naam van iemand van buiten de vereniging, nieuwe plek 1 van bonnenkassa', { exact: true })
+    .fill(`Henk ${kenmerk}`);
   await plek(page, 'Eindverantwoordelijke').selectOption({ label: gijs.naam });
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   expect(
@@ -287,21 +291,17 @@ test('een eigen rol intypen (Anders) en iemand van buiten de vereniging toevoege
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
 
-  const id = activiteitId(naam);
-  expect(bezetters(id, rol)).toBe('Henk');
+  expect(bezetters(activiteitId(naam), 'bonnenkassa')).toBe('Henk');
   expect(
     psql(
-      `select l.type || ' ' || coalesce(p.email, '(geen)') from public.leden l join public.leden_prive p on p.lid_id = l.id where l.voornaam = 'Henk' and l.achternaam = '${kenmerk}';`,
+      `select l.type || ' ' || (select count(*) from public.leden_prive p where p.lid_id = l.id) from public.leden l where l.voornaam = 'Henk' and l.achternaam = '${kenmerk}';`,
     ).trim(),
-  ).toBe('extern (geen)');
+  ).toBe('extern 0');
 
-  // De volgende keer staat de rol in de lijst, en staat de helper in de keuzelijst.
+  // De volgende keer staat hij gewoon in de keuzelijst.
   await page.goto('/beheer/activiteiten/nieuw');
-  await expect(rolkeuze.getByRole('option', { name: rol, exact: true })).toHaveCount(1);
-  await voegPlekToe(page, rol);
+  await voegPlekToe(page, 'tapper');
   await expect(
-    plek(page, `Nieuwe plek 1 van ${rol.toLowerCase()}`).getByRole('option', {
-      name: `Henk ${kenmerk} (extern)`,
-    }),
+    plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: `Henk ${kenmerk} (extern)` }),
   ).toHaveCount(1);
 });

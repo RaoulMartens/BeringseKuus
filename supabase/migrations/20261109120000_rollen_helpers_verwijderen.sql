@@ -1,9 +1,8 @@
 -- Wensen van de opdrachtgever voor de presentatie aan het bestuur (09-11-2026). Vier dingen:
 --  1. Rollen: "werker" was te algemeen. Erbij komen tapper, buffet, ober en bonnenkassa; werker kan niet meer worden
---     toegevoegd (roltypen.toevoegbaar) en bestaande werker-plekken worden bonnenkassa. De beheerder kan ook zelf een
---     rol intypen ("Anders"): die komt in roltypen, met de naam als code, en staat daarna in de lijst (BA-6: een tabel).
---  2. Iemand van buiten de vereniging op een plek zetten zonder dat hij eerst in de ledenlijst staat: activiteit_opslaan
---     maakt dan een externe helper aan. Het e-mailadres is voor een externe helper niet verplicht.
+--     toegevoegd (roltypen.toevoegbaar) en bestaande werker-plekken worden bonnenkassa.
+--  2. Iemand van buiten de vereniging op een plek zetten zonder dat hij eerst in de ledenlijst staat, met alleen een
+--     naam: activiteit_opslaan maakt dan een externe helper aan (zonder e-mailadres, zonder rij in leden_prive).
 --  3. Een gepubliceerde activiteit verwijderen (activiteit_verwijderen), zolang hij nog niet is geweest. Er gaat geen
 --     bericht uit (berichten bestaan nog niet, Datamodel-fase-2.md O-1); de bevestigingspagina zegt dat.
 --  4. Het vangnet laat dat ene verwijderen door, alleen als de functie het aanwijst (bk.verwijderen).
@@ -22,17 +21,14 @@ update public.roltypen set volgorde = 9 where code = 'fotograaf';
 -- BOB na het werk: in de lijst "Plek toevoegen" staat het meest gekozen werk bovenaan.
 update public.roltypen set volgorde = 10 where code = 'bob';
 update public.roltypen set volgorde = 99 where code = 'bak';
--- Een eigen rol heeft zijn naam als code: twee rollen die alleen in hoofdletters verschillen, zijn dezelfde rol.
-create unique index roltypen_code_uniek on public.roltypen (lower(code));
-create unique index roltypen_naam_uniek on public.roltypen (lower(naam));
-alter table public.roltypen add constraint roltypen_code_lengte check (char_length(code) between 1 and 40);
 
 -- Bestaande werker-plekken worden bonnenkassa (de opdrachtgever: "werkers aanpassen naar bonnenkassa").
 update public.rol_slots set rol_type = 'bonnenkassa' where rol_type = 'werker';
 
--- ===== 2. Een externe helper zonder e-mailadres =====
--- Een lid logt in met zijn e-mailadres; leden:zet eist het daarom voor elk lid. Een externe helper logt niet in.
-alter table public.leden_prive alter column email drop not null;
+-- ===== 2. Een externe helper met alleen een naam =====
+-- Een naam van één woord ("Kees") wordt de voornaam, met een lege achternaam. Een lid houdt een verplichte achternaam.
+alter table public.leden drop constraint leden_achternaam_check;
+alter table public.leden add constraint leden_achternaam_check check (achternaam <> '' or type = 'extern');
 
 -- ===== 3. Het vangnet laat een aangewezen verwijdering door =====
 create or replace function intern.activiteit_vangnet() returns trigger
@@ -68,8 +64,7 @@ end
 $$;
 
 -- ===== 4. activiteit_opslaan: een eigen rol en een nieuwe externe helper =====
--- Gelijk aan de versie uit fase 2, met twee uitbreidingen: plek_toevoegen met rol_naam in plaats van rol_type, en
--- toewijzen met nieuwe_helper in plaats van lid_id.
+-- Gelijk aan de versie uit fase 2, met één uitbreiding: toewijzen met nieuwe_helper (een naam) in plaats van lid_id.
 
 create or replace function public.activiteit_opslaan(
   p_activiteit_id uuid default null,
@@ -115,11 +110,9 @@ declare
   v_regelnummer int;
   v_handeling text;
   v_rol text;
-  v_rol_naam text;
-  v_helper jsonb;
+  v_helper text;
   v_voornaam text;
   v_achternaam text;
-  v_email text;
   v_tijdelijk text;
   v_tijdelijke text[] := '{}';
   v_plekken jsonb := '{}'::jsonb;
@@ -322,32 +315,6 @@ begin
     if v_handeling = 'plek_toevoegen' then
       v_rol := v_regel ->> 'rol_type';
       v_tijdelijk := v_regel ->> 'tijdelijk_id';
-      -- Een eigen rol ("Anders"): rol_naam in plaats van rol_type. Bestaat er al een rol met die naam (hoofdletters tellen
-      -- niet mee), dan wordt het die; anders komt hij erbij, met de naam als code, en staat hij de volgende keer in de lijst.
-      if v_regel ? 'rol_naam' then
-        if v_rol is not null or jsonb_typeof(v_regel -> 'rol_naam') <> 'string' then
-          perform intern.fout('wijziging_ongeldig', jsonb_build_object('regel', v_regelnummer));
-        end if;
-        v_rol_naam := intern.json_tekst(to_jsonb(regexp_replace(v_regel ->> 'rol_naam', '[[:space:]]+', ' ', 'g')),
-                                        'rol_naam', 40);
-        if v_rol_naam is null then
-          perform intern.fout('veld_ongeldig', jsonb_build_object('veld', 'rol_naam', 'regel', v_regelnummer));
-        end if;
-        select code into v_rol from public.roltypen
-         where lower(code) = lower(v_rol_naam) or lower(naam) = lower(v_rol_naam)
-         order by volgorde limit 1;
-        if v_rol is null then
-          -- Twee beheerders die tegelijk dezelfde rol maken: de tweede krijgt de rol van de eerste.
-          insert into public.roltypen (code, naam, ruilbaar_door_lid, alleen_admin, volgorde, toevoegbaar)
-          values (v_rol_naam, v_rol_naam, true, false, 50, true)
-          on conflict do nothing;
-          select code into v_rol from public.roltypen
-           where lower(code) = lower(v_rol_naam) or lower(naam) = lower(v_rol_naam)
-           order by volgorde limit 1;
-          insert into public.wijzigingen_log (door_lid_id, actie, tabel, rij_id, omschrijving)
-          values (v_lid, 'roltype_toegevoegd', 'roltypen', null, format('Rol %s toegevoegd', v_rol));
-        end if;
-      end if;
       -- 'eindverantwoordelijke' is gereserveerd voor de plek die bij het aanmaken al bestaat.
       if v_rol is null or v_tijdelijk is null or jsonb_typeof(v_regel -> 'tijdelijk_id') <> 'string'
          or v_tijdelijk = '' or v_tijdelijk = 'eindverantwoordelijke' or v_tijdelijk = any (v_tijdelijke)
@@ -430,28 +397,23 @@ begin
 
       if v_handeling = 'toewijzen' then
         if v_regel ? 'nieuwe_helper' then
-          -- Iemand van buiten de vereniging, hier voor het eerst ingevoerd: een externe helper met een naam en, als hij
-          -- dat heeft, een e-mailadres. Hij logt niet in en hoort bij geen groep (R17, R22). Of hij op deze plek mag
-          -- staan (geen BOB of eindverantwoordelijke), toetst de controle hieronder, zoals bij elke externe helper.
-          v_helper := v_regel -> 'nieuwe_helper';
-          if v_regel ? 'lid_id' or jsonb_typeof(v_helper) <> 'object' then
+          -- Iemand van buiten de vereniging, hier voor het eerst ingevoerd: alleen een naam (de opdrachtgever: "gewoon een
+          -- naam"). Het eerste woord wordt de voornaam, de rest de achternaam (leeg mag bij een externe helper). Hij logt
+          -- niet in, heeft geen e-mailadres of telefoon (geen rij in leden_prive) en hoort bij geen groep (R17, R22). Of hij
+          -- op deze plek mag staan (geen BOB of eindverantwoordelijke), toetst de controle hieronder, zoals bij elke
+          -- externe helper.
+          if v_regel ? 'lid_id' or jsonb_typeof(v_regel -> 'nieuwe_helper') <> 'string' then
             perform intern.fout('wijziging_ongeldig', jsonb_build_object('regel', v_regelnummer));
           end if;
-          v_voornaam := intern.json_tekst(v_helper -> 'voornaam', 'helper_voornaam', 100);
-          v_achternaam := intern.json_tekst(v_helper -> 'achternaam', 'helper_achternaam', 100);
-          v_email := lower(intern.json_tekst(v_helper -> 'email', 'helper_email', 254));
-          if v_voornaam is null or v_achternaam is null then
+          v_helper := intern.json_tekst(to_jsonb(regexp_replace(v_regel ->> 'nieuwe_helper', '[[:space:]]+', ' ', 'g')),
+                                        'helper_naam', 100);
+          if v_helper is null then
             perform intern.fout('veld_ongeldig', jsonb_build_object('veld', 'helper_naam', 'regel', v_regelnummer));
           end if;
-          if v_email is not null and v_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then
-            perform intern.fout('veld_ongeldig', jsonb_build_object('veld', 'helper_email', 'regel', v_regelnummer));
-          end if;
-          if v_email is not null and exists (select 1 from public.leden_prive where email = v_email) then
-            perform intern.fout('email_bestaat', jsonb_build_object('regel', v_regelnummer));
-          end if;
+          v_voornaam := split_part(v_helper, ' ', 1);
+          v_achternaam := btrim(substr(v_helper, char_length(v_voornaam) + 1));
           insert into public.leden (voornaam, achternaam, type) values (v_voornaam, v_achternaam, 'extern')
           returning id into v_lid_id;
-          insert into public.leden_prive (lid_id, email) values (v_lid_id, v_email);
           insert into public.wijzigingen_log (door_lid_id, actie, tabel, rij_id, omschrijving)
           values (v_lid, 'helper_toegevoegd', 'leden', v_lid_id,
                   format('Externe helper toegevoegd bij %s (%s)', v_naam, to_char(v_datum, 'DD-MM-YYYY')));

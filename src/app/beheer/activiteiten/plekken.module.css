@@ -129,25 +129,16 @@
   white-space: nowrap;
 }
 
-/* Iemand van buiten de vereniging: de velden onder de keuzelijst, over de hele breedte van de plek. */
+/* Iemand van buiten de vereniging: één naamveld onder de keuzelijst, over de hele breedte van de plek. */
 .plek {
   flex-wrap: wrap;
 }
 
 .helper {
   flex-basis: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
-  padding: 4px var(--padding-control-x) 8px 0;
-}
-
-.helperVeld {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 0.8125rem;
-  color: var(--neutraal-tekst-zacht);
+  padding: 0 var(--padding-control-x) 8px 0;
 }
 
 .invoer {
@@ -175,7 +166,6 @@
   gap: 8px;
 }
 
-.toevoegRij > .keuze,
-.toevoegRij > .invoer {
+.toevoegRij > .keuze {
   flex: 1 1 160px;
 }

@@ -1,7 +1,7 @@
 // De rollen op één plek: hoe ze heten in een kop, in een zin en in een telling. De rollen staan in de tabel roltypen
-// (BA-6); de beheerder kan er zelf een bijmaken ("Anders"), en dan is de naam die hij intypt ook de code. Voor de vaste
-// rollen staan hier de woorden met de goede meervouden; een eigen rol krijgt zijn eigen naam en een telling in plekken
-// ("2 garderobe-plekken"). Alles hier is zuivere logica zonder database.
+// (BA-6). Voor de vaste rollen staan hier de woorden met de goede meervouden. Komt er later in roltypen een rol bij die hier
+// nog niet staat, dan krijgt die zijn code als naam en een telling in plekken ("2 garderobe-plekken"), in plaats van niets.
+// Alles hier is zuivere logica zonder database.
 
 interface Woorden {
   /** De kop boven de plekken en het label in de rolbezetting: "Tapper". */
@@ -60,13 +60,8 @@ const VAST: Record<string, Woorden> = {
 /** De volgorde op het scherm van een lid: de eindverantwoordelijke en de BOB eerst, dan het werk, een eigen rol daarna. */
 const VOLGORDE = Object.keys(VAST);
 
-/** De rollen die alleen het bestuur wijzigt: een lid kan ze niet overdragen (R4). Een eigen rol kan een lid wel overdragen. */
+/** De rollen die alleen het bestuur wijzigt: een lid kan ze niet overdragen (R4). */
 const NIET_RUILBAAR: readonly string[] = ['eindverantwoordelijke', 'bob', 'bak'];
-
-/** Een vaste rol met een eigen code; al het andere is een rol die de beheerder heeft ingetypt. */
-export function isVasteRol(code: string): boolean {
-  return Object.hasOwn(VAST, code) || code === 'bak';
-}
 
 function woorden(code: string): Woorden {
   const vast = VAST[code];
