@@ -13,21 +13,39 @@
 
 .kop {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font: 700 1.25rem/1.4 var(--font-titel);
   color: var(--neutraal-tekst);
 }
 
+/* De stip voor de status (`.wf-stip`): een lege ring bij een concept, groen gevuld bij gepubliceerd. */
+.stip {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--neutraal-lijn-sterk);
+}
+
+.stip.vol {
+  background: var(--status-succes);
+  border-color: var(--status-succes);
+}
+
 .uitleg {
-  margin: 0;
+  margin: -4px 0 0;
   font-size: 0.875rem;
   line-height: 1.4286;
   color: var(--neutraal-tekst-zacht);
 }
 
-.nodig {
+/* De lijn tussen de status en wat je ermee doet (`.wf-paneel-scheiding`): 20px erboven en eronder, met de gap van 8px. */
+.scheiding {
+  margin: 12px 0;
+  border: 0;
   border-top: 1px solid var(--neutraal-lijn);
-  padding-top: 12px;
-  margin-top: 4px;
 }
 
 .nodigKop {
@@ -44,21 +62,22 @@
   color: var(--neutraal-tekst);
 }
 
-.knoppen {
+/* De knoppen en de links eronder, elk zo breed als het paneel (`.wf-paneel-knoppen`). De knop zet zelf align-self:
+   flex-start; hier telt de breedte van het paneel (specifieker dan de klasse van de knop). */
+.knoppen,
+.onderaan {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 12px;
 }
 
-.onderaan {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 16px;
-  border-top: 1px solid var(--neutraal-lijn);
-  padding-top: 8px;
-  margin-top: 4px;
+.nodig + .knoppen {
+  margin-top: 8px;
+}
+
+.paneel .knoppen > *,
+.paneel .onderaan > * {
+  align-self: stretch;
 }
 
 @media (max-width: 700px) {
@@ -92,14 +111,9 @@
     line-height: 1.5;
   }
 
-  .uitleg {
+  .uitleg,
+  .scheiding {
     display: none;
-  }
-
-  .nodig {
-    border-top: 0;
-    padding-top: 0;
-    margin-top: 0;
   }
 
   /* de kop blijft er voor een schermlezer, alleen niet in beeld */
@@ -128,7 +142,8 @@
     margin-top: 8px;
   }
 
-  .knoppen > * {
+  .paneel .knoppen > * {
     flex: 1 1 calc(50% - 4px);
+    align-self: auto;
   }
 }

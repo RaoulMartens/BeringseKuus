@@ -15,6 +15,7 @@ import { useId, useState } from 'react';
 
 import { Icoon } from '@/components/icoon/icoon';
 import { Knop } from '@/components/knop/knop';
+import { rolIcoon } from '@/components/rolbezetting/rolbezetting';
 import {
   helperVeld,
   PLEK_HELPER,
@@ -317,6 +318,7 @@ export function Plekken({
         return (
           <section key={rol} aria-labelledby={kopId} className={stijl.rol}>
             <h3 id={kopId} className={stijl.rolkop}>
+              <Icoon naam={rolIcoon(rol)} />
               {kop}
             </h3>
             <ul className={stijl.lijst}>
@@ -392,8 +394,9 @@ export function Plekken({
               })}
             </ul>
             {toevoegbaar && (
-              <Knop soort="tekst" onClick={() => voegToe(rol)}>
-                {`+ ${inZin}-plek`}
+              <Knop soort="tekst" icoon="plus" icoonGewicht="bold" vol onClick={() => voegToe(rol)}>
+                <span className={stijl.verborgen}>Nog een </span>
+                {`${inZin}-plek`}
               </Knop>
             )}
           </section>
@@ -425,6 +428,7 @@ export function Plekken({
 
       <section aria-labelledby="rol-eindverantwoordelijke" className={stijl.rol}>
         <h3 id="rol-eindverantwoordelijke" className={stijl.rolkop}>
+          <Icoon naam="rol-eindverantwoordelijke" />
           Eindverantwoordelijke *
         </h3>
         <div className={stijl.lijst}>
@@ -453,10 +457,14 @@ export function Plekken({
           </div>
         </div>
         {eindverantwoordelijke.telefoon && gekozenEv?.id === eindverantwoordelijke.bezetterId && (
-          <p className={stijl.vast}>Telefoon: {eindverantwoordelijke.telefoon}</p>
+          <p className={stijl.notitie}>
+            <Icoon naam="telefoon" />
+            <span className={stijl.verborgen}>Telefoon: </span>
+            {eindverantwoordelijke.telefoon}
+          </p>
         )}
         {gekozenEv && !gekozenEv.telefoon && (
-          <p role="status" className={stijl.vast}>
+          <p role="status" className={stijl.notitie}>
             {gekozenEv.naam} heeft nog geen telefoonnummer. De eindverantwoordelijke heeft er een nodig:
             zonder nummer kan de activiteit niet worden gepubliceerd en zien leden geen nummer. Een nummer
             toevoegen kan nog niet in dit scherm: vraag de bouwer van het platform het in de ledenlijst te
@@ -464,7 +472,7 @@ export function Plekken({
           </p>
         )}
         {gepubliceerd && (
-          <p className={stijl.vast}>
+          <p className={stijl.notitie}>
             Bij een gepubliceerde activiteit blijft er altijd een eindverantwoordelijke: kies een ander, je
             kunt de plek niet openlaten.
           </p>

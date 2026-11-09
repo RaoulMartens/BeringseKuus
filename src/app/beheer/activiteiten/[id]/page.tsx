@@ -88,6 +88,7 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         gepubliceerd ? (
           <Statuspaneel
             status="Gepubliceerd"
+            stip="vol"
             uitleg="Leden zien deze activiteit. Een wijziging zien ze meteen; er gaat nog geen bericht uit."
             onderaan={
               <>
@@ -102,13 +103,21 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
               </>
             }
           >
-            <Knop type="submit" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
+            <Knop
+              type="submit"
+              soort="positief"
+              icoon="opslaan"
+              formulier={FORMULIER_ID}
+              naam="actie"
+              waarde="opslaan"
+            >
               Wijzigingen opslaan
             </Knop>
           </Statuspaneel>
         ) : (
           <Statuspaneel
             status="Concept"
+            stip="leeg"
             uitleg="Alleen het bestuur ziet deze activiteit."
             nodig={activiteit.nogNodig}
             onderaan={
@@ -117,10 +126,24 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
               </Knop>
             }
           >
-            <Knop type="submit" soort="positief" formulier={FORMULIER_ID} naam="actie" waarde="publiceren">
+            <Knop
+              type="submit"
+              soort="positief"
+              icoon="verzenden"
+              formulier={FORMULIER_ID}
+              naam="actie"
+              waarde="publiceren"
+            >
               Publiceren
             </Knop>
-            <Knop type="submit" soort="secundair" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
+            <Knop
+              type="submit"
+              soort="secundair"
+              icoon="opslaan"
+              formulier={FORMULIER_ID}
+              naam="actie"
+              waarde="opslaan"
+            >
               Opslaan als concept
             </Knop>
           </Statuspaneel>
