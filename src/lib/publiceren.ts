@@ -6,13 +6,7 @@
 // deze versie nog niet uit (Datamodel-fase-2.md, O-1).
 
 import { opsomming } from '@/lib/beheeroverzicht';
-
-const ROLLEN: { rol: string; een: string; meer: string }[] = [
-  { rol: 'werker', een: 'werker-plek', meer: 'werker-plekken' },
-  { rol: 'drankhaler', een: 'drankhaler-plek', meer: 'drankhaler-plekken' },
-  { rol: 'fotograaf', een: 'fotograaf-plek', meer: 'fotograaf-plekken' },
-  { rol: 'bob', een: 'BOB-plek', meer: 'BOB-plekken' },
-];
+import { plekAantal, vergelijkRollen } from '@/lib/rollen';
 
 export interface PlekVoorBevestiging {
   rol: string;
@@ -21,10 +15,11 @@ export interface PlekVoorBevestiging {
 
 /** "1 werker-plek, 2 drankhaler-plekken": wat er nog leeg is (zonder de eindverantwoordelijke, die moet er zijn); leeg als alles is ingedeeld. */
 export function nogLeegTekst(plekken: PlekVoorBevestiging[]): string | null {
-  const delen = ROLLEN.flatMap(({ rol, een, meer }) => {
-    const aantal = plekken.filter((plek) => plek.rol === rol && plek.bezetterId === null).length;
-    return aantal > 0 ? [`${aantal} ${aantal === 1 ? een : meer}`] : [];
-  });
+  const leeg = plekken.filter(
+    (plek) => plek.bezetterId === null && plek.rol !== 'eindverantwoordelijke' && plek.rol !== 'bak',
+  );
+  const rollen = [...new Set(leeg.map((plek) => plek.rol))].sort(vergelijkRollen);
+  const delen = rollen.map((rol) => plekAantal(rol, leeg.filter((plek) => plek.rol === rol).length));
   return delen.length > 0 ? delen.join(', ') : null;
 }
 

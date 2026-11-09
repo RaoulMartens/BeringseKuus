@@ -397,6 +397,7 @@ export type Database = {
           code: string;
           naam: string;
           ruilbaar_door_lid: boolean;
+          toevoegbaar: boolean;
           volgorde: number;
         };
         ComputedFields: never;
@@ -405,6 +406,7 @@ export type Database = {
           code: string;
           naam: string;
           ruilbaar_door_lid: boolean;
+          toevoegbaar?: boolean;
           volgorde: number;
         };
         Update: {
@@ -412,6 +414,7 @@ export type Database = {
           code?: string;
           naam?: string;
           ruilbaar_door_lid?: boolean;
+          toevoegbaar?: boolean;
           volgorde?: number;
         };
         Relationships: [];
@@ -630,6 +633,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      activiteit_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
       beheeroverzicht: {
         Args: Record<PropertyKey, never>;
         Returns: {

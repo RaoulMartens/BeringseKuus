@@ -5,7 +5,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-import { logInAlsBeheerder, ruimActiviteitenOp } from './beheer-hulp.ts';
+import { logInAlsBeheerder, ruimActiviteitenOp, voegPlekToe } from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { nieuwAdres } from './inloggen-hulp.ts';
 import { bevestigAdresVoor, maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
@@ -59,8 +59,8 @@ test('een nieuw concept aanmaken met een doelgroep en plekken, en terug in het o
   await vulIn(page, naam, '2099-03-05');
   await page.getByRole('checkbox', { name: /Bestuur/ }).check();
   await expect(page.getByRole('checkbox', { name: /Iedereen/ })).not.toBeChecked();
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
+  await voegPlekToe(page, 'tapper');
+  await voegPlekToe(page, 'tapper');
   await page.getByLabel('Belangrijk om te weten').fill('Neem je kostuum mee.');
   await opslaan(page).click();
 
@@ -69,7 +69,7 @@ test('een nieuw concept aanmaken met een doelgroep en plekken, en terug in het o
   await expect(page.getByText(`${naam} is opgeslagen als concept.`)).toBeVisible();
   const rij = page.getByRole('listitem').filter({ hasText: naam });
   await expect(rij).toContainText('Concept');
-  await expect(rij).toContainText('Eindverantwoordelijke invullen, 2 werkers indelen');
+  await expect(rij).toContainText('Eindverantwoordelijke invullen, 2 tappers indelen');
 
   const id = activiteitId(naam);
   expect(psql(`select status, notitie, versie from public.activiteiten where id = '${id}';`).trim()).toBe(
@@ -80,7 +80,7 @@ test('een nieuw concept aanmaken met een doelgroep en plekken, en terug in het o
   );
   expect(
     psql(
-      `select count(*) from public.rol_slots where activiteit_id = '${id}' and rol_type = 'werker';`,
+      `select count(*) from public.rol_slots where activiteit_id = '${id}' and rol_type = 'tapper';`,
     ).trim(),
   ).toBe('2');
   expect(
@@ -129,7 +129,7 @@ test('een fout staat bij het veld en wat je had ingevuld blijft staan', async ({
   await page.getByLabel('Eindtijd *').fill('20:00');
   await page.getByLabel('Locatie *').fill('Testlocatie');
   await page.getByRole('checkbox', { name: /Dames/ }).check();
-  await page.getByRole('button', { name: '+ drankhaler-plek' }).click();
+  await voegPlekToe(page, 'drankhaler');
   await opslaan(page).click();
 
   await expect(page.getByLabel('Eindtijd *')).toHaveAccessibleDescription(/gelijk zijn aan de starttijd/);
@@ -161,8 +161,8 @@ test('een concept bewerken: de velden staan er, een lege plek gaat weg en de ver
   const naam = maakNaam('bewerken');
   await page.goto('/beheer/activiteiten/nieuw');
   await vulIn(page, naam, '2099-03-08');
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
+  await voegPlekToe(page, 'tapper');
+  await voegPlekToe(page, 'tapper');
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
 
@@ -178,7 +178,7 @@ test('een concept bewerken: de velden staan er, een lege plek gaat weg en de ver
   await expect(page.getByRole('listitem').filter({ hasText: /^Eindverantwoordelijke$/ })).toBeVisible();
 
   await page.getByLabel('Locatie *').fill('Andere zaal');
-  await page.getByRole('button', { name: 'Lege plek 1 van werker weghalen' }).click();
+  await page.getByRole('button', { name: 'Lege plek 1 van tapper weghalen' }).click();
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
 
@@ -188,7 +188,7 @@ test('een concept bewerken: de velden staan er, een lege plek gaat weg en de ver
   );
   expect(
     psql(
-      `select count(*) from public.rol_slots where activiteit_id = '${id}' and rol_type = 'werker';`,
+      `select count(*) from public.rol_slots where activiteit_id = '${id}' and rol_type = 'tapper';`,
     ).trim(),
   ).toBe('1');
 });
@@ -286,7 +286,7 @@ test('het formulier heeft geen toegankelijkheidsfouten en schuift niet opzij', a
     expect(teBreed, toestand).toBe(false);
     if (toestand === 'met fouten') {
       await vulIn(page, naam, '2099-03-11');
-      await page.getByRole('button', { name: '+ fotograaf-plek' }).click();
+      await voegPlekToe(page, 'fotograaf');
       await page.getByRole('checkbox', { name: /Raad van Elf/ }).check();
     }
   }

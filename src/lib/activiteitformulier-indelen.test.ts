@@ -153,3 +153,63 @@ describe('vertaalOpslagfout: indelen', () => {
     expect(uit.melding).toContain('niet opgeslagen');
   });
 });
+
+describe('leesFormulier: de nieuwe rollen en iemand van buiten de vereniging', () => {
+  it('stuurt een rol uit de lijst als rol_type; een rol die er niet uit komt (geen "Anders") weigert hij', () => {
+    const uit = plekken({ plek_toevoegen: ['tapper:n1', 'bonnenkassa:n2'] });
+    expect(uit.ok && uit.wijzigingen).toEqual([
+      { handeling: 'plek_toevoegen', rol_type: 'tapper', tijdelijk_id: 'n1' },
+      { handeling: 'plek_toevoegen', rol_type: 'bonnenkassa', tijdelijk_id: 'n2' },
+    ]);
+    for (const waarde of ['Garderobe:n1', 'bar boven:n1', 'tapper:n1:x']) {
+      expect(plekken({ plek_toevoegen: waarde }).ok, waarde).toBe(false);
+    }
+  });
+
+  it('zet iemand van buiten op een nieuwe plek met alleen een naam, zonder dubbele spaties', () => {
+    const uit = plekken({
+      plek_toevoegen: 'tapper:n1',
+      plek_nieuw_n1: '__helper',
+      helper_naam__plek_nieuw_n1: '  Kees   van Buuren ',
+    });
+    expect(uit.ok && uit.wijzigingen).toEqual([
+      { handeling: 'plek_toevoegen', rol_type: 'tapper', tijdelijk_id: 'n1' },
+      {
+        handeling: 'toewijzen',
+        tijdelijk_id: 'n1',
+        nieuwe_helper: 'Kees van Buuren',
+        verwachte_bezetter: null,
+      },
+    ]);
+  });
+
+  it('zet iemand van buiten op een bestaande plek en geeft mee wie er stond', () => {
+    const uit = plekken({
+      [`plek_${SLOT}`]: '__helper',
+      [`plek_was_${SLOT}`]: OUD_LID,
+      [`helper_naam__plek_${SLOT}`]: 'Kees',
+    });
+    expect(uit.ok && uit.wijzigingen).toEqual([
+      { handeling: 'toewijzen', rol_slot_id: SLOT, nieuwe_helper: 'Kees', verwachte_bezetter: OUD_LID },
+    ]);
+  });
+
+  it('weigert een lege of te lange naam, en iemand van buiten als eindverantwoordelijke', () => {
+    for (const naam of ['', '   ', 'x'.repeat(101)]) {
+      const uit = plekken({
+        plek_toevoegen: 'tapper:n1',
+        plek_nieuw_n1: '__helper',
+        helper_naam__plek_nieuw_n1: naam,
+      });
+      expect(uit.ok, JSON.stringify(naam)).toBe(false);
+      if (!uit.ok) expect(uit.fouten.plekken).toContain('Vul de naam in');
+    }
+    expect(plekken({ plek_eindverantwoordelijke: '__helper' }).ok).toBe(false);
+  });
+
+  it('zet een fout in de naam bij de plekken', () => {
+    expect(vertaalOpslagfout('veld_ongeldig', { veld: 'helper_naam' }).fouten.plekken).toContain(
+      'Vul de naam in',
+    );
+  });
+});

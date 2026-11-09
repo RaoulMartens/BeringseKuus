@@ -5,7 +5,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-import { logInAlsBeheerder, maakTestlid, ruimActiviteitenOp, ruimTestledenOp } from './beheer-hulp.ts';
+import {
+  logInAlsBeheerder,
+  maakTestlid,
+  ruimActiviteitenOp,
+  ruimTestledenOp,
+  voegPlekToe,
+} from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { ruimLidOp } from './mfa-hulp.ts';
 import { WCAG } from './normen.ts';
@@ -41,8 +47,8 @@ async function maakConcept(page: Page, naam: string) {
   await page.goto('/beheer/activiteiten/nieuw');
   await page.getByLabel('Naam *').fill(naam);
   await page.getByLabel('Datum *').fill('2099-06-06');
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await page.getByLabel('Nieuwe plek 1 van werker', { exact: true }).selectOption({ label: anna.naam });
+  await voegPlekToe(page, 'tapper');
+  await page.getByLabel('Nieuwe plek 1 van tapper', { exact: true }).selectOption({ label: anna.naam });
   await page.getByLabel('Eindverantwoordelijke', { exact: true }).selectOption({ label: ger.naam });
   await page.getByRole('button', { name: 'Opslaan als concept' }).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
@@ -91,27 +97,56 @@ test('Concept verwijderen vraagt eerst een bevestiging; Annuleren laat alles sta
   expect(antwoord?.status()).toBe(404);
 });
 
-test('een activiteit die intussen is gepubliceerd, wordt niet verwijderd', async ({ page }) => {
+test('een gepubliceerde activiteit verwijderen: de bevestiging zegt dat leden hem zien en geen bericht krijgen', async ({
+  page,
+}) => {
   aangemaakt.push(await logInAlsBeheerder(page));
   const naam = maakNaam('gepubliceerd');
+  const { anna, id } = await maakConcept(page, naam);
+  const els = maakTestlid(`Els${reeks}`, kenmerk);
+  psql(
+    `update public.activiteiten set status = 'gepubliceerd', starttijd = '20:00', eindtijd = '23:00', locatie = 'Testlocatie' where id = '${id}';
+     insert into public.afmeldingen (activiteit_id, lid_id) values ('${id}', '${els.id}');`,
+  );
+
+  // Rechtstreeks naar het bewerkscherm: een herlaadbeurt kan nog de pagina van vóór de klik in maakConcept treffen.
+  await page.goto(`/beheer/activiteiten/${id}`);
+  await page.getByRole('link', { name: 'Activiteit verwijderen' }).click();
+  await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/verwijderen$`));
+  await expect(page.getByRole('heading', { level: 1, name: `${naam} verwijderen?` })).toBeVisible();
+  await expect(page.getByText('Leden zien deze activiteit nu in het programma.')).toBeVisible();
+  await expect(page.getByText('2 mensen zijn al ingedeeld. Die indeling verdwijnt.')).toBeVisible();
+  await expect(page.getByText('1 lid heeft zich afgemeld. Die afmelding verdwijnt ook.')).toBeVisible();
+  await expect(page.getByText('Er gaat geen bericht uit.')).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+
+  await page.getByRole('button', { name: 'Activiteit verwijderen' }).click();
+  await expect(page).toHaveURL(/\/beheer\?verwijderd=/);
+  await expect(page.getByText(`${naam} is verwijderd.`)).toBeVisible();
+  expect(aantal('activiteiten', `id = '${id}'`)).toBe('0');
+  expect(aantal('rol_slots', `activiteit_id = '${id}'`)).toBe('0');
+  expect(aantal('afmeldingen', `activiteit_id = '${id}'`)).toBe('0');
+  expect(aantal('leden', `id = '${anna.id}'`)).toBe('1');
+  expect(aantal('wijzigingen_log', `actie = 'activiteit_verwijderd' and rij_id = '${id}'`)).toBe('1');
+});
+
+test('een gepubliceerde activiteit die al geweest is, blijft staan', async ({ page }) => {
+  aangemaakt.push(await logInAlsBeheerder(page));
+  const naam = maakNaam('geweest');
   const { id } = await maakConcept(page, naam);
 
   await page.getByRole('link', { name: 'Concept verwijderen' }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/verwijderen$`));
 
-  // Een andere beheerder publiceert hem terwijl de bevestiging openstaat.
+  // Intussen is hij gepubliceerd en voorbij (in de tijd van de test: een datum in het verleden).
   psql(
-    `update public.activiteiten set status = 'gepubliceerd', starttijd = '20:00', eindtijd = '23:00', locatie = 'Testlocatie' where id = '${id}';`,
+    `update public.activiteiten set status = 'gepubliceerd', datum = '2020-06-06', starttijd = '20:00', eindtijd = '23:00', locatie = 'Testlocatie' where id = '${id}';`,
   );
 
   await page.getByRole('button', { name: 'Concept verwijderen' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'intussen gepubliceerd' })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'al geweest' })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/verwijderen$`));
   expect(aantal('activiteiten', `id = '${id}'`)).toBe('1');
-
-  // Daarna is er niets meer te bevestigen: de pagina stuurt terug naar de activiteit.
-  await page.goto(`/beheer/activiteiten/${id}/verwijderen`);
-  await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}$`));
 });
 
 test('een nieuwe activiteit, die nog niet bestaat, heeft geen link om te verwijderen', async ({ page }) => {

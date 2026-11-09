@@ -17,7 +17,7 @@ import { TEKENS_NAAM, TEKENS_NOTITIE } from '@/lib/activiteitformulier';
 
 import { slaActiviteitOp, type FormulierStaat } from './acties';
 import type { Kandidaat } from './gegevens';
-import { Plekken, type BestaandePlek, type Eindverantwoordelijke } from './plekken';
+import { Plekken, type BestaandePlek, type Eindverantwoordelijke, type Rolkeuze } from './plekken';
 
 import stijl from './activiteitformulier.module.css';
 
@@ -45,6 +45,8 @@ interface Eigenschappen {
   eindverantwoordelijke: Eindverantwoordelijke;
   /** Wie er in de keuzelijsten van de plekken kan staan. */
   kandidaten: Kandidaat[];
+  /** De rollen die de beheerder voor een nieuwe plek kan kiezen. */
+  rollen: Rolkeuze[];
   /** Wie zich voor deze activiteit heeft afgemeld. */
   afgemeld: string[];
   /** De activiteit is al gepubliceerd: leden zien elke wijziging direct (er gaat nog geen bericht uit). */
@@ -66,6 +68,7 @@ export function Activiteitformulier({
   plekken,
   eindverantwoordelijke,
   kandidaten,
+  rollen,
   afgemeld,
   gepubliceerd = false,
 }: Eigenschappen) {
@@ -217,6 +220,7 @@ export function Activiteitformulier({
       <Kaart titel="Rolbezetting">
         <Plekken
           key={staat.kenmerk}
+          rollen={rollen}
           bestaand={plekken}
           beginWeggehaald={staat.waarden?.plekWeghalen}
           beginToegevoegd={staat.waarden?.plekToevoegen}

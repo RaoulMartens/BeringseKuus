@@ -36,7 +36,8 @@ export function Rolbezetting({ groepen, telefoon, activiteit, onderaan, eigenLin
       <h2 className={stijl.titel}>Rolbezetting</h2>
       <div className={stijl.groepen}>
         {groepen.map((groep) => {
-          const icoon = ICOON[groep.rol];
+          // Tapper, buffet, ober, bonnenkassa en een eigen rol zijn allemaal werk: het icoon van de werker.
+          const icoon = ICOON[groep.rol] ?? 'rol-werker';
           return (
             <div key={groep.rol} className={stijl.blok}>
               <span className={stijl.rol}>

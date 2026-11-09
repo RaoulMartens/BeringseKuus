@@ -40,9 +40,12 @@ jobs:
       # Een pull request uit een fork krijgt geen geheimen: dan faalt deze stap (geen lijst = geen groen) en
       # beoordeelt de beheerder de wijziging met de hand. Dependabot krijgt alleen Dependabot-geheimen: daar moet
       # dezelfde lijst ook staan (docs/hosting.md, Geheimen; review F0-04).
+      # main ophalen gaat met het token van deze workflow (alleen lezen), alleen voor dat ene git-commando: een privé
+      # repository geeft zonder token niets (09-11-2026: de repository staat op privé). Het script krijgt het token niet.
       - name: Publieke repository (controle:repo, het script uit main)
         env:
           VERBODEN_WOORDEN: ${{ secrets.VERBODEN_WOORDEN }}
+          LEESTOKEN: ${{ github.token }}
         run: |
           IFS=','
           for woord in $VERBODEN_WOORDEN; do
@@ -50,7 +53,10 @@ jobs:
             [ -n "$woord" ] && echo "::add-mask::$woord"
           done
           unset IFS
-          git fetch --no-tags --depth=1 origin main
+          kop="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$LEESTOKEN" | base64 -w0)"
+          echo "::add-mask::$kop"
+          git -c "http.https://github.com/.extraheader=$kop" fetch --no-tags --depth=1 origin main
+          unset kop LEESTOKEN
           mkdir -p "$RUNNER_TEMP/basis"
           echo '{ "type": "module" }' > "$RUNNER_TEMP/basis/package.json"
           git show FETCH_HEAD:scripts/controleer-repo.ts > "$RUNNER_TEMP/basis/controleer-repo.ts"

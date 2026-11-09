@@ -5,14 +5,10 @@
 import { leesDetail } from '@/lib/activiteitformulier';
 
 /**
- * De rollen die een lid zelf kan overdragen (R4): werker, drankhaler en fotograaf. BOB, eindverantwoordelijke en de bak wijzigt
- * alleen het bestuur. Dit spiegelt roltypen.ruilbaar_door_lid; de database blijft leidend (rol_niet_ruilbaar).
+ * De rollen die een lid zelf kan overdragen (R4): alles behalve BOB, eindverantwoordelijke en de bak, die wijzigt alleen het
+ * bestuur. Dit spiegelt roltypen.ruilbaar_door_lid; de database blijft leidend (rol_niet_ruilbaar).
  */
-const RUILBARE_ROLLEN: readonly string[] = ['werker', 'drankhaler', 'fotograaf'];
-
-export function isRuilbaar(rol: string): boolean {
-  return RUILBARE_ROLLEN.includes(rol);
-}
+export { isRuilbaar } from '@/lib/rollen';
 
 /**
  * Hoort de overdracht bij afmelden? Dan is het stap 1 van 2 (de Stappenbalk) en loopt het lid na de overdracht door naar het
