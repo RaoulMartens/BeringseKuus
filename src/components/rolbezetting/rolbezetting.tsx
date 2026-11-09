@@ -10,13 +10,18 @@ import type { Rolgroep } from '@/lib/ledenactiviteit';
 
 import stijl from './rolbezetting.module.css';
 
-const ICOON: Record<string, IcoonNaam> = {
+const ICOON: Partial<Record<string, IcoonNaam>> = {
   eindverantwoordelijke: 'rol-eindverantwoordelijke',
   bob: 'rol-bob',
   werker: 'rol-werker',
   drankhaler: 'rol-drankhaler',
   fotograaf: 'rol-fotograaf',
 };
+
+/** Het icoon van een rol. Tapper, buffet, ober, bonnenkassa en een rol die hier niet staat, zijn werk: het icoon van de werker. */
+export function rolIcoon(rol: string): IcoonNaam {
+  return ICOON[rol] ?? 'rol-werker';
+}
 
 interface Eigenschappen {
   groepen: Rolgroep[];
@@ -36,8 +41,7 @@ export function Rolbezetting({ groepen, telefoon, activiteit, onderaan, eigenLin
       <h2 className={stijl.titel}>Rolbezetting</h2>
       <div className={stijl.groepen}>
         {groepen.map((groep) => {
-          // Tapper, buffet, ober, bonnenkassa en een eigen rol zijn allemaal werk: het icoon van de werker.
-          const icoon = ICOON[groep.rol] ?? 'rol-werker';
+          const icoon = rolIcoon(groep.rol);
           return (
             <div key={groep.rol} className={stijl.blok}>
               <span className={stijl.rol}>
