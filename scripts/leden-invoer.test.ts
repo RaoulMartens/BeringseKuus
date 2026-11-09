@@ -213,11 +213,12 @@ test('leesLeden: elke fout met regelnummer, en zonder de ingevulde waarde', () =
   assert.doesNotMatch(alles, /geen-adres|12345|dubbel@example|carla@/);
 });
 
-test('leesLeden: een externe helper heeft geen groep en is geen BOB of eindverantwoordelijke (R17)', () => {
-  const uit = leesLeden(`${KOP}\nBert;Voorbeeld;bert@example.com;;Bestuur;ja;;extern\n`, GROEPEN);
+test('leesLeden: een externe helper heeft geen groep en is geen eindverantwoordelijke (R17); BOB mag wel', () => {
+  const uit = leesLeden(`${KOP}\nBert;Voorbeeld;bert@example.com;;Bestuur;ja;ja;extern\n`, GROEPEN);
   const alles = uit.fouten.join('\n');
   assert.match(alles, /kan niet bij een groep horen/);
-  assert.match(alles, /kan geen BOB of eindverantwoordelijke zijn/);
+  assert.match(alles, /kan geen eindverantwoordelijke zijn/);
+  assert.doesNotMatch(alles, /BOB/);
 });
 
 test('leesLeden: te veel regels', () => {

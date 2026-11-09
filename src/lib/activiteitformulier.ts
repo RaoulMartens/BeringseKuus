@@ -458,7 +458,9 @@ export function vertaalOpslagfout(code: string, detail: unknown): Fouttekst {
       };
     case 'extern_niet_toegestaan':
       return {
-        fouten: { plekken: 'Een externe helper kan geen BOB of eindverantwoordelijke zijn. Kies een lid.' },
+        fouten: {
+          plekken: 'Iemand van buiten de vereniging kan geen eindverantwoordelijke zijn. Kies een lid.',
+        },
         melding: null,
       };
     case 'dubbelboeking':

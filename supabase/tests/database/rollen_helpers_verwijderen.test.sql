@@ -146,9 +146,9 @@ select is(public.t_rz($$ select public.activiteit_opslaan('$$ || current_setting
 select is(public.t_rz($$ select public.activiteit_opslaan('$$ || current_setting('test.b') || $$', '{}',
   '[{"handeling": "plek_toevoegen", "rol_type": "bob", "tijdelijk_id": "n9"},
     {"handeling": "toewijzen", "tijdelijk_id": "n9", "verwachte_bezetter": null,
-     "nieuwe_helper": "Geen Bob"}]', false,
+     "nieuwe_helper": "Wel Bob"}]', false,
   (select versie from public.activiteiten where id = '$$ || current_setting('test.b') || $$')) $$),
-  'extern_niet_toegestaan', 'een nieuwe externe helper kan geen BOB zijn');
+  'geen fout', 'iemand van buiten de vereniging mag BOB zijn (09-11-2026)');
 select is(public.t_rz($$ select public.activiteit_opslaan('$$ || current_setting('test.b') || $$', '{}',
   '[{"handeling": "plek_toevoegen", "rol_type": "tapper", "tijdelijk_id": "n9"},
     {"handeling": "toewijzen", "tijdelijk_id": "n9", "verwachte_bezetter": null, "lid_id": "$$

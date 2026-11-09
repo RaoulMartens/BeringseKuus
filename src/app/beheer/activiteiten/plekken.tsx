@@ -140,9 +140,9 @@ interface KeuzelijstEigenschappen {
   onWijzig: (waarde: string) => void;
 }
 
-/** Een BOB of eindverantwoordelijke is een lid (R17); op elke andere plek mag ook iemand van buiten de vereniging. */
+/** De eindverantwoordelijke is een lid (R17); op elke andere plek, ook BOB, mag iemand van buiten de vereniging. */
 function magExtern(rol: string): boolean {
-  return rol !== 'bob' && rol !== 'eindverantwoordelijke';
+  return rol !== 'eindverantwoordelijke';
 }
 
 function Keuzelijst({

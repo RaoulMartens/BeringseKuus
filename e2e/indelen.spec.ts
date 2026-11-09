@@ -151,7 +151,7 @@ test('wie al is ingedeeld of zich heeft afgemeld, staat niet te kiezen', async (
   ).toBeDisabled();
 });
 
-test('een externe helper kan tapper zijn maar geen BOB of eindverantwoordelijke; een BOB zonder aanmerking krijgt een hint', async ({
+test('een externe helper kan tapper en BOB zijn maar geen eindverantwoordelijke; een BOB zonder aanmerking krijgt een hint', async ({
   page,
 }) => {
   aangemaakt.push(await logInAlsBeheerder(page));
@@ -165,11 +165,18 @@ test('een externe helper kan tapper zijn maar geen BOB of eindverantwoordelijke;
   await expect(
     plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: `${extern.naam} (extern)` }),
   ).toHaveCount(1);
+  // BOB mag ook iemand van buiten de vereniging zijn (09-11-2026); de eindverantwoordelijke niet.
   await expect(
     plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: new RegExp(extern.naam) }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
+  await expect(
+    plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: 'Iemand van buiten de vereniging…' }),
+  ).toHaveCount(1);
   await expect(
     plek(page, 'Eindverantwoordelijke').getByRole('option', { name: new RegExp(extern.naam) }),
+  ).toHaveCount(0);
+  await expect(
+    plek(page, 'Eindverantwoordelijke').getByRole('option', { name: 'Iemand van buiten de vereniging…' }),
   ).toHaveCount(0);
 
   // Een hulp bij het kiezen, geen blokkade (R19).
