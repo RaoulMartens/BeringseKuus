@@ -248,11 +248,10 @@ export function leesLeden(tekst: string, bekendeGroepen: string[]): Invoer {
     if (bob === 'onbekend') fout('bij BOB staat geen ja of nee.');
     if (eindverantwoordelijke === 'onbekend') fout('bij eindverantwoordelijke staat geen ja of nee.');
 
-    // Een externe helper logt niet in, hoort bij geen groep en kan geen BOB of eindverantwoordelijke zijn (R17).
+    // Een externe helper logt niet in, hoort bij geen groep en kan geen eindverantwoordelijke zijn (R17); BOB mag wel.
     if (type === 'extern') {
       if (groepen && groepen.length > 0) fout('een externe helper kan niet bij een groep horen.');
-      if (bob === true || eindverantwoordelijke === true)
-        fout('een externe helper kan geen BOB of eindverantwoordelijke zijn.');
+      if (eindverantwoordelijke === true) fout('een externe helper kan geen eindverantwoordelijke zijn.');
     }
 
     regels.push({

@@ -229,10 +229,13 @@ select alike(public.t_oz(current_setting('test.act')::uuid, '{}',
   format('[{"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s", "verwachte_bezetter": null}]',
          current_setting('test.w2'), gen_random_uuid())), 'lid_inactief%',
   'een onbekend lid: ook lid_inactief');
+-- Een externe helper mag BOB zijn (09-11-2026). Een ongeldige tweede regel draait de aanroep terug, zodat de toestand
+-- voor de volgende tests gelijk blijft: de fout komt dan pas bij regel 1, niet bij de helper op regel 0.
 select alike(public.t_oz(current_setting('test.act')::uuid, '{}',
-  format('[{"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s", "verwachte_bezetter": null}]',
-         current_setting('test.b1'), current_setting('test.l_ext'))), 'extern_niet_toegestaan%',
-  'een externe helper op BOB: extern_niet_toegestaan');
+  format('[{"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s", "verwachte_bezetter": null},
+           {"handeling": "bestaat_niet"}]',
+         current_setting('test.b1'), current_setting('test.l_ext'))), 'wijziging_ongeldig%"regel": 1%',
+  'een externe helper op BOB mag (alleen de eindverantwoordelijke moet een lid zijn)');
 select alike(public.t_oz(current_setting('test.act')::uuid, '{}',
   format('[{"handeling": "toewijzen", "rol_slot_id": "%s", "lid_id": "%s", "verwachte_bezetter": null}]',
          current_setting('test.ev'), current_setting('test.l_ext'))), 'extern_niet_toegestaan%',

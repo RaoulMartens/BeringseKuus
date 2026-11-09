@@ -175,7 +175,7 @@ export async function leesActiviteit(supabase: Supabase, id: string): Promise<Ac
 export interface Kandidaat {
   id: string;
   naam: string;
-  /** Een externe helper; die kan geen BOB of eindverantwoordelijke zijn (R17). */
+  /** Een externe helper; die kan geen eindverantwoordelijke zijn (R17). */
   extern: boolean;
   /** Is aangemerkt als geschikt voor BOB of eindverantwoordelijke: een hulp bij het kiezen, geen slot (R19). */
   magBob: boolean;

@@ -131,7 +131,9 @@ describe('vertaalOpslagfout: indelen', () => {
     );
     expect(vertaalOpslagfout('lid_inactief', {}).fouten.plekken).toContain('geen actief lid');
     expect(vertaalOpslagfout('lid_afgemeld', {}).fouten.plekken).toContain('afgemeld');
-    expect(vertaalOpslagfout('extern_niet_toegestaan', {}).fouten.plekken).toContain('externe helper');
+    expect(vertaalOpslagfout('extern_niet_toegestaan', {}).fouten.plekken).toContain(
+      'geen eindverantwoordelijke',
+    );
     expect(vertaalOpslagfout('dubbelboeking', {}).fouten.plekken).toContain('twee plekken');
     expect(vertaalOpslagfout('eindverantwoordelijke_verplicht', {}).fouten.plekken).toContain(
       'eindverantwoordelijke',
