@@ -45,12 +45,22 @@ jobs:
           persist-credentials: false
 
       # Een opnieuw gestarte, oude check zou anders oude code over nieuwere heen zetten (review PR8-01).
+      # main opvragen gaat met het leestoken van deze workflow: een privé repository geeft zonder token niets (09-11-2026).
+      # Komt er geen antwoord, dan stopt de uitrol met die reden in plaats van "niet de nieuwste".
       - name: Alleen de nieuwste main
         env:
           SHA: ${{ github.event.workflow_run.head_sha }}
           REPO: ${{ github.repository }}
+          LEESTOKEN: ${{ github.token }}
         run: |
-          kop="$(git ls-remote "https://github.com/$REPO" refs/heads/main | cut -f1)"
+          inlog="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$LEESTOKEN" | base64 -w0)"
+          echo "::add-mask::$inlog"
+          kop="$(git -c "http.https://github.com/.extraheader=$inlog" ls-remote "https://github.com/$REPO" refs/heads/main | cut -f1)"
+          unset inlog LEESTOKEN
+          if [ -z "$kop" ]; then
+            echo "Niet uitgerold: de nieuwste main is niet op te vragen."
+            exit 1
+          fi
           if [ "$kop" != "$SHA" ]; then
             echo "Niet uitgerold: $SHA is niet meer de nieuwste main ($kop). De nieuwere commit rolt zelf uit."
             exit 1
