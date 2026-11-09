@@ -12,25 +12,36 @@ const TIJD = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATUM = /^\d{4}-\d{2}-\d{2}$/;
 const TIJDSTIP = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/;
 
-/** Rollen die de beheerder zelf toevoegt; de eindverantwoordelijke is er altijd en de bak komt later. */
-export const TOEVOEGBARE_ROLLEN = ['werker', 'drankhaler', 'fotograaf', 'bob'] as const;
-export type ToevoegbareRol = (typeof TOEVOEGBARE_ROLLEN)[number];
-
 export const TEKENS_NAAM = 200;
 export const TEKENS_NOTITIE = 2000;
+/** De naam van iemand van buiten de vereniging, zoals de database hem toestaat. */
+export const TEKENS_HELPER = 100;
+
+/**
+ * Wie er op de plek komt: iemand uit de lijst, of iemand van buiten de vereniging die nog niet in de lijst staat. Van die
+ * laatste is alleen de naam nodig (de opdrachtgever: "gewoon een naam"); de database maakt er een externe helper van.
+ */
+type Wie = { lid_id: string } | { nieuwe_helper: string };
 
 export type Wijziging =
-  | { handeling: 'plek_toevoegen'; rol_type: ToevoegbareRol; tijdelijk_id: string }
+  | { handeling: 'plek_toevoegen'; rol_type: string; tijdelijk_id: string }
   | { handeling: 'plek_weghalen'; rol_slot_id: string }
   /** Iemand op een bestaande plek zetten; `verwachte_bezetter` is wie de beheerder er zag staan (UC-005 AF-8). */
-  | { handeling: 'toewijzen'; rol_slot_id: string; lid_id: string; verwachte_bezetter: string | null }
+  | ({ handeling: 'toewijzen'; rol_slot_id: string; verwachte_bezetter: string | null } & Wie)
   /** Iemand op een plek zetten die in dezelfde aanroep is toegevoegd (of de eindverantwoordelijke van een nieuwe activiteit). */
-  | { handeling: 'toewijzen'; tijdelijk_id: string; lid_id: string; verwachte_bezetter: null }
+  | ({ handeling: 'toewijzen'; tijdelijk_id: string; verwachte_bezetter: null } & Wie)
   | { handeling: 'leegmaken'; rol_slot_id: string; verwachte_bezetter: string };
 
 /** De waarde van de keuzelijst bij een bezette plek: de plek leegmaken, of leegmaken en weghalen ("Truus eraf halen"). */
 export const PLEK_LEEGMAKEN = '__leeg';
 export const PLEK_WEGHALEN = '__weg';
+/** De waarde van de keuzelijst voor "Iemand van buiten de vereniging": daaronder komt een veld voor de naam. */
+export const PLEK_HELPER = '__helper';
+
+/** Het naamveld van iemand van buiten de vereniging bij de keuzelijst `veld` (plek_<id>, plek_nieuw_<naam>). */
+export function helperVeld(veld: string): string {
+  return `helper_naam__${veld}`;
+}
 
 export interface ActiviteitVelden {
   naam: string;
@@ -97,13 +108,38 @@ const SCHEMA = z.object({
   groepen: z.array(z.uuid('Kies een groep uit de lijst.')),
 });
 
-const TOEVOEGEN = z.object({
-  rol: z.enum(TOEVOEGBARE_ROLLEN),
-  tijdelijk: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
-});
+const TIJDELIJK = /^[A-Za-z0-9_-]{1,40}$/;
+/** De code van een rol uit de lijst (roltypen): kleine letters. Of hij bestaat, toetst de database. */
+const ROLCODE = /^[a-z_]{1,40}$/;
+const HELPERFOUT = `Vul de naam in van wie je van buiten de vereniging toevoegt, hooguit ${TEKENS_HELPER} tekens.`;
+/** Een naam: zonder stuurtekens, met de spaties samengevoegd; de database toetst hetzelfde. */
+const HELPERNAAM = z
+  .string()
+  .transform((tekst) => tekst.replace(/\s+/g, ' ').trim())
+  .pipe(
+    z
+      .string()
+      .min(1)
+      .max(TEKENS_HELPER)
+      .refine((tekst) => !/\p{Cc}/u.test(tekst)),
+  );
+
+/** De naam van iemand van buiten de vereniging bij de keuzelijst `veld`; leeg (en een fout) als hij er niet is. */
+function leesHelper(formulier: FormData, veld: string, fouten: Record<string, string>): string | null {
+  const naam = HELPERNAAM.safeParse(tekstVan(formulier, helperVeld(veld)));
+  if (naam.success) return naam.data;
+  fouten.plekken = HELPERFOUT;
+  return null;
+}
 
 const PLEKFOUT = 'Er klopt iets niet met de plekken. Laad de pagina opnieuw.';
-const KEUZE = z.union([z.literal(''), z.literal(PLEK_LEEGMAKEN), z.literal(PLEK_WEGHALEN), z.uuid()]);
+const KEUZE = z.union([
+  z.literal(''),
+  z.literal(PLEK_LEEGMAKEN),
+  z.literal(PLEK_WEGHALEN),
+  z.literal(PLEK_HELPER),
+  z.uuid(),
+]);
 const WAS = z.union([z.literal(''), z.uuid()]);
 const BESTAANDE_PLEK = /^plek_([0-9a-fA-F-]{36})$/;
 const NIEUWE_PLEK = /^plek_nieuw_([A-Za-z0-9_-]{1,40})$/;
@@ -121,19 +157,22 @@ function leesPlekken(formulier: FormData, fouten: Record<string, string>): Wijzi
   };
   const toevoegen: Wijziging[] = [];
   const tijdelijk = new Set<string>();
+  // "tapper:n1": de rol en de tijdelijke naam van de plek. De eindverantwoordelijke is er altijd en de bak komt later.
   for (const waarde of formulier.getAll('plek_toevoegen')) {
-    const [rol, naam] = typeof waarde === 'string' ? waarde.split(':') : [];
-    const plek = TOEVOEGEN.safeParse({ rol, tijdelijk: naam });
-    if (!plek.success || tijdelijk.has(plek.data.tijdelijk)) {
+    const [rol = '', naam = '', ...rest] = typeof waarde === 'string' ? waarde.split(':') : [];
+    if (
+      rest.length > 0 ||
+      !ROLCODE.test(rol) ||
+      rol === 'eindverantwoordelijke' ||
+      rol === 'bak' ||
+      !TIJDELIJK.test(naam) ||
+      tijdelijk.has(naam)
+    ) {
       mis();
       continue;
     }
-    tijdelijk.add(plek.data.tijdelijk);
-    toevoegen.push({
-      handeling: 'plek_toevoegen',
-      rol_type: plek.data.rol,
-      tijdelijk_id: plek.data.tijdelijk,
-    });
+    tijdelijk.add(naam);
+    toevoegen.push({ handeling: 'plek_toevoegen', rol_type: rol, tijdelijk_id: naam });
   }
 
   const weghalen = new Set<string>();
@@ -164,6 +203,16 @@ function leesPlekken(formulier: FormData, fouten: Record<string, string>): Wijzi
           leegmaken.push({ handeling: 'leegmaken', rol_slot_id: id.data, verwachte_bezetter: voorheen });
         }
         if (keuze.data === PLEK_WEGHALEN) weghalen.add(id.data);
+      } else if (keuze.data === PLEK_HELPER) {
+        const helper = leesHelper(formulier, naam, fouten);
+        if (helper) {
+          indelen.push({
+            handeling: 'toewijzen',
+            rol_slot_id: id.data,
+            nieuwe_helper: helper,
+            verwachte_bezetter: voorheen,
+          });
+        }
       } else if (keuze.data !== voorheen) {
         indelen.push({
           handeling: 'toewijzen',
@@ -180,12 +229,27 @@ function leesPlekken(formulier: FormData, fouten: Record<string, string>): Wijzi
     const naamVanPlek =
       nieuw?.[1] ?? (naam === 'plek_eindverantwoordelijke' ? 'eindverantwoordelijke' : null);
     if (naamVanPlek !== null) {
-      const lid = z.union([z.literal(''), z.uuid()]).safeParse(waarde);
+      const lid = z.union([z.literal(''), z.literal(PLEK_HELPER), z.uuid()]).safeParse(waarde);
       if (!lid.success || (nieuw && !tijdelijk.has(naamVanPlek))) {
         mis();
         continue;
       }
-      if (lid.data !== '') {
+      if (lid.data === PLEK_HELPER) {
+        // Een externe helper kan geen eindverantwoordelijke zijn (R17); het formulier biedt het daar niet aan.
+        if (!nieuw) {
+          mis();
+          continue;
+        }
+        const helper = leesHelper(formulier, naam, fouten);
+        if (helper) {
+          indelen.push({
+            handeling: 'toewijzen',
+            tijdelijk_id: naamVanPlek,
+            nieuwe_helper: helper,
+            verwachte_bezetter: null,
+          });
+        }
+      } else if (lid.data !== '') {
         indelen.push({
           handeling: 'toewijzen',
           tijdelijk_id: naamVanPlek,
@@ -332,6 +396,7 @@ export function vertaalOpslagfout(code: string, detail: unknown): Fouttekst {
     }
     case 'veld_ongeldig': {
       const veld = veldUit(detail);
+      if (veld?.startsWith('helper_')) return { fouten: { plekken: HELPERFOUT }, melding: null };
       if (veld === 'eindtijd') {
         return { fouten: { eindtijd: 'De eindtijd kan niet gelijk zijn aan de starttijd.' }, melding: null };
       }
@@ -492,7 +557,9 @@ export function leesWaarden(formulier: FormData): Waarden {
     formulier.getAll(naam).filter((waarde): waarde is string => typeof waarde === 'string');
   const plekKeuzes: Record<string, string> = {};
   for (const [naam, waarde] of formulier.entries()) {
-    const eigenKeuze = naam.startsWith('plek_') && naam !== 'plek_toevoegen' && naam !== 'plek_weghalen';
+    const eigenKeuze =
+      (naam.startsWith('plek_') && naam !== 'plek_toevoegen' && naam !== 'plek_weghalen') ||
+      naam.startsWith('helper_');
     if (eigenKeuze && !naam.startsWith('plek_was_') && typeof waarde === 'string') plekKeuzes[naam] = waarde;
   }
   return {

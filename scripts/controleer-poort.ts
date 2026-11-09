@@ -144,7 +144,8 @@ export function controleerWorkflow(tekst: string): string[] {
   const repoStap = 'node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .';
   for (const nodig of [
     'npm run check:basis',
-    'git fetch --no-tags --depth=1 origin main',
+    // Met of zonder token in een -c-optie ervoor (een privé repository, 09-11-2026).
+    'fetch --no-tags --depth=1 origin main',
     'git show FETCH_HEAD:scripts/controleer-repo.ts',
     repoStap,
   ]) {

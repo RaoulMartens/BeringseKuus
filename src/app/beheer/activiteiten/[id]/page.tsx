@@ -15,7 +15,14 @@ import { zelfNietZichtbaarTekst } from '@/lib/publiceren';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { Activiteitformulier, FORMULIER_ID } from '../activiteitformulier';
-import { leesActiviteit, leesAfgemeld, leesEigenGroepen, leesGroepen, leesKandidaten } from '../gegevens';
+import {
+  leesActiviteit,
+  leesAfgemeld,
+  leesEigenGroepen,
+  leesGroepen,
+  leesKandidaten,
+  leesRollen,
+} from '../gegevens';
 
 import stijl from './activiteit.module.css';
 
@@ -60,9 +67,10 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
   const gepubliceerd = activiteit.status === 'gepubliceerd';
 
   const gebruiker = await huidigeGebruiker();
-  const [{ groepen, aantalLeden }, kandidaten, afgemeld, eigenGroepen] = await Promise.all([
+  const [{ groepen, aantalLeden }, kandidaten, rollen, afgemeld, eigenGroepen] = await Promise.all([
     leesGroepen(supabase),
     leesKandidaten(supabase),
+    leesRollen(supabase),
     leesAfgemeld(supabase, activiteit.id),
     gebruiker ? leesEigenGroepen(supabase, gebruiker.lidId) : Promise.resolve([]),
   ]);
@@ -82,11 +90,16 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
             status="Gepubliceerd"
             uitleg="Leden zien deze activiteit. Een wijziging zien ze meteen; er gaat nog geen bericht uit."
             onderaan={
-              zelfNiet ? undefined : (
-                <Knop href={`/programma/${activiteit.id}`} soort="tekst">
-                  Zo zien leden het
+              <>
+                {!zelfNiet && (
+                  <Knop href={`/programma/${activiteit.id}`} soort="tekst">
+                    Zo zien leden het
+                  </Knop>
+                )}
+                <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
+                  Activiteit verwijderen
                 </Knop>
-              )
+              </>
             }
           >
             <Knop type="submit" formulier={FORMULIER_ID} naam="actie" waarde="opslaan">
@@ -124,16 +137,15 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         plekken={activiteit.plekken}
         eindverantwoordelijke={activiteit.eindverantwoordelijke}
         kandidaten={kandidaten}
+        rollen={rollen}
         afgemeld={afgemeld}
         gepubliceerd={gepubliceerd}
       />
-      {!gepubliceerd && (
-        <div className={stijl.verwijderMobiel}>
-          <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
-            Concept verwijderen
-          </Knop>
-        </div>
-      )}
+      <div className={stijl.verwijderMobiel}>
+        <Knop href={`/beheer/activiteiten/${activiteit.id}/verwijderen`} soort="tekst-gevaar">
+          {gepubliceerd ? 'Activiteit verwijderen' : 'Concept verwijderen'}
+        </Knop>
+      </div>
     </Schermkader>
   );
 }

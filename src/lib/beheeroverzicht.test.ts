@@ -205,8 +205,16 @@ describe('indeelTaak', () => {
     expect(indeelTaak({ werker: 1, eindverantwoordelijke: 1 })).toBe('1 werker indelen');
   });
 
-  it('noemt een rol die we niet kennen bij zijn code', () => {
-    expect(indeelTaak({ gids: 2 })).toBe('2 gids indelen');
+  it('noemt een eigen rol bij zijn naam, in plekken', () => {
+    expect(indeelTaak({ Garderobe: 2 })).toBe('2 garderobe-plekken indelen');
+    expect(indeelTaak({ Garderobe: 1 })).toBe('1 garderobe-plek indelen');
+  });
+
+  it('noemt de nieuwe rollen met hun eigen woorden', () => {
+    expect(indeelTaak({ tapper: 2 })).toBe('2 tappers indelen');
+    expect(indeelTaak({ ober: 1 })).toBe('1 ober indelen');
+    expect(indeelTaak({ bonnenkassa: 1 })).toBe('1 bonnenkassa-plek indelen');
+    expect(indeelTaak({ buffet: 3 })).toBe('3 buffet-plekken indelen');
   });
 });
 

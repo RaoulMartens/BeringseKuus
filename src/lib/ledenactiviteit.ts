@@ -4,6 +4,7 @@
 // dag, een activiteit zonder bus) met tests vast te leggen zijn.
 
 import { isGeweest, langeDag, tijdTekst, type ActiviteitStatus } from '@/lib/programma';
+import { rolInZin, rolLabel as rolLabelVan, vergelijkRollen } from '@/lib/rollen';
 
 /** Een activiteit zoals een lid hem leest (de view mijn_activiteiten). */
 export interface LedenActiviteit {
@@ -112,17 +113,9 @@ export function nogNietIngevuld(a: Pick<LedenActiviteit, 'busVertrektijd' | 'not
 
 // ===== Rolbezetting =====
 
-/** De volgorde en de naam van de rollen op het scherm van een lid. */
-const ROLLEN: { rol: string; label: string }[] = [
-  { rol: 'eindverantwoordelijke', label: 'Eindverantwoordelijke' },
-  { rol: 'bob', label: 'BOB' },
-  { rol: 'werker', label: 'Werker' },
-  { rol: 'drankhaler', label: 'Drankhaler' },
-  { rol: 'fotograaf', label: 'Fotograaf' },
-];
-
+/** De naam van een rol op het scherm van een lid; de bak is geen dienst en heeft hier geen naam. */
 export function rolLabel(rol: string): string | null {
-  return ROLLEN.find((r) => r.rol === rol)?.label ?? null;
+  return rol === 'bak' || rol === '' ? null : rolLabelVan(rol);
 }
 
 /** Een bezette plek, zoals een lid hem leest: een lege plek ziet een lid niet (R13). */
@@ -138,13 +131,16 @@ export interface Rolgroep {
   namen: { lidId: string; naam: string; jij: boolean }[];
 }
 
-/** De bezette plekken per rol, in de volgorde van het scherm; een rol zonder namen en een rol die we niet kennen (de bak) komen er niet in. */
+/** De bezette plekken per rol, in de volgorde van het scherm (de vaste rollen eerst, een eigen rol daarna); de bak komt er niet in. */
 export function groepeerRollen(plekken: BezettePlek[], eigenLidId: string): Rolgroep[] {
-  return ROLLEN.flatMap(({ rol, label }) => {
+  const rollen = [...new Set(plekken.map((plek) => plek.rol))].sort(vergelijkRollen);
+  return rollen.flatMap((rol) => {
+    const label = rolLabel(rol);
+    if (label === null) return [];
     const namen = plekken
       .filter((plek) => plek.rol === rol)
       .map((plek) => ({ lidId: plek.lidId, naam: plek.naam, jij: plek.lidId === eigenLidId }));
-    return namen.length > 0 ? [{ rol, label, namen }] : [];
+    return [{ rol, label, namen }];
   });
 }
 
@@ -175,14 +171,12 @@ export function isNogNietIngedeeld(groepen: Rolgroep[]): boolean {
 export interface Jouwstatus {
   naam: string;
   afgemeld: boolean;
-  /** "werker", "drankhaler": de rollen waarin je staat; leeg als je geen dienst hebt. */
+  /** De codes van de rollen waarin je staat ("tapper", "bob"); leeg als je geen dienst hebt. Ook maakAanbod leest ze. */
   rollen: string[];
 }
 
 export function maakJouwstatus(naam: string, groepen: Rolgroep[], afgemeld: boolean): Jouwstatus {
-  const rollen = groepen.flatMap((groep) =>
-    groep.namen.some((n) => n.jij) ? [groep.label.toLowerCase()] : [],
-  );
+  const rollen = groepen.flatMap((groep) => (groep.namen.some((n) => n.jij) ? [groep.rol] : []));
   return { naam, afgemeld, rollen };
 }
 
@@ -190,5 +184,8 @@ export function maakJouwstatus(naam: string, groepen: Rolgroep[], afgemeld: bool
 export function statusZin(status: Jouwstatus): { soort: 'aanwezig' | 'afgemeld'; tekst: string } {
   if (status.afgemeld) return { soort: 'afgemeld', tekst: 'Je bent afgemeld.' };
   if (status.rollen.length === 0) return { soort: 'aanwezig', tekst: 'Je staat op aanwezig, zonder dienst.' };
-  return { soort: 'aanwezig', tekst: `Je staat op aanwezig als ${status.rollen.join(' en ')}.` };
+  return {
+    soort: 'aanwezig',
+    tekst: `Je staat op aanwezig als ${status.rollen.map(rolInZin).join(' en ')}.`,
+  };
 }

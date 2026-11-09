@@ -8,7 +8,7 @@ import { zelfNietZichtbaarTekst } from '@/lib/publiceren';
 import type { maakSupabase } from '@/lib/supabase/server';
 
 import type { Groep } from './activiteitformulier';
-import type { BestaandePlek, Eindverantwoordelijke } from './plekken';
+import type { BestaandePlek, Eindverantwoordelijke, Rolkeuze } from './plekken';
 
 type Supabase = Awaited<ReturnType<typeof maakSupabase>>;
 
@@ -218,4 +218,16 @@ export async function leesAfgemeld(supabase: Supabase, activiteitId: string): Pr
     .eq('activiteit_id', activiteitId);
   if (error) throw new Error(`afmeldingen niet te lezen: ${error.code ?? error.message}`);
   return data.map((regel) => regel.lid_id);
+}
+
+/** De rollen die de beheerder voor een nieuwe plek kan kiezen, in de volgorde van de lijst (roltypen.toevoegbaar). */
+export async function leesRollen(supabase: Supabase): Promise<Rolkeuze[]> {
+  const { data, error } = await supabase
+    .from('roltypen')
+    .select('code, naam')
+    .eq('toevoegbaar', true)
+    .order('volgorde')
+    .order('naam');
+  if (error) throw new Error();
+  return data;
 }

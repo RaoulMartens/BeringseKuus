@@ -85,3 +85,9 @@ export function ruimTestledenOp(kenmerk: string): void {
     delete from public.leden where achternaam = '${kenmerk}';
   `);
 }
+
+/** Een plek toevoegen in de rolbezetting: de rol (de code, "tapper") kiezen onder "Plek toevoegen". */
+export async function voegPlekToe(page: Page, rol: string): Promise<void> {
+  await page.getByLabel('Plek toevoegen', { exact: true }).selectOption(rol);
+  await page.getByRole('button', { name: 'Toevoegen', exact: true }).click();
+}
