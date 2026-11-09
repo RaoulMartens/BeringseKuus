@@ -1,9 +1,11 @@
-/* De rolbezetting: per rol een kop, de plekken als regels en een knop om er een toe te voegen (docs/visueel/stijl.css,
-   sectie 13: rolbezetting). Een lege plek heeft een kruisje; een bezette plek niet (die moet eerst leeg). */
+/* De rolbezetting (docs/visueel/stijl.css, sectie 8: `.wf-rolgroep`, `.wf-role-row`, `.wf-plek-erbij`): per rol een kop met
+   het icoon van de rol, de plekken eronder en een knop om er een toe te voegen. Een plek is het veld zelf, zonder vlak
+   eromheen; een lege plek heeft een kruisje ernaast, een bezette plek niet (die moet eerst leeg). Tussen de rollen 20px,
+   binnen een rol 8px. */
 .plekken {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .uitleg {
@@ -16,60 +18,58 @@
 .rol {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  gap: 8px;
 }
 
+/* De kop van een rol (`.wf-rolgroep-kop .wf-label`): klein, zacht, met het icoon van de rol. */
 .rolkop {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
   font: 600 0.875rem/1.4286 var(--font-tekst);
   color: var(--neutraal-tekst-zacht);
+}
+
+.rolkop svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
 }
 
 .lijst {
   list-style: none;
   margin: 0;
   padding: 0;
-  align-self: stretch;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
+/* Een plek: de keuzelijst over de volle breedte, het kruisje ernaast; het naamveld van iemand van buiten eronder. */
 .plek {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  min-height: var(--control-default);
-  padding: 4px 4px 4px var(--padding-control-x);
-  background: var(--neutraal-vlak);
-  border-radius: var(--radius-control);
   font-size: 0.875rem;
 }
 
-.naam {
-  font-weight: 600;
-  color: var(--neutraal-tekst);
-}
-
-.leeg {
-  flex: 1 1 auto;
+/* Een korte regel onder een plek: het telefoonnummer van de eindverantwoordelijke, of waarom iets niet kan. */
+.notitie {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  line-height: 1.5385;
   color: var(--neutraal-tekst-zacht);
 }
 
-.vast {
-  margin: 0;
-  align-self: stretch;
-  padding: 8px var(--padding-control-x);
-  background: var(--neutraal-vlak);
-  border-radius: var(--radius-control);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--neutraal-tekst);
-}
-
-.vast .leeg {
-  font-weight: 400;
+.notitie svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
 }
 
 .weg {
@@ -104,12 +104,15 @@
   color: var(--status-fout-tekst);
 }
 
-/* de keuzelijst van een plek: de naam is het veld */
-.keuze {
-  flex: 1 1 auto;
+/* De keuzelijst van een plek en het naamveld: de naam is het veld (`.wf-input`). */
+.keuze,
+.invoer {
+  /* basis 0: het veld neemt de ruimte die over is, ook op een smalle telefoon, zodat het kruisje ernaast blijft staan */
+  flex: 1 1 0;
   min-width: 0;
   min-height: var(--control-default);
-  padding: 8px var(--padding-control-x);
+  /* even hoog als de andere velden van het formulier (`.wf-input`: 10px boven en onder) */
+  padding: 10px var(--padding-control-x);
   background: var(--neutraal-kaart);
   border: 1px solid var(--neutraal-lijn-sterk);
   border-radius: var(--radius-control);
@@ -129,43 +132,37 @@
   white-space: nowrap;
 }
 
-/* Iemand van buiten de vereniging: één naamveld onder de keuzelijst, over de hele breedte van de plek. */
-.plek {
-  flex-wrap: wrap;
-}
-
+/* Iemand van buiten de vereniging: één naamveld onder de keuzelijst, even breed als de keuzelijst. */
 .helper {
-  flex-basis: 100%;
+  flex: 1 0 100%;
   display: flex;
-  flex-direction: column;
-  padding: 0 var(--padding-control-x) 8px 0;
 }
 
-.invoer {
-  min-width: 0;
-  min-height: var(--control-default);
-  padding: 8px var(--padding-control-x);
-  background: var(--neutraal-kaart);
-  border: 1px solid var(--neutraal-lijn-sterk);
-  border-radius: var(--radius-control);
-  font: 400 0.875rem/1.4286 var(--font-tekst);
-  color: var(--neutraal-tekst);
+/* Staat er een kruisje naast de keuzelijst, dan eindigt het naamveld waar de keuzelijst eindigt. */
+.plek:has(> .weg) > .helper {
+  padding-right: calc(var(--control-compact) + 8px);
 }
 
-/* Een plek toevoegen: de rol kiezen (of bij Anders intypen) en dan Toevoegen. */
+/* Een plek toevoegen: de rol kiezen en dan Toevoegen. Zelfde opbouw als een rol: kop, dan de regel. */
 .toevoegen {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
+/* stretch: de knop wordt even hoog als de keuzelijst ernaast */
 .toevoegRij {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
 }
 
 .toevoegRij > .keuze {
   flex: 1 1 160px;
+}
+
+/* De knop zet zelf align-self: flex-start; hier telt de hoogte van de regel (specifieker dan de klasse van de knop). */
+.toevoegen .toevoegRij > * {
+  align-self: stretch;
 }
