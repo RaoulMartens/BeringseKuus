@@ -6,16 +6,10 @@
 // zonder symbolen: de doelgroep leest woorden sneller.
 
 import { dagTekst, isActiviteitStatus, tijdTekst, type ActiviteitStatus } from '@/lib/programma';
+import { rolAantal } from '@/lib/rollen';
 
 /** Een activiteit heet "bijna te weinig" bij het minimum plus deze marge (Datamodel-fase-1.md punt 5). */
 export const BIJNA_TE_WEINIG_MARGE = 1;
-
-const ROLLEN: Record<string, { een: string; meer: string }> = {
-  werker: { een: 'werker', meer: 'werkers' },
-  drankhaler: { een: 'drankhaler', meer: 'drankhalers' },
-  fotograaf: { een: 'fotograaf', meer: 'fotografen' },
-  bob: { een: 'BOB', meer: "BOB's" },
-};
 
 export interface OverzichtRij {
   activiteitId: string;
@@ -117,9 +111,7 @@ export function indeelTaak(legePlekkenPerRol: Record<string, number>): string | 
   const [eerste] = rollen;
   if (rollen.length === 1 && eerste) {
     const [rol, aantal] = eerste;
-    const naam = ROLLEN[rol];
-    const woord = naam ? (aantal === 1 ? naam.een : naam.meer) : rol;
-    return `${aantal} ${woord} indelen`;
+    return `${rolAantal(rol, aantal)} indelen`;
   }
   return `${totaal} ${totaal === 1 ? 'plek' : 'plekken'} indelen`;
 }

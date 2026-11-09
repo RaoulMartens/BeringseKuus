@@ -53,7 +53,9 @@
 
 .onderaan {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 4px 16px;
   border-top: 1px solid var(--neutraal-lijn);
   padding-top: 8px;
   margin-top: 4px;

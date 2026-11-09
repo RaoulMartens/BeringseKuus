@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ingedeeldTekst, naamUitLog, vertaalVerwijderfout } from './verwijderen';
+import { afgemeldTekst, ingedeeldTekst, naamUitLog, vertaalVerwijderfout } from './verwijderen';
 
 describe('ingedeeldTekst', () => {
   it('zegt wat er met de indeling gebeurt', () => {
@@ -35,5 +35,21 @@ describe('vertaalVerwijderfout', () => {
   it('valt terug op een algemene tekst', () => {
     expect(vertaalVerwijderfout('iets_nieuws')).toContain('niet gelukt');
     expect(vertaalVerwijderfout('')).toContain('niet gelukt');
+  });
+});
+
+describe('een gepubliceerde activiteit verwijderen', () => {
+  it('leest de naam ook uit de regel van een gepubliceerde activiteit', () => {
+    expect(naamUitLog('BCL treffen (20-11-2026) verwijderd na publiceren')).toBe('BCL treffen');
+  });
+
+  it('noemt de afmeldingen die verdwijnen, en niets als er geen zijn', () => {
+    expect(afgemeldTekst(0)).toBeNull();
+    expect(afgemeldTekst(1)).toBe('1 lid heeft zich afgemeld. Die afmelding verdwijnt ook.');
+    expect(afgemeldTekst(3)).toBe('3 leden hebben zich afgemeld. Die afmeldingen verdwijnen ook.');
+  });
+
+  it('zegt dat een activiteit die al geweest is, blijft staan', () => {
+    expect(vertaalVerwijderfout('activiteit_niet_open')).toContain('al geweest');
   });
 });

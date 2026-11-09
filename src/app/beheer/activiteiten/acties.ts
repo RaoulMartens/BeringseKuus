@@ -133,11 +133,12 @@ export async function publiceerActiviteit(
 }
 
 /**
- * Verwijdert een concept na de bevestiging (public.concept_verwijderen): de plekken en de doelgroep gaan mee, en er gaat geen
- * bericht uit (R18). Een gepubliceerde activiteit weigert de database (alleen_concept). Bij een fout blijft de beheerder op de
- * bevestigingspagina met de reden.
+ * Verwijdert een concept of een gepubliceerde activiteit na de bevestiging (public.activiteit_verwijderen): de plekken, de
+ * doelgroep en de afmeldingen gaan mee, en er gaat geen bericht uit (berichten bestaan nog niet; de bevestigingspagina zegt
+ * dat). Een activiteit die al geweest is, weigert de database. Bij een fout blijft de beheerder op de bevestigingspagina met
+ * de reden.
  */
-export async function verwijderConcept(
+export async function verwijderActiviteit(
   _vorige: PubliceerStaat,
   formulier: FormData,
 ): Promise<PubliceerStaat> {
@@ -146,10 +147,10 @@ export async function verwijderConcept(
   if (!id.success) return { melding: vertaalVerwijderfout('activiteit_onbekend') };
 
   const supabase = await maakSupabase();
-  const { error } = await supabase.rpc('concept_verwijderen', { p_activiteit_id: id.data });
+  const { error } = await supabase.rpc('activiteit_verwijderen', { p_activiteit_id: id.data });
 
   if (error) {
-    console.error(`concept niet verwijderd: ${error.code ?? error.message}`);
+    console.error(`activiteit niet verwijderd: ${error.code ?? error.message}`);
     if (error.code !== 'BK001') return { melding: vertaalVerwijderfout('') };
     if (error.message === 'geen_admin') redirect('/beheer');
     return { melding: vertaalVerwijderfout(error.message) };

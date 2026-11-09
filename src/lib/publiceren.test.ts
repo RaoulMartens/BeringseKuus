@@ -27,8 +27,16 @@ describe('nogLeegTekst', () => {
     expect(nogLeegTekst([{ rol: 'bob', bezetterId: null }])).toBe('1 BOB-plek');
   });
 
-  it('negeert een rol die we niet kennen', () => {
-    expect(nogLeegTekst([{ rol: 'gids', bezetterId: null }])).toBeNull();
+  it('noemt een eigen rol bij zijn naam, na de vaste rollen; de bak en de eindverantwoordelijke niet', () => {
+    expect(
+      nogLeegTekst([
+        { rol: 'Garderobe', bezetterId: null },
+        { rol: 'tapper', bezetterId: null },
+        { rol: 'tapper', bezetterId: null },
+        { rol: 'bak', bezetterId: null },
+        { rol: 'eindverantwoordelijke', bezetterId: null },
+      ]),
+    ).toBe('2 tapper-plekken, 1 garderobe-plek');
   });
 });
 

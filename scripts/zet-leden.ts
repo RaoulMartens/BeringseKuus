@@ -182,7 +182,8 @@ export async function leesBestaand(
   const uitkomst = new Map<string, BestaandLid>();
   for (const regel of prive.data) {
     const lid = lidPerId.get(regel.lid_id);
-    if (!lid || (lid.type !== 'lid' && lid.type !== 'extern')) continue;
+    // Een externe helper die de beheerder op een plek heeft gezet, kan geen e-mailadres hebben: die staat niet in de lijst.
+    if (!lid || regel.email === null || (lid.type !== 'lid' && lid.type !== 'extern')) continue;
     uitkomst.set(regel.email, {
       lidId: lid.id,
       authUserId: lid.auth_user_id,

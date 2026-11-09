@@ -5,7 +5,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-import { logInAlsBeheerder, maakTestlid, ruimActiviteitenOp, ruimTestledenOp } from './beheer-hulp.ts';
+import {
+  logInAlsBeheerder,
+  maakTestlid,
+  ruimActiviteitenOp,
+  ruimTestledenOp,
+  voegPlekToe,
+} from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { ruimLidOp } from './mfa-hulp.ts';
 import { WCAG } from './normen.ts';
@@ -21,6 +27,7 @@ const aangemaakt: string[] = [];
 
 test.afterAll(async () => {
   ruimActiviteitenOp(`E2E Indelen % ${kenmerk}`);
+  psql(`delete from public.roltypen where code like '% ${kenmerk}';`);
   psql(`delete from public.wijzigingen_log where omschrijving like '%E2E Indelen % ${kenmerk}%';`);
   ruimTestledenOp(kenmerk);
   for (const uid of aangemaakt.splice(0)) await ruimLidOp(uid);
@@ -28,7 +35,7 @@ test.afterAll(async () => {
 
 const opslaan = (page: Page) => page.getByRole('button', { name: 'Opslaan als concept' });
 
-/** De keuzelijst van een plek; exact, want "Nieuwe plek 1 van werker" is ook het begin van het label van het kruisje. */
+/** De keuzelijst van een plek; exact, want "Nieuwe plek 1 van tapper" is ook het begin van het label van het kruisje. */
 const plek = (page: Page, label: string): Locator => page.getByLabel(label, { exact: true });
 
 function activiteitId(naam: string): string {
@@ -59,16 +66,16 @@ test('iemand indelen, de eindverantwoordelijke kiezen, en daarna eraf halen: ope
   const naam = maakNaam('stappen');
 
   await begin(page, naam, '2099-04-05');
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await plek(page, 'Nieuwe plek 1 van werker').selectOption({ label: anna.naam });
-  await plek(page, 'Nieuwe plek 2 van werker').selectOption({ label: bert.naam });
+  await voegPlekToe(page, 'tapper');
+  await voegPlekToe(page, 'tapper');
+  await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: anna.naam });
+  await plek(page, 'Nieuwe plek 2 van tapper').selectOption({ label: bert.naam });
   await plek(page, 'Eindverantwoordelijke').selectOption({ label: carla.naam });
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
 
   const id = activiteitId(naam);
-  expect(bezetters(id, 'werker')).toBe('Anna,Bert');
+  expect(bezetters(id, 'tapper')).toBe('Anna,Bert');
   expect(bezetters(id, 'eindverantwoordelijke')).toBe('Carla');
   expect(
     psql(
@@ -78,8 +85,8 @@ test('iemand indelen, de eindverantwoordelijke kiezen, en daarna eraf halen: ope
 
   // Het concept staat er weer zoals het was opgeslagen.
   await page.getByRole('link', { name: new RegExp(naam) }).click();
-  await expect(plek(page, 'Werker 1')).toHaveValue(anna.id);
-  await expect(plek(page, 'Werker 2')).toHaveValue(bert.id);
+  await expect(plek(page, 'Tapper 1')).toHaveValue(anna.id);
+  await expect(plek(page, 'Tapper 2')).toHaveValue(bert.id);
   await expect(plek(page, 'Eindverantwoordelijke')).toHaveValue(carla.id);
   // Met een eindverantwoordelijke is er nog een telefoonnummer nodig om te publiceren.
   await expect(
@@ -87,14 +94,14 @@ test('iemand indelen, de eindverantwoordelijke kiezen, en daarna eraf halen: ope
   ).toBeVisible();
 
   // "Anna eraf halen": de plek openlaten. "Bert eraf halen": de plek weghalen.
-  await plek(page, 'Werker 1').selectOption({ label: 'Plek openlaten' });
-  await plek(page, 'Werker 2').selectOption({ label: 'Plek weghalen' });
+  await plek(page, 'Tapper 1').selectOption({ label: 'Plek openlaten' });
+  await plek(page, 'Tapper 2').selectOption({ label: 'Plek weghalen' });
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
-  expect(bezetters(id, 'werker')).toBe('-');
+  expect(bezetters(id, 'tapper')).toBe('-');
   expect(
     psql(
-      `select count(*) from public.rol_slots where activiteit_id = '${id}' and rol_type = 'werker';`,
+      `select count(*) from public.rol_slots where activiteit_id = '${id}' and rol_type = 'tapper';`,
     ).trim(),
   ).toBe('1');
   expect(psql(`select versie from public.activiteiten where id = '${id}';`).trim()).toBe('2');
@@ -123,12 +130,12 @@ test('wie al is ingedeeld of zich heeft afgemeld, staat niet te kiezen', async (
   const naam = maakNaam('beschikbaar');
 
   await begin(page, naam, '2099-04-06');
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await plek(page, 'Nieuwe plek 1 van werker').selectOption({ label: dirk.naam });
+  await voegPlekToe(page, 'tapper');
+  await voegPlekToe(page, 'tapper');
+  await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: dirk.naam });
   // Dirk staat nu op plek 1: op plek 2 is hij niet te kiezen.
   await expect(
-    plek(page, 'Nieuwe plek 2 van werker').getByRole('option', { name: `${dirk.naam} — al ingedeeld` }),
+    plek(page, 'Nieuwe plek 2 van tapper').getByRole('option', { name: `${dirk.naam} — al ingedeeld` }),
   ).toBeDisabled();
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
@@ -139,13 +146,13 @@ test('wie al is ingedeeld of zich heeft afgemeld, staat niet te kiezen', async (
     `insert into public.afmeldingen (activiteit_id, lid_id, toelichting) values ('${id}', '${els.id}', 'Verzonnen reden');`,
   );
   await page.getByRole('link', { name: new RegExp(naam) }).click();
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
+  await voegPlekToe(page, 'tapper');
   await expect(
-    plek(page, 'Nieuwe plek 1 van werker').getByRole('option', { name: `${els.naam} — afgemeld` }),
+    plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: `${els.naam} — afgemeld` }),
   ).toBeDisabled();
 });
 
-test('een externe helper kan werker zijn maar geen BOB of eindverantwoordelijke; een BOB zonder aanmerking krijgt een hint', async ({
+test('een externe helper kan tapper zijn maar geen BOB of eindverantwoordelijke; een BOB zonder aanmerking krijgt een hint', async ({
   page,
 }) => {
   aangemaakt.push(await logInAlsBeheerder(page));
@@ -154,10 +161,10 @@ test('een externe helper kan werker zijn maar geen BOB of eindverantwoordelijke;
   const naam = maakNaam('rollen');
 
   await begin(page, naam, '2099-04-07');
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await page.getByRole('button', { name: '+ BOB-plek' }).click();
+  await voegPlekToe(page, 'tapper');
+  await voegPlekToe(page, 'bob');
   await expect(
-    plek(page, 'Nieuwe plek 1 van werker').getByRole('option', { name: `${extern.naam} (extern)` }),
+    plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: `${extern.naam} (extern)` }),
   ).toHaveCount(1);
   await expect(
     plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: new RegExp(extern.naam) }),
@@ -170,12 +177,12 @@ test('een externe helper kan werker zijn maar geen BOB of eindverantwoordelijke;
   const hint = `${gewoon.naam} — nog niet aangemerkt als BOB`;
   await expect(plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: hint })).toHaveCount(1);
   await plek(page, 'Nieuwe plek 1 van BOB').selectOption({ label: hint });
-  await plek(page, 'Nieuwe plek 1 van werker').selectOption({ label: `${extern.naam} (extern)` });
+  await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: `${extern.naam} (extern)` });
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
   const id = activiteitId(naam);
   expect(bezetters(id, 'bob')).toBe('Fien');
-  expect(bezetters(id, 'werker')).toBe('Eddie');
+  expect(bezetters(id, 'tapper')).toBe('Eddie');
 });
 
 test('iemand buiten de groep voor wie de activiteit is, geeft een fout bij de plekken en je keuze blijft staan', async ({
@@ -187,20 +194,20 @@ test('iemand buiten de groep voor wie de activiteit is, geeft een fout bij de pl
 
   await begin(page, naam, '2099-04-08');
   await page.getByRole('checkbox', { name: /Bestuur/ }).check();
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await plek(page, 'Nieuwe plek 1 van werker').selectOption({ label: gerrit.naam });
+  await voegPlekToe(page, 'tapper');
+  await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: gerrit.naam });
   await opslaan(page).click();
 
   await expect(page).toHaveURL(/\/beheer\/activiteiten\/nieuw$/);
   await expect(page.getByText(/hoort niet bij de groep voor wie deze activiteit is/)).toBeVisible();
-  await expect(plek(page, 'Nieuwe plek 1 van werker')).toHaveValue(gerrit.id);
+  await expect(plek(page, 'Nieuwe plek 1 van tapper')).toHaveValue(gerrit.id);
   await expect(page.getByRole('checkbox', { name: /Bestuur/ })).toBeChecked();
 
   // Zonder de groep gaat het door.
   await page.getByRole('checkbox', { name: /Iedereen/ }).check();
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
-  expect(bezetters(activiteitId(naam), 'werker')).toBe('Gerrit');
+  expect(bezetters(activiteitId(naam), 'tapper')).toBe('Gerrit');
 });
 
 test('als een ander de plek net heeft ingevuld, gaat jouw keuze niet door en overschrijf je niets', async ({
@@ -212,23 +219,23 @@ test('als een ander de plek net heeft ingevuld, gaat jouw keuze niet door en ove
   const naam = maakNaam('slot');
 
   await begin(page, naam, '2099-04-09');
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
+  await voegPlekToe(page, 'tapper');
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
   const id = activiteitId(naam);
 
   await page.getByRole('link', { name: new RegExp(naam) }).click();
-  await expect(plek(page, 'Werker 1')).toHaveValue('');
+  await expect(plek(page, 'Tapper 1')).toHaveValue('');
   // Een ander bestuurslid deelt Hans in terwijl deze beheerder nog kijkt.
   psql(
-    `update public.rol_slots set bezetter_id = '${hans.id}' where activiteit_id = '${id}' and rol_type = 'werker';`,
+    `update public.rol_slots set bezetter_id = '${hans.id}' where activiteit_id = '${id}' and rol_type = 'tapper';`,
   );
 
-  await plek(page, 'Werker 1').selectOption({ label: ine.naam });
+  await plek(page, 'Tapper 1').selectOption({ label: ine.naam });
   await opslaan(page).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Deze plek is inmiddels gewijzigd' })).toBeVisible();
-  await expect(plek(page, 'Werker 1')).toHaveValue(ine.id);
-  expect(bezetters(id, 'werker')).toBe('Hans');
+  await expect(plek(page, 'Tapper 1')).toHaveValue(ine.id);
+  expect(bezetters(id, 'tapper')).toBe('Hans');
 });
 
 test('het formulier met keuzelijsten heeft geen toegankelijkheidsfouten en schuift niet opzij', async ({
@@ -238,8 +245,8 @@ test('het formulier met keuzelijsten heeft geen toegankelijkheidsfouten en schui
   const jos = maakTestlid('Jos', kenmerk);
   const naam = maakNaam('axe');
   await begin(page, naam, '2099-04-10');
-  await page.getByRole('button', { name: '+ werker-plek' }).click();
-  await plek(page, 'Nieuwe plek 1 van werker').selectOption({ label: jos.naam });
+  await voegPlekToe(page, 'tapper');
+  await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: jos.naam });
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
@@ -247,6 +254,54 @@ test('het formulier met keuzelijsten heeft geen toegankelijkheidsfouten en schui
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
   await page.getByRole('link', { name: new RegExp(naam) }).click();
-  await expect(plek(page, 'Werker 1')).toHaveValue(jos.id);
+  await expect(plek(page, 'Tapper 1')).toHaveValue(jos.id);
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+});
+
+test('een eigen rol intypen (Anders) en iemand van buiten de vereniging toevoegen, zonder e-mailadres', async ({
+  page,
+}) => {
+  aangemaakt.push(await logInAlsBeheerder(page));
+  const gijs = maakTestlid('Gijs', kenmerk, { magEindverantwoordelijke: true });
+  const naam = maakNaam('anders');
+  const rol = `Garderobe ${kenmerk}`;
+
+  await begin(page, naam, '2099-04-09');
+  // Werker is te algemeen: hij staat niet meer in de lijst, de nieuwe rollen wel.
+  const rolkeuze = page.getByLabel('Plek toevoegen', { exact: true });
+  await expect(rolkeuze.getByRole('option', { name: 'Werker' })).toHaveCount(0);
+  for (const nieuw of ['Tapper', 'Buffet', 'Ober', 'Bonnenkassa', 'Anders…'])
+    await expect(rolkeuze.getByRole('option', { name: nieuw, exact: true })).toHaveCount(1);
+
+  await voegPlekToe(page, '', rol);
+  await expect(page.getByRole('heading', { level: 3, name: rol })).toBeVisible();
+  const nieuwePlek = plek(page, `Nieuwe plek 1 van ${rol.toLowerCase()}`);
+  await nieuwePlek.selectOption({ label: 'Iemand van buiten de vereniging…' });
+  await page.getByLabel('Voornaam', { exact: true }).fill('Henk');
+  await page.getByLabel('Achternaam', { exact: true }).fill(kenmerk);
+  await plek(page, 'Eindverantwoordelijke').selectOption({ label: gijs.naam });
+  expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
+  ).toBe(false);
+  await opslaan(page).click();
+  await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
+
+  const id = activiteitId(naam);
+  expect(bezetters(id, rol)).toBe('Henk');
+  expect(
+    psql(
+      `select l.type || ' ' || coalesce(p.email, '(geen)') from public.leden l join public.leden_prive p on p.lid_id = l.id where l.voornaam = 'Henk' and l.achternaam = '${kenmerk}';`,
+    ).trim(),
+  ).toBe('extern (geen)');
+
+  // De volgende keer staat de rol in de lijst, en staat de helper in de keuzelijst.
+  await page.goto('/beheer/activiteiten/nieuw');
+  await expect(rolkeuze.getByRole('option', { name: rol, exact: true })).toHaveCount(1);
+  await voegPlekToe(page, rol);
+  await expect(
+    plek(page, `Nieuwe plek 1 van ${rol.toLowerCase()}`).getByRole('option', {
+      name: `Henk ${kenmerk} (extern)`,
+    }),
+  ).toHaveCount(1);
 });

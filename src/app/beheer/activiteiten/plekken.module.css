@@ -128,3 +128,54 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Iemand van buiten de vereniging: de velden onder de keuzelijst, over de hele breedte van de plek. */
+.plek {
+  flex-wrap: wrap;
+}
+
+.helper {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 4px var(--padding-control-x) 8px 0;
+}
+
+.helperVeld {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8125rem;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.invoer {
+  min-width: 0;
+  min-height: var(--control-default);
+  padding: 8px var(--padding-control-x);
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+/* Een plek toevoegen: de rol kiezen (of bij Anders intypen) en dan Toevoegen. */
+.toevoegen {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toevoegRij {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.toevoegRij > .keuze,
+.toevoegRij > .invoer {
+  flex: 1 1 160px;
+}

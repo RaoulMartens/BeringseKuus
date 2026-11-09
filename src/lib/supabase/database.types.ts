@@ -267,7 +267,7 @@ export type Database = {
       leden_prive: {
         Row: {
           beheerder_sinds: string | null;
-          email: string;
+          email: string | null;
           is_admin: boolean;
           lid_id: string;
           mag_bob: boolean;
@@ -277,7 +277,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           beheerder_sinds?: string | null;
-          email: string;
+          email?: string | null;
           is_admin?: boolean;
           lid_id: string;
           mag_bob?: boolean;
@@ -286,7 +286,7 @@ export type Database = {
         };
         Update: {
           beheerder_sinds?: string | null;
-          email?: string;
+          email?: string | null;
           is_admin?: boolean;
           lid_id?: string;
           mag_bob?: boolean;
@@ -397,6 +397,7 @@ export type Database = {
           code: string;
           naam: string;
           ruilbaar_door_lid: boolean;
+          toevoegbaar: boolean;
           volgorde: number;
         };
         ComputedFields: never;
@@ -405,6 +406,7 @@ export type Database = {
           code: string;
           naam: string;
           ruilbaar_door_lid: boolean;
+          toevoegbaar?: boolean;
           volgorde: number;
         };
         Update: {
@@ -412,6 +414,7 @@ export type Database = {
           code?: string;
           naam?: string;
           ruilbaar_door_lid?: boolean;
+          toevoegbaar?: boolean;
           volgorde?: number;
         };
         Relationships: [];
@@ -630,6 +633,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      activiteit_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
       beheeroverzicht: {
         Args: Record<PropertyKey, never>;
         Returns: {

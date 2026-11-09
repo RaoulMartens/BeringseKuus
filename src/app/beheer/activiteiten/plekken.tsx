@@ -15,7 +15,14 @@ import { useId, useState } from 'react';
 
 import { Icoon } from '@/components/icoon/icoon';
 import { Knop } from '@/components/knop/knop';
-import { PLEK_LEEGMAKEN, PLEK_WEGHALEN, type ToevoegbareRol } from '@/lib/activiteitformulier';
+import {
+  helperVeld,
+  PLEK_HELPER,
+  PLEK_LEEGMAKEN,
+  PLEK_WEGHALEN,
+  TEKENS_ROL,
+} from '@/lib/activiteitformulier';
+import { isVasteRol, rolLabel, vergelijkRollen } from '@/lib/rollen';
 
 import type { Kandidaat } from './gegevens';
 
@@ -40,14 +47,18 @@ export interface Eindverantwoordelijke {
   nieuw: boolean;
 }
 
-const ROLLEN: { rol: ToevoegbareRol; kop: string; toevoegen: string; enkelvoud: string }[] = [
-  { rol: 'werker', kop: 'Werker', toevoegen: '+ werker-plek', enkelvoud: 'werker' },
-  { rol: 'drankhaler', kop: 'Drankhaler', toevoegen: '+ drankhaler-plek', enkelvoud: 'drankhaler' },
-  { rol: 'fotograaf', kop: 'Fotograaf', toevoegen: '+ fotograaf-plek', enkelvoud: 'fotograaf' },
-  { rol: 'bob', kop: 'BOB', toevoegen: '+ BOB-plek', enkelvoud: 'BOB' },
-];
+/** Een rol die de beheerder kan kiezen (roltypen met toevoegbaar), in de volgorde van de lijst. */
+export interface Rolkeuze {
+  code: string;
+  naam: string;
+}
+
+/** De waarde van de rolkeuze voor "Anders": daarnaast komt een veld om de naam van de rol in te typen. */
+const ANDERS = '__anders';
 
 interface Eigenschappen {
+  /** De rollen die de beheerder kan kiezen. */
+  rollen: Rolkeuze[];
   bestaand: BestaandePlek[];
   eindverantwoordelijke: Eindverantwoordelijke;
   kandidaten: Kandidaat[];
@@ -66,16 +77,48 @@ interface Eigenschappen {
 
 interface NieuwePlek {
   tijdelijk: string;
-  rol: ToevoegbareRol;
+  /** De code van de rol, of bij een rol die de beheerder net intypte de naam (die wordt bij het opslaan de code). */
+  rol: string;
 }
 
-/** De nieuwe plekken uit de formulierwaarden "werker:n1"; wat niet klopt, wordt overgeslagen (de server controleert ook). */
+/** De nieuwe plekken uit de formulierwaarden "tapper:n1"; wat niet klopt, wordt overgeslagen (de server controleert ook). */
 function leesNieuwePlekken(waarden: string[]): NieuwePlek[] {
   return waarden.flatMap((waarde) => {
-    const [rol, tijdelijk] = waarde.split(':');
-    const bekend = ROLLEN.find((r) => r.rol === rol);
-    return bekend && tijdelijk ? [{ rol: bekend.rol, tijdelijk }] : [];
+    const scheiding = waarde.lastIndexOf(':');
+    const rol = waarde.slice(0, Math.max(scheiding, 0));
+    const tijdelijk = waarde.slice(scheiding + 1);
+    return scheiding > 0 && tijdelijk ? [{ rol, tijdelijk }] : [];
   });
+}
+
+/** De velden voor iemand van buiten de vereniging, onder de keuzelijst van de plek `veld`. */
+function HelperVelden({ veld, begin }: { veld: string; begin?: Record<string, string> }) {
+  const velden = [
+    { soort: 'voornaam', label: 'Voornaam', type: 'text', verplicht: true, autocomplete: 'off' },
+    { soort: 'achternaam', label: 'Achternaam', type: 'text', verplicht: true, autocomplete: 'off' },
+    { soort: 'email', label: 'E-mailadres (mag leeg)', type: 'email', verplicht: false, autocomplete: 'off' },
+  ] as const;
+  return (
+    <div className={stijl.helper}>
+      {velden.map(({ soort, label, type, verplicht, autocomplete }) => {
+        const naam = helperVeld(soort, veld);
+        return (
+          <label key={soort} className={stijl.helperVeld}>
+            <span>{label}</span>
+            <input
+              name={naam}
+              type={type}
+              required={verplicht}
+              maxLength={soort === 'email' ? 254 : 100}
+              autoComplete={autocomplete}
+              defaultValue={begin?.[naam] ?? ''}
+              className={stijl.invoer}
+            />
+          </label>
+        );
+      })}
+    </div>
+  );
 }
 
 /** Het label van een keuze: de naam, met erachter waarom het niet of met een kanttekening kan. */
@@ -111,6 +154,11 @@ interface KeuzelijstEigenschappen {
   onWijzig: (waarde: string) => void;
 }
 
+/** Een BOB of eindverantwoordelijke is een lid (R17); op elke andere plek mag ook iemand van buiten de vereniging. */
+function magExtern(rol: string): boolean {
+  return rol !== 'bob' && rol !== 'eindverantwoordelijke';
+}
+
 function Keuzelijst({
   naam,
   label,
@@ -125,8 +173,7 @@ function Keuzelijst({
   alleenOpenlaten,
   onWijzig,
 }: KeuzelijstEigenschappen) {
-  // Een BOB of eindverantwoordelijke is een lid (R17); een externe helper kan wel werker, drankhaler of fotograaf zijn.
-  const geschikt = kandidaten.filter((k) => !k.extern || (rol !== 'bob' && rol !== 'eindverantwoordelijke'));
+  const geschikt = kandidaten.filter((k) => !k.extern || magExtern(rol));
   const stond = bezetterId && !geschikt.some((k) => k.id === bezetterId);
   return (
     <>
@@ -159,6 +206,11 @@ function Keuzelijst({
             </option>
           );
         })}
+        {magExtern(rol) && (
+          <optgroup label="Staat niet in de lijst?">
+            <option value={PLEK_HELPER}>Iemand van buiten de vereniging…</option>
+          </optgroup>
+        )}
         {eraf && (
           <optgroup label={`${bezetterNaam ?? 'Deze persoon'} eraf halen`}>
             <option value={PLEK_LEEGMAKEN}>Plek openlaten</option>
@@ -171,6 +223,7 @@ function Keuzelijst({
 }
 
 export function Plekken({
+  rollen,
   bestaand,
   eindverantwoordelijke,
   kandidaten,
@@ -217,7 +270,33 @@ export function Plekken({
     return uit;
   }
 
-  function voegToe(rol: ToevoegbareRol) {
+  // De keuze onderaan: welke rol de nieuwe plek krijgt, en bij "Anders" de naam die de beheerder intypt.
+  const [gekozenRol, zetGekozenRol] = useState(rollen[0]?.code ?? ANDERS);
+  const [andereRol, zetAndereRol] = useState('');
+  const [rolFout, zetRolFout] = useState<string | null>(null);
+
+  /** De kop van een rol: de naam uit de lijst, anders de vaste naam (of de ingetypte naam, die is dan de code). */
+  const kopVan = (rol: string): string => rollen.find((r) => r.code === rol)?.naam ?? rolLabel(rol);
+
+  function voegGekozenToe() {
+    if (gekozenRol !== ANDERS) {
+      voegToe(gekozenRol);
+      return;
+    }
+    const naam = andereRol.replace(/\s+/g, ' ').trim();
+    if (naam === '' || naam.length > TEKENS_ROL) {
+      zetRolFout(`Typ de naam van de rol, hooguit ${TEKENS_ROL} tekens.`);
+      return;
+    }
+    // Bestaat de rol al (ook met andere hoofdletters), dan wordt het die: anders staan er straks twee koppen voor één rol.
+    const klein = naam.toLowerCase();
+    const bestaande = rollen.find((r) => r.code.toLowerCase() === klein || r.naam.toLowerCase() === klein);
+    zetRolFout(null);
+    zetAndereRol('');
+    voegToe(bestaande?.code ?? naam);
+  }
+
+  function voegToe(rol: string) {
     const tijdelijk = `n${basis}${teller}`;
     zetNieuw((vorige) => [...vorige, { tijdelijk, rol }]);
     zetKeuzes((vorige) => ({ ...vorige, [`plek_nieuw_${tijdelijk}`]: '' }));
@@ -242,6 +321,18 @@ export function Plekken({
     });
   }
 
+  // De rollen met plekken, in de volgorde van de lijst; een rol die er niet (meer) in staat, zoals werker, erachter.
+  const plaats = (rol: string): number => {
+    const index = rollen.findIndex((r) => r.code === rol);
+    return index === -1 ? rollen.length : index;
+  };
+  const zichtbareRollen = [
+    ...new Set([
+      ...bestaand.filter((plek) => !weggehaald.includes(plek.id)).map((plek) => plek.rol),
+      ...nieuw.map((plek) => plek.rol),
+    ]),
+  ].sort((a, b) => plaats(a) - plaats(b) || vergelijkRollen(a, b));
+
   return (
     <div className={stijl.plekken}>
       <p className={stijl.uitleg}>
@@ -249,85 +340,146 @@ export function Plekken({
         of weghalen.
       </p>
 
-      {ROLLEN.map(({ rol, kop, toevoegen, enkelvoud }) => {
+      {zichtbareRollen.map((rol, index) => {
+        const kop = kopVan(rol);
+        const inZin = kop === 'BOB' ? kop : kop.toLowerCase();
+        const kopId = `${basis}-rol-${index}`;
         const vast = bestaand.filter((plek) => plek.rol === rol && !weggehaald.includes(plek.id));
         const toegevoegd = nieuw.filter((plek) => plek.rol === rol);
-        const aantal = vast.length + toegevoegd.length;
+        // Werker is te algemeen en kan er niet meer bij; een bestaande werker-plek blijft wel te zien en in te delen.
+        const toevoegbaar = rollen.some((r) => r.code === rol) || !isVasteRol(rol);
         return (
-          <section key={rol} aria-labelledby={`rol-${rol}`} className={stijl.rol}>
-            <h3 id={`rol-${rol}`} className={stijl.rolkop}>
+          <section key={rol} aria-labelledby={kopId} className={stijl.rol}>
+            <h3 id={kopId} className={stijl.rolkop}>
               {kop}
             </h3>
-            {aantal > 0 && (
-              <ul className={stijl.lijst}>
-                {vast.map((plek, nummer) => {
-                  const naam = `plek_${plek.id}`;
-                  const bezet = plek.bezetterId !== null;
-                  return (
-                    <li key={plek.id} className={stijl.plek}>
-                      <input type="hidden" name={`plek_was_${plek.id}`} value={plek.bezetterId ?? ''} />
-                      <Keuzelijst
-                        naam={naam}
-                        label={`${kop} ${nummer + 1}`}
-                        rol={rol}
-                        kandidaten={kandidaten}
-                        afgemeld={afgemeld}
-                        elders={elders(naam)}
-                        waarde={keuzes[naam] ?? ''}
-                        bezetterId={plek.bezetterId}
-                        bezetterNaam={plek.bezetter}
-                        eraf={bezet}
-                        onWijzig={(waarde) => wijzig(naam, waarde)}
-                      />
-                      {!bezet && (
-                        <button
-                          type="button"
-                          className={stijl.weg}
-                          aria-label={`Lege plek ${nummer + 1} van ${enkelvoud} weghalen`}
-                          onClick={() => haalBestaandeWeg(plek.id)}
-                        >
-                          <Icoon naam="kruis" />
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
-                {toegevoegd.map((plek, nummer) => {
-                  const naam = `plek_nieuw_${plek.tijdelijk}`;
-                  return (
-                    <li key={plek.tijdelijk} className={stijl.plek}>
-                      <Keuzelijst
-                        naam={naam}
-                        label={`Nieuwe plek ${nummer + 1} van ${enkelvoud}`}
-                        rol={rol}
-                        kandidaten={kandidaten}
-                        afgemeld={afgemeld}
-                        elders={elders(naam)}
-                        waarde={keuzes[naam] ?? ''}
-                        bezetterId={null}
-                        bezetterNaam={null}
-                        eraf={false}
-                        onWijzig={(waarde) => wijzig(naam, waarde)}
-                      />
+            <ul className={stijl.lijst}>
+              {vast.map((plek, nummer) => {
+                const naam = `plek_${plek.id}`;
+                const bezet = plek.bezetterId !== null;
+                return (
+                  <li key={plek.id} className={stijl.plek}>
+                    <input type="hidden" name={`plek_was_${plek.id}`} value={plek.bezetterId ?? ''} />
+                    <Keuzelijst
+                      naam={naam}
+                      label={`${kop} ${nummer + 1}`}
+                      rol={rol}
+                      kandidaten={kandidaten}
+                      afgemeld={afgemeld}
+                      elders={elders(naam)}
+                      waarde={keuzes[naam] ?? ''}
+                      bezetterId={plek.bezetterId}
+                      bezetterNaam={plek.bezetter}
+                      eraf={bezet}
+                      onWijzig={(waarde) => wijzig(naam, waarde)}
+                    />
+                    {!bezet && (
                       <button
                         type="button"
                         className={stijl.weg}
-                        aria-label={`Nieuwe plek ${nummer + 1} van ${enkelvoud} weghalen`}
-                        onClick={() => haalNieuweWeg(plek.tijdelijk)}
+                        aria-label={`Lege plek ${nummer + 1} van ${inZin} weghalen`}
+                        onClick={() => haalBestaandeWeg(plek.id)}
                       >
                         <Icoon naam="kruis" />
                       </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                    )}
+                    {keuzes[naam] === PLEK_HELPER && <HelperVelden veld={naam} begin={beginKeuzes} />}
+                  </li>
+                );
+              })}
+              {toegevoegd.map((plek, nummer) => {
+                const naam = `plek_nieuw_${plek.tijdelijk}`;
+                return (
+                  <li key={plek.tijdelijk} className={stijl.plek}>
+                    <Keuzelijst
+                      naam={naam}
+                      label={`Nieuwe plek ${nummer + 1} van ${inZin}`}
+                      rol={rol}
+                      kandidaten={kandidaten}
+                      afgemeld={afgemeld}
+                      elders={elders(naam)}
+                      waarde={keuzes[naam] ?? ''}
+                      bezetterId={null}
+                      bezetterNaam={null}
+                      eraf={false}
+                      onWijzig={(waarde) => wijzig(naam, waarde)}
+                    />
+                    <button
+                      type="button"
+                      className={stijl.weg}
+                      aria-label={`Nieuwe plek ${nummer + 1} van ${inZin} weghalen`}
+                      onClick={() => haalNieuweWeg(plek.tijdelijk)}
+                    >
+                      <Icoon naam="kruis" />
+                    </button>
+                    {keuzes[naam] === PLEK_HELPER && <HelperVelden veld={naam} begin={beginKeuzes} />}
+                  </li>
+                );
+              })}
+            </ul>
+            {toevoegbaar && (
+              <Knop soort="tekst" onClick={() => voegToe(rol)}>
+                {`+ ${inZin}-plek`}
+              </Knop>
             )}
-            <Knop soort="tekst" onClick={() => voegToe(rol)}>
-              {toevoegen}
-            </Knop>
           </section>
         );
       })}
+
+      <div className={stijl.toevoegen}>
+        <label htmlFor={`${basis}-nieuwe-rol`} className={stijl.rolkop}>
+          Plek toevoegen
+        </label>
+        <div className={stijl.toevoegRij}>
+          <select
+            id={`${basis}-nieuwe-rol`}
+            className={stijl.keuze}
+            value={gekozenRol}
+            onChange={(e) => {
+              zetGekozenRol(e.target.value);
+              zetRolFout(null);
+            }}
+          >
+            {rollen.map((r) => (
+              <option key={r.code} value={r.code}>
+                {r.naam}
+              </option>
+            ))}
+            <option value={ANDERS}>Anders…</option>
+          </select>
+          {gekozenRol === ANDERS && (
+            <>
+              <label htmlFor={`${basis}-andere-rol`} className={stijl.verborgen}>
+                Naam van de rol
+              </label>
+              <input
+                id={`${basis}-andere-rol`}
+                className={stijl.invoer}
+                placeholder="Naam van de rol"
+                maxLength={TEKENS_ROL}
+                value={andereRol}
+                aria-invalid={rolFout ? true : undefined}
+                onChange={(e) => zetAndereRol(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter voegt de plek toe in plaats van het hele formulier op te slaan.
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    voegGekozenToe();
+                  }
+                }}
+              />
+            </>
+          )}
+          <Knop soort="secundair" icoon="plus" icoonGewicht="bold" onClick={voegGekozenToe}>
+            Toevoegen
+          </Knop>
+        </div>
+        {rolFout && (
+          <p role="alert" className={stijl.fout}>
+            {rolFout}
+          </p>
+        )}
+      </div>
 
       <section aria-labelledby="rol-eindverantwoordelijke" className={stijl.rol}>
         <h3 id="rol-eindverantwoordelijke" className={stijl.rolkop}>

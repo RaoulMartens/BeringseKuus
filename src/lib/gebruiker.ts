@@ -37,7 +37,7 @@ export const huidigeGebruiker = cache(async (): Promise<Gebruiker | null> => {
     lidId: data.lid_id,
     voornaam: data.leden.voornaam,
     achternaam: data.leden.achternaam,
-    email: data.email,
+    email: data.email ?? user.email,
     isBeheerder: data.is_admin,
   };
 });

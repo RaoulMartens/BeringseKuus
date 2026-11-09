@@ -9,14 +9,23 @@ import { useActionState } from 'react';
 import { Knop } from '@/components/knop/knop';
 import { Melding } from '@/components/melding/melding';
 
-import { verwijderConcept, type PubliceerStaat } from '../../acties';
+import { verwijderActiviteit, type PubliceerStaat } from '../../acties';
 
 import stijl from './verwijderen.module.css';
 
 const START: PubliceerStaat = { melding: null };
 
-export function Verwijderformulier({ activiteitId, terugHref }: { activiteitId: string; terugHref: string }) {
-  const [staat, actie] = useActionState<PubliceerStaat, FormData>(verwijderConcept, START);
+export function Verwijderformulier({
+  activiteitId,
+  terugHref,
+  knop,
+}: {
+  activiteitId: string;
+  terugHref: string;
+  /** "Concept verwijderen" of "Activiteit verwijderen": het werkwoord op de knop. */
+  knop: string;
+}) {
+  const [staat, actie] = useActionState<PubliceerStaat, FormData>(verwijderActiviteit, START);
 
   return (
     <form action={actie} className={stijl.formulier}>
@@ -28,7 +37,7 @@ export function Verwijderformulier({ activiteitId, terugHref }: { activiteitId: 
       )}
       <div className={stijl.knoppen}>
         <Knop type="submit" soort="negatief">
-          Concept verwijderen
+          {knop}
         </Knop>
         <Knop href={terugHref} soort="tekst">
           Annuleren

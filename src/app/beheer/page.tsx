@@ -144,7 +144,7 @@ export default async function Beheer({
     const { data: regel, error: logFout } = await supabase
       .from('wijzigingen_log')
       .select('omschrijving')
-      .eq('actie', 'concept_verwijderd')
+      .in('actie', ['concept_verwijderd', 'activiteit_verwijderd'])
       .eq('rij_id', verwijderd.data)
       .order('moment', { ascending: false })
       .limit(1)

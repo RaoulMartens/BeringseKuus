@@ -21,9 +21,13 @@ describe('isRuilbaar', () => {
     for (const rol of ['werker', 'drankhaler', 'fotograaf']) expect(isRuilbaar(rol)).toBe(true);
   });
 
-  it('laat BOB, eindverantwoordelijke, de bak en onbekende rollen aan het bestuur', () => {
-    for (const rol of ['bob', 'eindverantwoordelijke', 'bak', '', 'iets'])
-      expect(isRuilbaar(rol)).toBe(false);
+  it('laat BOB, eindverantwoordelijke en de bak aan het bestuur', () => {
+    for (const rol of ['bob', 'eindverantwoordelijke', 'bak', '']) expect(isRuilbaar(rol)).toBe(false);
+  });
+
+  it('een lid kan de nieuwe rollen en een eigen rol zelf overdragen, zoals roltypen.ruilbaar_door_lid', () => {
+    for (const rol of ['tapper', 'buffet', 'ober', 'bonnenkassa', 'Garderobe'])
+      expect(isRuilbaar(rol)).toBe(true);
   });
 });
 
