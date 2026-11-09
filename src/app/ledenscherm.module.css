@@ -1,13 +1,21 @@
 /* Het paneel "Jouw status" staat op een groot scherm in de zijkolom en op een telefoon bovenaan, vóór het kaartje (de opdrachtgever,
    09-10: "Je staat op aanwezig" eerst). Daarom staat het twee keer in de pagina; wat niet past, is er niet (display: none:
-   ook niet voor een schermlezer). */
+   ook niet voor een schermlezer). Kaarten die onder elkaar staan (status en Mijn diensten) hebben 16 px ruimte ertussen. */
+.nietOpMobiel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .alleenMobiel {
   display: none;
 }
 
 @media (max-width: 700px) {
   .alleenMobiel {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .nietOpMobiel {

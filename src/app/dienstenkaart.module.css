@@ -1,0 +1,36 @@
+/* De kaart "Mijn diensten" op Start (visueel ontwerp, welkom-afgemeld): een klein, zacht label en daaronder één regel met een pijltje. */
+.kaart {
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+}
+
+.label {
+  margin: 0;
+  padding: var(--padding-card) var(--padding-card) 4px;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.tekst {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Alleen voor een schermlezer: de link heet "Mijn diensten, 3 komende". */
+.verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@supports (corner-shape: squircle) {
+  .kaart {
+    corner-shape: squircle;
+  }
+}
