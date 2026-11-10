@@ -634,6 +634,32 @@ export type Database = {
         Returns: Json;
       };
       activiteit_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
+      beheerder_bevestigen: { Args: { p_app_id: string; p_lid_id: string }; Returns: Json };
+      beheerder_intrekken: { Args: { p_lid_id: string }; Returns: Json };
+      beheerder_kandidaten: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          achternaam: string;
+          lid_id: string;
+          voornaam: string;
+        }[];
+      };
+      beheerder_maken: { Args: { p_lid_id: string }; Returns: Json };
+      beheerders_lijst: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          aantal_apps: number;
+          achternaam: string;
+          app_id: string;
+          app_ingesteld: string;
+          app_naam: string;
+          beheerder_sinds: string;
+          is_ik: boolean;
+          lid_id: string;
+          status: string;
+          voornaam: string;
+        }[];
+      };
       beheeroverzicht: {
         Args: Record<PropertyKey, never>;
         Returns: {
