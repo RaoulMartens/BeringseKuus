@@ -13,12 +13,16 @@ import stijl from './rolbezetting.module.css';
 const ICOON: Partial<Record<string, IcoonNaam>> = {
   eindverantwoordelijke: 'rol-eindverantwoordelijke',
   bob: 'rol-bob',
+  tapper: 'rol-tapper',
+  buffet: 'rol-buffet',
+  ober: 'rol-ober',
+  bonnenkassa: 'rol-bonnenkassa',
   werker: 'rol-werker',
   drankhaler: 'rol-drankhaler',
   fotograaf: 'rol-fotograaf',
 };
 
-/** Het icoon van een rol. Tapper, buffet, ober, bonnenkassa en een rol die hier niet staat, zijn werk: het icoon van de werker. */
+/** Het icoon van een rol. Een rol die hier niet staat (de werker, of een rol die later in roltypen komt) krijgt de hamer. */
 export function rolIcoon(rol: string): IcoonNaam {
   return ICOON[rol] ?? 'rol-werker';
 }

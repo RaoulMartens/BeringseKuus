@@ -43,6 +43,11 @@ export const ICONEN: Record<string, { phosphor: string; gewichten: readonly Gewi
   'rol-drankhaler': { phosphor: 'beer-stein', gewichten: ['regular'] },
   'rol-fotograaf': { phosphor: 'camera', gewichten: ['regular'] },
   'rol-bob': { phosphor: 'steering-wheel', gewichten: ['regular'] },
+  // Tapper, buffet, ober en bonnenkassa (09-11-2026): elk een eigen icoon in plaats van de hamer van de werker.
+  'rol-tapper': { phosphor: 'beer-bottle', gewichten: ['regular'] },
+  'rol-buffet': { phosphor: 'fork-knife', gewichten: ['regular'] },
+  'rol-ober': { phosphor: 'bell-simple', gewichten: ['regular'] },
+  'rol-bonnenkassa': { phosphor: 'ticket', gewichten: ['regular'] },
   'rol-eindverantwoordelijke': { phosphor: 'shield', gewichten: ['regular'] },
   groep: { phosphor: 'users-three', gewichten: ['regular'] },
   link: { phosphor: 'link', gewichten: ['regular'] },
