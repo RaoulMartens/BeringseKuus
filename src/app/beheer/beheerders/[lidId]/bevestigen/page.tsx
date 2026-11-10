@@ -51,7 +51,7 @@ export default async function ToegangBevestigen({ params }: { params: Promise<{ 
       >
         <dl className={stijl.gegevens}>
           <dt>Naam van de app</dt>
-          <dd>{beheerder.appNaam ?? 'zonder naam'}</dd>
+          <dd>{beheerder.appNaam?.trim() || 'zonder naam'}</dd>
           <dt>Ingesteld op</dt>
           <dd>{beheerder.appIngesteld ? datumEnTijd(beheerder.appIngesteld) : 'onbekend'}</dd>
           <dt>Aantal apps</dt>

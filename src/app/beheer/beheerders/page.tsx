@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { z } from 'zod';
 
 import { Kaart } from '@/components/kaart/kaart';
@@ -98,9 +97,9 @@ export default async function Beheerders({
                 <Naamregel beheerder={b} />
                 {b.status === 'wacht_op_app' && <Statuslabel status="neutraal">wacht op app</Statuslabel>}
                 {!b.isIk && (
-                  <Link href={`/beheer/beheerders/${b.lidId}/intrekken`} className={stijl.actie}>
+                  <Knop href={`/beheer/beheerders/${b.lidId}/intrekken`} soort="tekst-gevaar">
                     Rechten intrekken
-                  </Link>
+                  </Knop>
                 )}
               </div>
             </Lijstrij>

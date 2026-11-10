@@ -44,11 +44,18 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
 }
 
-.actie {
-  white-space: nowrap;
-  font-size: 0.875rem;
+/* Op een telefoon is er geen ruimte naast elkaar: de naam krijgt de volle breedte, badge en actie staan eronder. */
+@media (max-width: 700px) {
+  .rijMetActie {
+    flex-wrap: wrap;
+  }
+
+  .rijMetActie > .regel {
+    flex: 1 1 100%;
+  }
 }
 
 /* De gegevens van de app: naam, moment en aantal. */

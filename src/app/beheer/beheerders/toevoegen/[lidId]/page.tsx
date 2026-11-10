@@ -40,11 +40,10 @@ export default async function BeheerderMaken({ params }: { params: Promise<{ lid
         ondertitel="Een beheerder maakt activiteiten aan, publiceert en deelt in, en ziet de gegevens van alle leden."
       >
         <ol className={stijl.stappen}>
-          <li>Bij het inloggen stelt {kandidaat.naam} zelf een app in.</li>
+          <li>Bij het inloggen stelt het lid zelf een app in.</li>
           <li>Jij ziet dan bij Beheerders dat je de toegang moet bevestigen.</li>
           <li>
-            Na jouw bevestiging kan {kandidaat.naam} bij Beheer. Tot die tijd gebruikt het lid het platform
-            als lid.
+            Na jouw bevestiging kan het lid bij Beheer. Tot die tijd gebruikt het lid het platform als lid.
           </li>
         </ol>
       </Kaart>
