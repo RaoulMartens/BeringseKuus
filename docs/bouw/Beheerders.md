@@ -10,6 +10,33 @@ aan op elk Supabase-account met toegang, en geef die toegang aan niet meer dan t
 ledengegevens. De controle is persoonlijk, of via een telefoongesprek met iemand wiens stem je kent; niet via mail of
 chat, want dat is precies het kanaal van de aanvaller die hier wordt tegengehouden.
 
+## In de app (sinds 10-11-2026)
+
+Beheerders maken, bevestigen en intrekken kan in de app: **Beheer, kaart "Beheerders"** (`/beheer/beheerders`). Dat is dezelfde procedure
+als hieronder met SQL, en dezelfde regels (`is_beheerder()` en `beheerstatus()` zijn niet veranderd); het werk zit in vijf databasefuncties
+(migratie `20261110150000_beheerders_beheren.sql`) en schermen met een eigen bevestigingspagina per handeling. De SQL hieronder blijft de
+terugvalroute, bijvoorbeeld als er geen beheerder meer is die kan inloggen.
+
+1. **Beheerder maken.** Een beheerder kiest een lid (alleen actieve leden met een inlogaccount die nog geen beheerder zijn) en bevestigt. Het lid
+   is dan beheerder met `beheerder_sinds` op het moment van nu. Er gaat **geen bericht** uit: zeg het het lid zelf.
+2. **Het lid stelt een app in** bij het eerstvolgende bezoek aan Beheer (`/mfa/instellen`). Het overzicht toont het lid als "Moet nog een app instellen".
+3. **Toegang bevestigen.** Zodra de app er is, staat het lid onder "Vraagt aandacht". De bevestigpagina toont de **naam van de app, het moment van instellen
+   en het aantal apps**: dezelfde dingen die "Bevestigen: wat je controleert" hieronder laat nalezen. **Doe die controle ook hier**: vraag het
+   lid zelf, liever persoonlijk of telefonisch dan per mail of chat. Pas dan "Toegang bevestigen".
+4. **Intrekken.** "Rechten intrekken" zet `is_admin` uit en koppelt de apps van het lid los. Het lid blijft lid met diensten en groepen.
+
+**Wat de functies extra doen, boven wat de SQL hieronder doet** (de lessen uit deze handleiding, nu afgedwongen):
+
+- _Maken_ wist bestaande apps van dat lid. Een app die er al staat, is van vóór `beheerder_sinds` en zou meteen tellen, zonder bevestiging.
+- _Bevestigen_ eist de app die op het scherm stond (`p_app_id`): is er intussen een andere bijgekomen, dan wordt er niets bevestigd. Het eist ook
+  **precies één** geverifieerde app, en wist niet-geverifieerde apps, zoals het SQL-fragment hieronder.
+- Je kunt jezelf niet maken, bevestigen of intrekken. Daardoor blijft er altijd minstens één beheerder over: de aanroeper.
+- Een advisory lock zet gelijktijdige wijzigingen achter elkaar; twee beheerders die elkaar tegelijk intrekken, laten dus niet niemand over.
+- Alles staat in `wijzigingen_log` via de bestaande triggers (`beheer_aangezet`, `beheerder_sinds_gewijzigd`, `beheer_uitgezet`), met de beheerder als `door_lid_id`.
+
+**Grens.** Wie in de app een beheerder kan maken, kan dat voor elk lid met een account: de vertrouwensregel blijft de controle bij het bevestigen. Wil de vereniging
+dat alleen een aangewezen tweede persoon beheerders mag maken, dan is dat een aanpassing van `beheerder_maken` (open punt in `UX-FLOWS.md`).
+
 ## De regel in één zin
 
 Beheer werkt voor wie `is_admin` heeft, een authenticator-app heeft ingesteld **vóór** het moment waarop `beheerder_sinds`

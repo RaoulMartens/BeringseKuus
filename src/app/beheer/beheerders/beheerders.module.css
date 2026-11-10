@@ -1,0 +1,129 @@
+/* De schermen van "Beheerders" (ronde 19): lijstregels, de bevestigingspagina's en de keuzelijst. Dezelfde tokens als de rest. */
+
+.formulier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+.knoppen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.extra {
+  margin: 0;
+}
+
+.tekst {
+  margin: 0;
+}
+
+/* Een regel in de lijst: naam met de taak of de status eronder. */
+.regel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.naam {
+  font-weight: 600;
+}
+
+.onder {
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* Een rij met een tekstlink rechts ("Rechten intrekken"), voor een beheerder die je kunt intrekken. */
+.rijMetActie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actie {
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+/* De gegevens van de app: naam, moment en aantal. */
+.gegevens {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+}
+
+.gegevens dt {
+  color: var(--neutraal-tekst-zacht);
+}
+
+.gegevens dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* De stappen bij beheerder maken. */
+.stappen {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* De keuzelijst met zoekveld. */
+.keuze {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.zoeklabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.label {
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.zoek {
+  display: block;
+  width: 100%;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.telling {
+  margin: 0;
+  min-height: 1.4286em;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+@media (max-width: 700px) {
+  .knoppen {
+    flex-direction: column;
+  }
+
+  .knoppen > * {
+    width: 100%;
+  }
+}

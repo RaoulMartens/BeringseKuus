@@ -18,12 +18,14 @@ import {
   type OverzichtRegel,
   type OverzichtRij,
 } from '@/lib/beheeroverzicht';
+import { aantalTeBevestigen, ingangTekst } from '@/lib/beheerders';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { vandaagInNederland } from '@/lib/programma';
 import { naamUitLog } from '@/lib/verwijderen';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { leesZelfNietZichtbaar } from './activiteiten/gegevens';
+import { leesBeheerderslijst } from './beheerders/gegevens';
 import stijl from './beheer.module.css';
 
 export const metadata: Metadata = { title: 'Beheer – Ledenplatform' };
@@ -74,6 +76,17 @@ function Aanmaken() {
   );
 }
 
+/** De ingang naar Beheerders, met de taak als regel (zoals "Vraagt aandacht" voor activiteiten): wie je nog moet bevestigen. */
+function Beheerderskaart({ aantal }: { aantal: number }) {
+  return (
+    <Kaart titel="Beheerders" lijst>
+      <Lijst>
+        <Lijstrij href="/beheer/beheerders">{ingangTekst(aantal)}</Lijstrij>
+      </Lijst>
+    </Kaart>
+  );
+}
+
 export default async function Beheer({
   searchParams,
 }: {
@@ -92,6 +105,7 @@ export default async function Beheer({
   const gepubliceerd = z.uuid().safeParse(parameters.gepubliceerd);
   const verwijderd = z.uuid().safeParse(parameters.verwijderd);
   const supabase = await maakSupabase();
+  const teBevestigen = aantalTeBevestigen(await leesBeheerderslijst(supabase));
 
   // De rijen komen uit de database (public.beheeroverzicht(), alleen voor een beheerder met een code); de tijd van de
   // activiteit komt uit activiteiten. Wat een regel wil zeggen, maakt src/lib/beheeroverzicht.ts.
@@ -169,7 +183,16 @@ export default async function Beheer({
   ];
 
   return (
-    <Schermkader actief="beheer" titel="Activiteiten" zijkolom={<Aanmaken />}>
+    <Schermkader
+      actief="beheer"
+      titel="Activiteiten"
+      zijkolom={
+        <>
+          <Aanmaken />
+          <Beheerderskaart aantal={teBevestigen} />
+        </>
+      }
+    >
       <div className={stijl.alleenMobiel}>
         <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold">
           Activiteit aanmaken
