@@ -1,0 +1,115 @@
+/* Een reeks in het programma: één rij die opengaat. De rij ziet eruit als een gewone lijstrij (src/components/lijst), met
+   hetzelfde ritme, dezelfde tekstgrootte en dezelfde randen; de losse dagen staan ingesprongen eronder. */
+.reeks {
+  margin: 0;
+}
+
+.details {
+  display: block;
+}
+
+.samenvatting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px var(--padding-card);
+  border-top: 1px solid var(--neutraal-lijn);
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst);
+  cursor: pointer;
+  list-style: none;
+}
+
+.samenvatting::-webkit-details-marker {
+  display: none;
+}
+
+.samenvatting:hover {
+  background: var(--neutraal-hover);
+}
+
+/* geen lijn boven de eerste rij van de kaart, zoals bij de gewone rijen */
+.reeks:first-child > .details > .samenvatting {
+  border-top-color: transparent;
+}
+
+.reeks:last-child > .details:not([open]) > .samenvatting {
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+}
+
+.uit {
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* het pijltje: omlaag als de rij dicht is, omhoog als hij openstaat */
+.chevron {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--neutraal-tekst-zacht);
+  transition: transform 0.12s;
+}
+
+.details[open] .chevron {
+  transform: rotate(180deg);
+}
+
+/* de losse dagen: ingesprongen tot onder de tekst van de rij (datumblok 66 + opening 12) */
+.dagen {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px;
+}
+
+.dag {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--padding-card) 10px calc(var(--padding-card) + 66px + 12px);
+  color: var(--neutraal-tekst);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dag:hover {
+  background: var(--neutraal-hover);
+}
+
+.chevronRechts {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* De ruimte links van de dagen: een lijntje met een bolletje per dag, in het midden onder het datumblok (66 px breed). Het laat
+   zien dat de dagen bij de rij erboven horen, zonder de datum te herhalen. De lijn eindigt bij de laatste dag. */
+.dag::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--padding-card) + 32px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--neutraal-lijn-sterk);
+}
+
+.dagen > li:last-child .dag::before {
+  bottom: 50%;
+}
+
+.dag::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--padding-card) + 29px);
+  top: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neutraal-kaart);
+  box-shadow: inset 0 0 0 2px var(--neutraal-tekst-zacht);
+}

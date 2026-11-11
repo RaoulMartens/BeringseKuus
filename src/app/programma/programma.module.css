@@ -1,6 +1,40 @@
 /* De rij van een activiteit: naam met daaronder de tijd en de plaats (docs/visueel/stijl.css, sectie 13h). */
-.tekst {
+/* De inhoud van een rij: datumblok, tekst en label in een raster. Op een groot scherm staat het label rechts; op een telefoon is er
+   naast de tekst geen ruimte voor, dus staat het eronder, uitgelijnd met de tekst. Zo houdt de naam de volle breedte. Het
+   datumblok staat dan in het midden van tekst en label samen. */
+.rijInhoud {
   flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+
+.label {
+  display: flex;
+}
+
+/* Op een groot scherm zijn tekst en label twee vakken van het raster; de kolom zelf doet dan niets. */
+.kolom {
+  display: contents;
+}
+
+@media (max-width: 700px) {
+  .rijInhoud {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .kolom {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+  }
+}
+
+.tekst {
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -10,7 +44,7 @@
 
 .naam {
   font: 700 1rem/1.5 var(--font-tekst);
-  overflow-wrap: anywhere; /* een lang woord loopt niet onder het label */
+  overflow-wrap: break-word; /* alleen een woord dat echt niet past, breekt */
 }
 
 .regel {

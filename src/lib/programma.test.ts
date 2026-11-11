@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
   dagTekst,
+  groepeerReeksen,
   isActiviteitStatus,
   isGeweest,
   langeDag,
   maakProgramma,
   maandTitel,
   programmaLink,
+  reeksDatum,
+  reeksRegel,
   regelOnderNaam,
   tijdTekst,
   vandaagInNederland,
   type ProgrammaActiviteit,
+  type Reeks,
 } from './programma';
 
 // Zonder eigen eindmoment eindigt een activiteit aan het einde van de dag in Nederland (winter: 23:00 UTC), zoals de
@@ -208,5 +212,121 @@ describe('isActiviteitStatus', () => {
       expect(isActiviteitStatus(goed)).toBe(true);
     for (const fout of ['', 'Concept', 'verwijderd', null, undefined, 1])
       expect(isActiviteitStatus(fout)).toBe(false);
+  });
+});
+
+describe('groepeerReeksen', () => {
+  const verkoop = (dag: number, rest: Partial<ProgrammaActiviteit> = {}) =>
+    activiteit('Verkoop donateurskaarten', `2027-01-${String(dag).padStart(2, '0')}`, rest);
+
+  it('maakt van drie of meer opeenvolgende dagen één reeks, op de plek van de eerste dag', () => {
+    const items = groepeerReeksen([verkoop(4), verkoop(5), verkoop(6), verkoop(7), verkoop(8)]);
+    expect(items).toHaveLength(1);
+    const [eerste] = items;
+    expect(eerste?.soort).toBe('reeks');
+    if (eerste?.soort === 'reeks') {
+      expect(eerste.reeks.naam).toBe('Verkoop donateurskaarten');
+      expect(eerste.reeks.activiteiten.map((a) => a.datum)).toEqual([
+        '2027-01-04',
+        '2027-01-05',
+        '2027-01-06',
+        '2027-01-07',
+        '2027-01-08',
+      ]);
+    }
+  });
+
+  it('laat twee opeenvolgende dagen los: dat zijn twee avonden, zoals vrijdag en zaterdag van de Bonte Avond', () => {
+    const items = groepeerReeksen([
+      activiteit('Bonte Avond', '2027-01-15'),
+      activiteit('Bonte Avond', '2027-01-16'),
+    ]);
+    expect(items.map((i) => i.soort)).toEqual(['enkel', 'enkel']);
+  });
+
+  it('laat een andere activiteit tussendoor de reeks niet breken en houdt hem op zijn plek', () => {
+    const vergadering = activiteit('Bestuursvergadering', '2027-01-05', { starttijd: '19:30:00' });
+    const items = groepeerReeksen([verkoop(4), vergadering, verkoop(5), verkoop(6)]);
+    expect(items.map((i) => i.soort)).toEqual(['reeks', 'enkel']);
+    expect(items[1]).toMatchObject({ soort: 'enkel', activiteit: { naam: 'Bestuursvergadering' } });
+  });
+
+  it('knipt een reeks bij een dag zonder activiteit in tweeën', () => {
+    const items = groepeerReeksen([
+      verkoop(4),
+      verkoop(5),
+      verkoop(6),
+      verkoop(8),
+      verkoop(9),
+      verkoop(10),
+      verkoop(11),
+    ]);
+    expect(items.map((i) => (i.soort === 'reeks' ? i.reeks.activiteiten.length : 1))).toEqual([3, 4]);
+  });
+
+  it('noemt een dag die twee keer voorkomt geen reeks (geen opeenvolgende dagen)', () => {
+    const items = groepeerReeksen([verkoop(4), verkoop(4, { id: 'tweede' }), verkoop(5)]);
+    expect(items.every((i) => i.soort === 'enkel')).toBe(true);
+  });
+
+  it('voegt niet samen wat verschilt in status, tijd of plaats', () => {
+    const items = groepeerReeksen([
+      verkoop(4),
+      verkoop(5, { status: 'concept' }),
+      verkoop(6, { starttijd: '10:00:00' }),
+      verkoop(7, { locatie: 'De Wieksjlaag' }),
+    ]);
+    expect(items.every((i) => i.soort === 'enkel')).toBe(true);
+  });
+
+  it('laat de volgorde van de lijst ongemoeid voor wat geen reeks is', () => {
+    const lijst = [
+      activiteit('A', '2027-01-02'),
+      activiteit('B', '2027-01-03'),
+      activiteit('C', '2027-01-04'),
+    ];
+    expect(groepeerReeksen(lijst).map((i) => (i.soort === 'enkel' ? i.activiteit.naam : '?'))).toEqual([
+      'A',
+      'B',
+      'C',
+    ]);
+  });
+
+  it('geeft een lege lijst terug bij een lege lijst', () => {
+    expect(groepeerReeksen([])).toEqual([]);
+  });
+});
+
+describe('reeksDatum en reeksRegel', () => {
+  const reeks = (dagen: string[], rest: Partial<ProgrammaActiviteit> = {}): Reeks => ({
+    naam: 'Verkoop donateurskaarten',
+    status: 'gepubliceerd',
+    activiteiten: dagen.map((d) => activiteit('Verkoop donateurskaarten', d, rest)),
+  });
+  const week = ['2027-01-04', '2027-01-05', '2027-01-06', '2027-01-07', '2027-01-08'];
+
+  it('zegt de periode voor een schermlezer', () => {
+    expect(reeksDatum(reeks(week))).toBe('ma 4 t/m vr 8 januari');
+  });
+
+  it('noemt de maand twee keer als de reeks een maandgrens kruist', () => {
+    expect(reeksDatum(reeks(['2027-01-30', '2027-01-31', '2027-02-01']))).toBe(
+      'za 30 januari t/m ma 1 februari',
+    );
+  });
+
+  it('toont tijd en plaats zoals bij elke rij', () => {
+    expect(reeksRegel(reeks(week, { starttijd: '10:00:00', locatie: 'Wieksjlaag' }))).toBe(
+      '10:00 · Wieksjlaag',
+    );
+  });
+
+  it('heeft geen regel zonder tijd en plaats', () => {
+    expect(reeksRegel(reeks(week))).toBe('');
+  });
+
+  it('noemt geen datum of aantal dagen in de regel: dat staat in het datumblok', () => {
+    const regel = reeksRegel(reeks(week, { starttijd: '10:00:00', locatie: 'Wieksjlaag' }));
+    expect(regel).not.toMatch(/januari|t\/m|dagen/);
   });
 });

@@ -25,14 +25,21 @@ const KLASSE: Record<Status, string | undefined> = {
 
 interface Eigenschappen {
   status?: Status;
+  /** Op een telefoon kleiner (kleinere letters en opvulling), voor een label dat onder tekst in een lijstrij staat. */
+  compactOpTelefoon?: boolean;
   children: ReactNode;
 }
 
-export function Statuslabel({ status = 'neutraal', children }: Eigenschappen) {
+export function Statuslabel({ status = 'neutraal', compactOpTelefoon, children }: Eigenschappen) {
   const icoon = ICOON[status];
   return (
     <span
-      className={[stijl.label, KLASSE[status], icoon ? undefined : stijl.zonderIcoon]
+      className={[
+        stijl.label,
+        KLASSE[status],
+        icoon ? undefined : stijl.zonderIcoon,
+        compactOpTelefoon ? stijl.compactOpTelefoon : undefined,
+      ]
         .filter(Boolean)
         .join(' ')}
     >
