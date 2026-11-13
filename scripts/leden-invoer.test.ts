@@ -118,6 +118,18 @@ test('leesLeden: onzichtbare tekens in een naam worden geweigerd, accenten en tu
   assert.equal(goed.regels[0]?.achternaam, 'van der Voorbeeld-Éclair');
 });
 
+test('leesLeden: een tussenvoegsel met een hoofdletter krijgt een kleine letter, de rest van de achternaam blijft', () => {
+  const uit = leesLeden(
+    `${KOP}\nPiet;Van der Voorbeeld;piet@example.com;;;;;lid\nAnna;De Test-Voorbeeld;anna@example.com;;;;;lid\nJan;D'Voorbeeld;jan@example.com;;;;;lid\nEls;Van Dijk;els@example.com;;;;;lid\n`,
+    GROEPEN,
+  );
+  assert.deepEqual(uit.fouten, []);
+  assert.deepEqual(
+    uit.regels.map((regel) => regel.achternaam),
+    ['van der Voorbeeld', 'de Test-Voorbeeld', "d'Voorbeeld", 'van Dijk'],
+  );
+});
+
 test('leesJaNee: ja en nee in de vormen van Excel, leeg is niet wijzigen, de rest is onbekend', () => {
   for (const ja of ['ja', 'JA', 'j', 'x', '1', 'true']) assert.equal(leesJaNee(ja), true, ja);
   for (const nee of ['nee', 'Nee', 'n', '0', 'false']) assert.equal(leesJaNee(nee), false, nee);
