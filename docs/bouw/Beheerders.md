@@ -192,7 +192,7 @@ afspraken met het bestuur.
 ## Iemand laten inloggen zonder mailserver (tijdelijk)
 
 Als de normale mailverzending nog niet werkt, kan een beheerder voor de ontwikkelproef een link maken zonder mail.
-Een werkende SMTP-provider, ook een bestaande Gmail-mailbox, gebruikt de normale codestap (zie `Inloggen.md`). Voor een kijkdag met de opdrachtgever kan de beheerder een eenmalige inloglink maken en privé
+Een werkende SMTP-provider (nu Postmark) gebruikt de normale codestap (zie `Inloggen.md`). Voor een kijkdag met de opdrachtgever kan de beheerder een eenmalige inloglink maken en privé
 doorsturen. **Alleen voor het ontwikkelproject en alleen voor een lid dat je kent; dit is geen vervanging van de mail.**
 
 1. Het lid bestaat: Supabase, Authentication, Users, *Add user* (met *Auto Confirm*) en de rij in `leden` en `leden_prive`

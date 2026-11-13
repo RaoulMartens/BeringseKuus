@@ -17,6 +17,7 @@ Scope: **MVP-pilot**, leden en beheer. Desktop-first (1200px), met een mobiele w
 | UC-006 | Meerdere activiteiten tegelijk aanmaken: vorig seizoen kopiëren of Excel-sjabloon importeren (admin) |
 | UC-007 | Mijn diensten bekijken: al je diensten in één overzicht (lid) |
 | UC-008 | Activiteiten in je agenda zetten en up-to-date houden (lid) |
+| UC-009 | Beheerders beheren: beheerder maken, toegang bevestigen, rechten intrekken (admin) |
 
 UC-006 is toegevoegd op 02-10-2026 na feedback van de opdrachtgever (gemak bij de start van een seizoen).
 UC-007, UC-008, de groepen (BA-7) en de bak (BA-8) zijn toegevoegd op 15-10-2026 na een vergadering van de opdrachtgever met het bestuur. Ze staan voorlopig in het prototype; wat daarbij nog bij de opdrachtgever ligt staat onder "update van de opdrachtgever van 15-10-2026" in `UX-FLOWS.md`.
@@ -66,7 +67,7 @@ meldingeninstellingen en de wijzigingenlog-weergave (FO 9.1, 11).
 | R19 | De geschiktheidsvlaggen `mag_bob` en `mag_eindverantw` zijn een **hulp bij het kiezen**, geen slot. Het FO noemt ze "vooral een hulp"; de admin mag ervan afwijken en ziet dan een waarschuwing. Voor fotograaf bestaat geen vlag. | FO 10, BG 3.1 |
 | R20 | De dubbelboeking-regel (R6) geldt óók voor de admin: de unieke constraint op `(activiteit_id, bezetter_id)` staat niemand toe twee slots bij dezelfde activiteit te bezetten, ongeacht wie de wijziging doet. | BG 3.3 |
 | R21 | Een activiteit kan alleen worden gepubliceerd als het slot **eindverantwoordelijke** bezet is door een lid met een telefoonnummer, en als de **eindtijd** is ingevuld. Gewone dienstslots mogen leeg blijven. Na publicatie kan de eindverantwoordelijke alleen rechtstreeks worden vervangen, niet leeggemaakt. *Aanvullend ontwerpbesluit 18-09-2026.* | FO 4.1, 7.1 |
-| R17 | Alleen een actief verenigingslid kan vervanger zijn; een **externe helper niet**. Helpers worden door de admin geplaatst (BG 9) en tellen niet mee voor de ondergrens, dus een dienst die bij hen terechtkomt is niet afgestemd. *Besluit 18-09-2026; de bronnen laten dit open.* | BG 9 |
+| R17 | Alleen een actief verenigingslid kan vervanger zijn (bij ruilen en afmelden); een **externe helper niet**. Een externe helper kan wel door de admin op een plek worden gezet, op elke rol **behalve eindverantwoordelijke**: leden moeten de eindverantwoordelijke kunnen bellen (R10, R21), en een helper heeft geen telefoonnummer in het systeem. Sinds 09-11-2026 mag een helper dus ook BOB zijn. Een externe helper is alleen een naam: geen e-mailadres, geen telefoon, geen inlogaccount en geen groep. Helpers tellen niet mee voor de ondergrens, dus een dienst die bij hen terechtkomt is niet afgestemd. *Besluit 18-09-2026, aangepast 09-11-2026 (opdrachtgever: een helper ook als BOB, en alleen een naam).* | BG 9 |
 | R22 | Een activiteit heeft een **doelgroep**: iedereen, of één of meer groepen (Bestuur, Raad van Elf, Dames, Overige leden; "Bestuur en Raad van Elf" voor een gezamenlijke vergadering, de opdrachtgever 16-10-2026). Alleen leden van die groepen zien de activiteit en tellen mee als aanwezig (R1); wie er niet in zit ziet hem nergens: niet in het programma, in Mijn diensten, in de agenda of in meldingen. Een lid kan in meer groepen zitten (Mark is lid én bestuur). Zichtbaarheid is iets anders dan beheerrechten: de groep Bestuur geeft geen beheerrechten. Afgedwongen in RLS, niet alleen in het scherm. De doelgroep gaat mee bij kopiëren en in het Excel-sjabloon (kolom `voor_wie`, leeg is iedereen). Zichtbaar in `programma-raadslid.html`: een lid buiten het bestuur ziet de Bestuursvergadering niet. Wijzigt de groep van een gepubliceerde activiteit, dan is dat altijd een melding (BA-4): wie hem daardoor niet meer ziet, krijgt bericht. De keuzelijst toont hoeveel leden elke groep heeft en waarschuwt bij een gepubliceerde activiteit; de opslagstap toont vooraf hoeveel leden hem niet meer zien (`admin-wijzigingen-opslaan-groep.html`, interactiecheck B2). | BA-7 (voorlopig) |
 | R23 | De **bak** (prins, adjudant, vorst en de elf raadsleden van de Raad van Elf, samen 14; bij de Bonte Avond en bij andere activiteiten waar het bestuur de bak aanzet) is een lijst plekken die alleen de admin wijzigt; **alle leden die de Bonte Avond zien, zien de bak als lijst (alleen lezen)**, onder de rolbezetting, in de opgeslagen stand (16-10-2026). Een lid kan zijn plek in de bak niet ruilen of zich ervoor afmelden: zelfde vlag `alleen_admin` als BOB en eindverantwoordelijke (R4). De bak wordt vooraf gevuld met de Raad van Elf, de prins, de adjudant en de vorst; de admin vervangt iemand, bijvoorbeeld bij ziekte. Een wijziging in de bak meldt de betrokkenen, zoals bij andere plekken (BA-4). Het lid krijgt in de statuskaart geen knop Afmelden maar het nummer van de eindverantwoordelijke (`welkom-raadslid.html`, interactiecheck B4); de server weigert een afmelding voor een plek in de bak ook. | BA-8 (voorlopig) |
 | R24 | De agenda-feed is alleen bereikbaar met een geheime persoonlijke link (token) en bevat uitsluitend wat het lid mag zien (R22, R15). Een activiteit waarvoor het lid is afgemeld staat er niet in. Het token kan worden vervangen; de oude link werkt dan niet meer. | BA-9 (voorlopig) |
@@ -371,8 +372,8 @@ op die plek zag staan (`verwachte_bezetter`). Controle 4 en 7 kijken naar de
 (Truus naar drankhaler, Loes naar werker) halverwege als dubbelboeking worden geweigerd.
 
 Controle 4 en 5 zijn dezelfde als bij ruilen, maar hier geldt controle 3 breder:
-de admin mag ook een **externe helper** indelen (BG 9) — dat is juist de enige
-manier waarop een helper aan een dienst komt (R17).
+de admin mag ook een **externe helper** indelen (BG 9), op elke rol behalve eindverantwoordelijke (R17) — dat is juist de enige
+manier waarop een helper aan een dienst komt.
 
 **Alternative flows**
 
@@ -521,6 +522,46 @@ Geen wijziging aan activiteiten of bezetting. Er bestaat een persoonlijk token e
 
 ---
 
+## UC-009 — Beheerders beheren (admin)
+
+| Veld | Inhoud |
+|------|--------|
+| **ID** | UC-009 |
+| **Naam** | Beheerders beheren: beheerder maken, toegang bevestigen, rechten intrekken |
+| **Actoren** | Beheerder (met een recente code), Lid dat beheerder wordt, Systeem |
+| **Preconditions** | De beheerder is ingelogd en heeft een recente code (R20). Het lid heeft een inlogaccount. |
+| **Aanleiding** | Pilot, 10-11-2026: het bestuur (ongeveer tien mensen) moet beheerder worden. Tot dan kon dat alleen met SQL door de bouwer (`Beheerders.md`). De bouwer wil niet iedereen zelf controleren; de beheerder die de mensen kent, doet dat in de app. |
+
+**Main flow**
+
+1. Beheerder opent de kaart "Beheerders" in de zijkolom van het activiteitenoverzicht (met als regel de taak: "1 toegang bevestigen") → `admin-beheerders.html`.
+2. Beheerder kiest "Beheerder toevoegen" → `admin-beheerder-kiezen.html`: een zoekveld met alleen leden die nog geen beheerder zijn.
+3. Beheerder kiest een lid → `admin-beheerder-toevoegen.html` (bevestigen): wat een beheerder mag, de drie stappen, "Er gaat geen bericht uit".
+4. "Beheerder maken": het lid is beheerder met `beheerder_sinds` op nu; eerdere apps van het lid zijn gewist. Overzicht met melding (`admin-beheerders-toegevoegd.html`).
+5. Het lid stelt bij het eerstvolgende bezoek aan Beheer zelf een app in (bestaande schermen `mfa-instellen`, `mfa-wacht-op-bevestiging`).
+6. Het lid staat nu onder "Vraagt aandacht" met de taak "Toegang bevestigen". Beheerder opent de regel → `admin-beheerder-bevestigen.html`: naam van de app, moment van instellen, aantal apps, met de waarschuwing het lid zelf te vragen (liever persoonlijk of telefonisch).
+7. "Toegang bevestigen": `beheerder_sinds` wordt nu gezet, ná de app. Overzicht met melding (`admin-beheerders-bevestigd.html`). Het lid kan bij Beheer.
+
+**Alternative flows**
+
+- **AF-1 — Intrekken.** Beheerder kiest "Rechten intrekken" bij een beheerder → `admin-beheerder-intrekken.html` (bevestigen) → het lid is geen beheerder meer, de apps zijn losgekoppeld, diensten en groepen blijven staan (`admin-beheerders-ingetrokken.html`).
+- **AF-2 — "Dit klopt niet."** Op de bevestigpagina: de beheerder bevestigt niet maar trekt de rechten in (AF-1).
+- **AF-3 — Je eigen regel.** Geen acties: je kunt jezelf niet maken, bevestigen of intrekken. Zo blijft er altijd een beheerder over.
+- **AF-4 — De app is intussen veranderd** of er staan meerdere apps: de database bevestigt niets (`app_gewijzigd`, `app_onduidelijk`). De pagina zegt wat te doen.
+- **AF-5 — Twee beheerders tegelijk.** Wijzigingen lopen achter elkaar (een lock); twee beheerders kunnen elkaar niet tegelijk intrekken.
+
+**Ontwerpkeuzes** (onderbouwing in `UX-FLOWS.md`, "Beheerders beheren in de app")
+
+- *Sorteren op werk, in woorden*: "Vraagt aandacht" bovenaan met de taak, daaronder wie beheerder is.
+- *De controle blijft inhoudelijk*: de bevestigpagina toont wat de handleiding laat nalezen. Een knop die alleen "OK" zegt zou de beveiliging waardeloos maken.
+- *Bevestigen op een eigen pagina*, melding in de woorden van de knop (B3).
+- *Geen bericht*: berichten zijn nog niet gebouwd (O-1); het scherm zegt dat je het het lid zelf vertelt.
+
+**Postconditions**
+Het lid is beheerder met een bevestigde app, of is geen beheerder meer. Elke wijziging staat in het wijzigingenlog (`beheer_aangezet`, `beheerder_sinds_gewijzigd`, `beheer_uitgezet`).
+
+---
+
 ## Beslispunten beheerkant — voor te leggen
 
 | # | Vraag | Voorstel |
@@ -609,6 +650,14 @@ Geen wijziging aan activiteiten of bezetting. Er bestaat een persoonlijk token e
 UC-001 AF-6 (sinds 29-10-2026 beantwoord door `storing.html` en `fout.html`). Zie de UI Stack-bevinding in `UX-FLOWS.md`.
 
 **Schermen buiten de use cases (29-10-2026):** inloggen (`inloggen`, `inloggen-fout-adres`, `inloggen-verstuurd`, `inloggen-mail`, `inloggen-bevestigen`, `inloggen-link-ongeldig`, `uitgelogd`), `mijn-account` (tijdelijk), MFA voor het bestuur (`mfa-instellen`, `mfa-wacht-op-bevestiging`, `mfa-code`, `mfa-code-fout`, `mfa-opnieuw`, `mfa-toestel-kwijt`), `alleen-bestuur`, `niet-gevonden`, `fout` en `storing`. Ze zijn uit de bouw voortgekomen en horen bij geen UC; ze staan met kernelementen in `wireframes/INDEX.md` en in `UX-FLOWS.md` ("Ontwerpgaten uit de bouw").
+| 80 | Beheer — beheerders | `admin-beheerders.html` | UC-009 | Overzicht |
+| 81 | Beheer — beheerder kiezen | `admin-beheerder-kiezen.html` | UC-009 stap 2 | Keuzelijst |
+| 82 | Beheer — beheerder maken bevestigen | `admin-beheerder-toevoegen.html` | UC-009 stap 3 | Bevestigen |
+| 83 | Beheer — beheerders, beheerder gemaakt | `admin-beheerders-toegevoegd.html` | UC-009 stap 4 | Melding |
+| 84 | Beheer — toegang bevestigen | `admin-beheerder-bevestigen.html` | UC-009 stap 6 | Bevestigen |
+| 85 | Beheer — beheerders, toegang bevestigd | `admin-beheerders-bevestigd.html` | UC-009 stap 7 | Melding |
+| 86 | Beheer — beheerrechten intrekken bevestigen | `admin-beheerder-intrekken.html` | UC-009 AF-1 | Bevestigen |
+| 87 | Beheer — beheerders, rechten ingetrokken | `admin-beheerders-ingetrokken.html` | UC-009 AF-1 | Melding |
 
 ## Besloten punten (11-09-2026)
 
@@ -636,6 +685,7 @@ UC-001 AF-6 (sinds 29-10-2026 beantwoord door `storing.html` en `fout.html`). Zi
 | Beslispunt BA-6: vaste rollijst of tabel met vlaggen | ✅ V5 als open punt (3.3) | ⏳ nog niet |
 | Opslaan in één transactie: alles of niets, `verwachte_bezetter` per plek, publiceren in dezelfde stap | ✅ V6 (3.3, 4.4, 5.5) | ⏳ nog niet |
 | Groepen, doelgroep per activiteit en RLS (BA-7, R22); agenda-feed met token (BA-9, R24); de bak (BA-8, R23) | ⏳ V8 (`Bouwgids-V8-voorbereiding.md` 2.8 t/m 2.10) | ⏳ nog niet |
+| Externe helper: alleen een naam, ook als BOB, nooit eindverantwoordelijke (R17, 09-11-2026) | ⏳ nog niet (V9) | ⏳ nog niet |
 
 Het FO staat nog op V4. De bouwgids is wat de bouwer volgt en is daarom eerst bijgewerkt;
 het FO moet dezelfde punten krijgen zodat beide documenten hetzelfde zeggen.
