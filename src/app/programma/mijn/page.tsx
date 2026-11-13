@@ -65,12 +65,18 @@ export default async function MijnDiensten() {
           <Lijst>
             {diensten.komend.map((dienst) => (
               <Lijstrij key={dienst.activiteitId} href={`/programma/${dienst.activiteitId}`}>
-                <Datumblok {...dagTekst(dienst.datum)} vandaag={dienst.datum === vandaag} />
-                <span className={stijl.tekst}>
-                  <strong className={stijl.naam}>{dienst.naam}</strong>
-                  <span className={stijl.regel}>{regel(dienst)}</span>
+                <span className={stijl.rijInhoud}>
+                  <Datumblok {...dagTekst(dienst.datum)} vandaag={dienst.datum === vandaag} />
+                  <span className={stijl.kolom}>
+                    <span className={stijl.tekst}>
+                      <strong className={stijl.naam}>{dienst.naam}</strong>
+                      <span className={stijl.regel}>{regel(dienst)}</span>
+                    </span>
+                    <span className={stijl.label}>
+                      <Statuslabel compactOpTelefoon>{rolTekst([dienst.rol], rolLabel)}</Statuslabel>
+                    </span>
+                  </span>
                 </span>
-                <Statuslabel>{rolTekst([dienst.rol], rolLabel)}</Statuslabel>
               </Lijstrij>
             ))}
           </Lijst>
@@ -82,12 +88,18 @@ export default async function MijnDiensten() {
           <Lijst>
             {afmeldingen.map((activiteit) => (
               <Lijstrij key={activiteit.activiteitId} href={`/programma/${activiteit.activiteitId}`}>
-                <Datumblok {...dagTekst(activiteit.datum)} vandaag={activiteit.datum === vandaag} />
-                <span className={stijl.tekst}>
-                  <strong className={stijl.naam}>{activiteit.naam}</strong>
-                  <span className={stijl.regel}>{regel(activiteit)}</span>
+                <span className={stijl.rijInhoud}>
+                  <Datumblok {...dagTekst(activiteit.datum)} vandaag={activiteit.datum === vandaag} />
+                  <span className={stijl.kolom}>
+                    <span className={stijl.tekst}>
+                      <strong className={stijl.naam}>{activiteit.naam}</strong>
+                      <span className={stijl.regel}>{regel(activiteit)}</span>
+                    </span>
+                    <span className={stijl.label}>
+                      <Statuslabel compactOpTelefoon>afgemeld</Statuslabel>
+                    </span>
+                  </span>
                 </span>
-                <Statuslabel>afgemeld</Statuslabel>
               </Lijstrij>
             ))}
           </Lijst>
@@ -101,12 +113,18 @@ export default async function MijnDiensten() {
             <Lijst zonderKop>
               {diensten.geweest.map((dienst) => (
                 <Lijstrij key={dienst.activiteitId} href={`/programma/${dienst.activiteitId}`} uitgeschakeld>
-                  <Datumblok {...dagTekst(dienst.datum)} />
-                  <span className={stijl.tekst}>
-                    <strong className={stijl.naam}>{dienst.naam}</strong>
-                    <span className={stijl.regel}>{regel(dienst)}</span>
+                  <span className={stijl.rijInhoud}>
+                    <Datumblok {...dagTekst(dienst.datum)} />
+                    <span className={stijl.kolom}>
+                      <span className={stijl.tekst}>
+                        <strong className={stijl.naam}>{dienst.naam}</strong>
+                        <span className={stijl.regel}>{regel(dienst)}</span>
+                      </span>
+                      <span className={stijl.label}>
+                        <Statuslabel compactOpTelefoon>{rolTekst([dienst.rol], rolLabel)}</Statuslabel>
+                      </span>
+                    </span>
                   </span>
-                  <Statuslabel>{rolTekst([dienst.rol], rolLabel)}</Statuslabel>
                 </Lijstrij>
               ))}
             </Lijst>
