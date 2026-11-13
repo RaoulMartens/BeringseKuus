@@ -14,6 +14,8 @@ export interface Gebruiker {
   email: string;
   /** Heeft beheerrechten (is_admin); of die in deze sessie ook gelden, beslist beheerstatus(). */
   isBeheerder: boolean;
+  /** Een account dat er alleen is om te beheren (leden.alleen_beheer): hij telt niet mee als lid en heet op Mijn account gewoon "Beheerder". */
+  alleenBeheer: boolean;
 }
 
 /**
@@ -28,7 +30,7 @@ export const huidigeGebruiker = cache(async (): Promise<Gebruiker | null> => {
   // Een beheerder ziet alle rijen van leden_prive; daarom op het adres van deze gebruiker.
   const { data, error } = await supabase
     .from('leden_prive')
-    .select('lid_id, email, is_admin, leden(voornaam, achternaam)')
+    .select('lid_id, email, is_admin, leden(voornaam, achternaam, alleen_beheer)')
     .eq('email', user.email)
     .maybeSingle();
   if (error) throw new Error(`gebruiker niet te lezen: ${error.code ?? error.message}`);
@@ -39,5 +41,6 @@ export const huidigeGebruiker = cache(async (): Promise<Gebruiker | null> => {
     achternaam: data.leden.achternaam,
     email: data.email,
     isBeheerder: data.is_admin,
+    alleenBeheer: data.leden.alleen_beheer,
   };
 });

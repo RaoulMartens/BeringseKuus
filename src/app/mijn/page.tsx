@@ -67,7 +67,7 @@ export default async function MijnAccount() {
           </div>
           <div>
             <dt>Je bent</dt>
-            <dd>{jeBent(groepen, gebruiker.isBeheerder)}</dd>
+            <dd>{jeBent(groepen, gebruiker.isBeheerder, gebruiker.alleenBeheer)}</dd>
           </div>
         </dl>
         <form action={logUit}>

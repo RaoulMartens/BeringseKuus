@@ -24,4 +24,13 @@ describe('jeBent', () => {
   it('slaat een lege groepsnaam over', () => {
     expect(jeBent(['', ' '], false)).toBe('Lid');
   });
+
+  it('noemt een account dat er alleen is om te beheren gewoon Beheerder, met of zonder groep', () => {
+    expect(jeBent([], true, true)).toBe('Beheerder');
+    expect(jeBent(['Raad van Elf'], true, true)).toBe('Beheerder');
+  });
+
+  it('negeert de vlag zonder beheerrechten', () => {
+    expect(jeBent([], false, true)).toBe('Lid');
+  });
 });
