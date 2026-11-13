@@ -90,9 +90,18 @@
   display: none;
 }
 
+/* De twee knoppen van "Nieuwe activiteit" onder elkaar. */
+.knoppen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 @media (max-width: 700px) {
   .alleenMobiel {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .nietOpMobiel {

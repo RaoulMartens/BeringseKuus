@@ -83,9 +83,14 @@ function Aanmaken() {
   return (
     <div className={stijl.nietOpMobiel}>
       <Kaart titel="Nieuwe activiteit" ondertitel="Begint als concept. Leden zien hem pas als je publiceert.">
-        <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold" vol>
-          Activiteit aanmaken
-        </Knop>
+        <div className={stijl.knoppen}>
+          <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold" vol>
+            Activiteit aanmaken
+          </Knop>
+          <Knop href="/beheer/activiteiten/bulk" soort="secundair" vol>
+            Meerdere tegelijk aanmaken
+          </Knop>
+        </div>
       </Kaart>
     </div>
   );
@@ -110,6 +115,7 @@ export default async function Beheer({
     opgeslagen?: string | string[];
     gepubliceerd?: string | string[];
     verwijderd?: string | string[];
+    aangemaakt?: string | string[];
   }>;
 }) {
   await eisBeheer();
@@ -119,6 +125,8 @@ export default async function Beheer({
   const opgeslagen = z.uuid().safeParse(parameters.opgeslagen);
   const gepubliceerd = z.uuid().safeParse(parameters.gepubliceerd);
   const verwijderd = z.uuid().safeParse(parameters.verwijderd);
+  // Na "N concepten aanmaken": het aantal (meerdere activiteiten tegelijk, UC-006). Alleen een getal; verder niets in de adresbalk.
+  const aangemaakt = z.coerce.number().int().min(1).max(200).safeParse(parameters.aangemaakt);
   const supabase = await maakSupabase();
   const teBevestigen = aantalTeBevestigen(await leesBeheerderslijst(supabase));
 
@@ -212,7 +220,18 @@ export default async function Beheer({
         <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold">
           Activiteit aanmaken
         </Knop>
+        <Knop href="/beheer/activiteiten/bulk" soort="secundair">
+          Meerdere aanmaken
+        </Knop>
       </div>
+      {aangemaakt.success && (
+        <Melding soort="succes">
+          <strong>
+            {aangemaakt.data === 1 ? '1 concept aangemaakt.' : `${aangemaakt.data} concepten aangemaakt.`}
+          </strong>{' '}
+          Leden zien ze pas als je publiceert.
+        </Melding>
+      )}
       {bewaard?.status === 'concept' && (
         <Melding soort="succes">
           <strong>{bewaard.naam} is opgeslagen als concept.</strong> Leden zien hem pas als je publiceert.

@@ -48,7 +48,7 @@ select is_empty(
   $$ select p.oid::regprocedure::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
-        and p.proname <> all (array['activiteit_opslaan', 'activiteit_verwijderen', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus', 'beheerders_lijst', 'beheerder_kandidaten', 'beheerder_maken', 'beheerder_bevestigen', 'beheerder_intrekken',
+        and p.proname <> all (array['activiteit_opslaan', 'activiteit_verwijderen', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus', 'activiteiten_bulk_aanmaken', 'beheerders_lijst', 'beheerder_kandidaten', 'beheerder_maken', 'beheerder_bevestigen', 'beheerder_intrekken',
                                     'huidig_seizoen', 'contact_eindverantwoordelijke', 'meld_af',
                                     'trek_afmelding_in', 'ruil_dienst', 'beschikbare_vervangers', 'wie_komt_er']) $$,
   'ingelogd: in public alleen de functies die de app aanroept zijn uit te voeren'
