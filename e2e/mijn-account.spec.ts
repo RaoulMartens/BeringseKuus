@@ -37,3 +37,20 @@ test('Mijn account noemt je groepen, op volgorde, en zonder groep alleen "Lid"',
     `E2E Mijn eerste ${kenmerk} en E2E Mijn tweede ${kenmerk}`,
   );
 });
+
+test('een beheeraccount (alleen beheer) heet op Mijn account gewoon Beheerder', async ({ page }) => {
+  const email = nieuwAdres();
+  const uid = await maakLidMetRol(email);
+  aangemaakt.push(uid);
+  await page.goto(await bevestigAdresVoor(email));
+  await page.getByRole('button', { name: 'Inloggen' }).click();
+  await expect(page).toHaveURL(/\/mijn$/);
+
+  const lid = lidIdVan(uid);
+  psql(`
+    update public.leden set alleen_beheer = true where id = '${lid}';
+    update public.leden_prive set is_admin = true, beheerder_sinds = now() where lid_id = '${lid}';
+  `);
+  await page.reload();
+  await expect(page.getByText('Je bent').locator('xpath=following-sibling::dd')).toHaveText('Beheerder');
+});
