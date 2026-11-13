@@ -17,15 +17,44 @@ describe('initialen', () => {
   it('slaat een tussenvoegsel over', () => {
     expect(initialen('Ger', 'van Hout')).toBe('GH');
     expect(initialen('Jos', 'van der Berg')).toBe('JB');
+    expect(initialen('Rik', 'van Rijn')).toBe('RR');
+    expect(initialen('Piet', 'de Graaf')).toBe('PG');
   });
 
-  it('maakt hoofdletters van kleine letters en houdt een accent heel', () => {
+  it('slaat een tussenvoegsel ook over met een hoofdletter, zoals het soms is ingevoerd', () => {
+    expect(initialen('Piet', 'Van Test')).toBe('PT');
+    expect(initialen('Anna', 'Van der Voorbeeld')).toBe('AV');
+    expect(initialen('Anne', 'De Wit')).toBe('AW');
+    expect(initialen('Jan', 'VAN DEN BERG')).toBe('JB');
+  });
+
+  it('kent tussenvoegsels die aan de naam vastzitten', () => {
+    expect(initialen('Jan', "d'Hondt")).toBe('JH');
+    expect(initialen('Jan', "'t Hart")).toBe('JH');
+    expect(initialen('Jan', "van 't Hoff")).toBe('JH');
+    expect(initialen('Jan', "'s-Gravesande")).toBe('JG');
+  });
+
+  it('telt IJ als één letter', () => {
+    expect(initialen('Ruud', 'IJsselstein')).toBe('RIJ');
+    expect(initialen('Ijsbrand', 'de Vries')).toBe('IJV');
+  });
+
+  it('neemt het eerste deel van een dubbele achternaam', () => {
+    expect(initialen('Els', 'Jansen-Pieters')).toBe('EJ');
+  });
+
+  it('houdt een accent heel en maakt hoofdletters van kleine letters', () => {
     expect(initialen('èlise', 'smeets')).toBe('ÈS');
   });
 
-  it('valt terug op het eerste woord als alles klein is, en geeft niets terug zonder naam', () => {
+  it('valt terug op het eerste woord als de hele achternaam een tussenvoegsel lijkt, en geeft niets terug zonder naam', () => {
     expect(initialen('Jan', 'van den')).toBe('JV');
     expect(initialen('', '')).toBe('');
+  });
+
+  it('slaat de toevoeging van een beheeraccount over', () => {
+    expect(initialen('Piet', 'Voorbeeld (beheer)')).toBe('PV');
   });
 });
 
