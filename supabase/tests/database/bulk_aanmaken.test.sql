@@ -1,4 +1,4 @@
--- Databasetests voor meerdere activiteiten tegelijk aanmaken (migratie 20261113100000): wie het mag, de controles per regel
+-- Databasetests voor meerdere activiteiten tegelijk aanmaken (migratie 20261113140000): wie het mag, de controles per regel
 -- met het regelnummer, alles of niets, en de idempotentie op aanmaak_id. Draaien met: npm run test:db. Alles in één transactie
 -- die wordt teruggedraaid. Alleen eigen namen ("T ...").
 
