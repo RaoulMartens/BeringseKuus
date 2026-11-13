@@ -71,14 +71,20 @@ export interface Stop {
   wat: string;
   /** Wie een icoon naast de naam wil (de bus). */
   icoon?: 'bus';
-  /** De plaats bij deze stop: waar je verzamelt of waar de bus vertrekt. */
+  /** De plaats bij deze stop: waar je verzamelt (bij de bus, of bij de locatie zonder bus) en waar de activiteit is. */
   plek?: string;
 }
 
 /**
  * De tijdlijn van de avond, in volgorde van gebeuren: verzamelen, bus vertrekt, begint, is afgelopen. Alleen wat is
- * ingevuld (ontwerpregel). De locatie hangt aan verzamelen, want daar verzamel je (een vraag aan de opdrachtgever, voorlopig een aanname); zonder
- * verzameltijd hangt ze aan de eerste stop die er is.
+ * ingevuld (ontwerpregel). De plaats hangt aan de stop waar je dan bent:
+ *
+ * - Met een bus verzamel je bij de bus, dus de vertrekplaats van de bus hangt aan Verzamelen (of aan Bus vertrekt als er geen
+ *   verzameltijd is), en de locatie hangt aan Begint: dáár ga je naartoe. De opdrachtgever zei dat leden bij de bus verzamelen.
+ * - Zonder bus verzamel je bij de locatie, dus die hangt aan Verzamelen (of aan de eerste stop die er is).
+ *
+ * `busLocatie` is de vertrekplaats die bij de activiteit staat, of de vaste plek van de vereniging als die leeg is (zie
+ * leesActiviteitVoorLid).
  */
 export function maakTijdlijn(a: LedenActiviteit): Stop[] {
   const stops: Stop[] = [];
@@ -87,13 +93,31 @@ export function maakTijdlijn(a: LedenActiviteit): Stop[] {
     if (tekst) stops.push({ tijd: tekst, wat, ...extra });
   };
   voeg(a.verzameltijd, 'Verzamelen');
-  voeg(a.busVertrektijd, 'Bus vertrekt', { icoon: 'bus', ...(a.busLocatie ? { plek: a.busLocatie } : {}) });
-  voeg(a.starttijd, `${a.naam} begint`);
-  voeg(a.eindtijd, `${a.naam} is afgelopen`);
+  voeg(a.busVertrektijd, 'Bus vertrekt', { icoon: 'bus' });
+  voeg(a.starttijd, 'Begint');
+  voeg(a.eindtijd, 'Is afgelopen');
 
   const locatie = a.locatie?.trim();
-  const eerste = stops[0];
-  if (locatie && eerste && !eerste.plek) eerste.plek = locatie;
+  const busplek = a.busLocatie?.trim();
+  const metBus = stops.some((stop) => stop.icoon === 'bus');
+  const zet = (stop: Stop | undefined, plek: string | undefined) => {
+    if (stop && plek && !stop.plek) stop.plek = plek;
+  };
+
+  if (metBus) {
+    // Waar je verzamelt: bij de bus. Zonder verzameltijd is het de stop van de bus zelf.
+    zet(
+      stops.find((stop) => stop.wat === 'Verzamelen') ?? stops.find((stop) => stop.icoon === 'bus'),
+      busplek,
+    );
+    // Waar je naartoe gaat: de locatie, bij de stop waar de activiteit begint.
+    zet(
+      stops.find((stop) => stop.wat === 'Begint') ?? stops.find((stop) => stop.wat === 'Is afgelopen'),
+      locatie,
+    );
+  } else {
+    zet(stops[0], locatie);
+  }
   return stops;
 }
 

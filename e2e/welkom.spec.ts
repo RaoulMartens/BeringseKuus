@@ -105,15 +105,16 @@ test('het welkomscherm toont de activiteit van vandaag met tijden, rolbezetting 
   await expect(page.getByRole('heading', { level: 2, name: naam })).toBeVisible();
   await expect(page.getByText(/^Vandaag, /).first()).toBeVisible();
 
-  // De tijdlijn: verzamelen met de plaats, de bus met zijn vertrekplaats, begin en einde.
+  // De tijdlijn: met een bus verzamel je bij de bus (de vertrekplaats staat bij Verzamelen) en is de locatie waar je naartoe gaat
+  // (die staat bij Begint); daarna het einde.
   const tijdlijn = page.getByRole('region').filter({ has: page.getByRole('heading', { name: naam }) });
-  await expect(tijdlijn.getByText('18:30')).toBeVisible();
-  await expect(tijdlijn.getByText('Verzamelen')).toBeVisible();
-  await expect(tijdlijn.getByText('Zaal Test, Kerkstraat 1')).toBeVisible();
-  await expect(tijdlijn.getByText('Bus vertrekt')).toBeVisible();
-  await expect(tijdlijn.getByText('Parkeerplaats Sporthal')).toBeVisible();
-  await expect(tijdlijn.getByText(`${naam} begint`)).toBeVisible();
-  await expect(tijdlijn.getByText(`${naam} is afgelopen`)).toBeVisible();
+  const stop = (wat: string) => tijdlijn.getByRole('listitem').filter({ hasText: wat });
+  await expect(stop('Verzamelen')).toContainText('18:30');
+  await expect(stop('Verzamelen')).toContainText('Parkeerplaats Sporthal');
+  await expect(stop('Verzamelen')).not.toContainText('Zaal Test, Kerkstraat 1');
+  await expect(stop('Bus vertrekt')).toContainText('18:45');
+  await expect(stop('Begint')).toContainText('Zaal Test, Kerkstraat 1');
+  await expect(stop('Is afgelopen')).toBeVisible();
   await expect(page.getByText(notitie)).toBeVisible();
 
   // De rolbezetting: alleen bezette plekken, jezelf herkenbaar, het nummer alleen bij de eindverantwoordelijke (R10).

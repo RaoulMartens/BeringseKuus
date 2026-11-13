@@ -126,32 +126,78 @@ describe('kiesWelkom', () => {
 });
 
 describe('maakTijdlijn', () => {
-  it('zet de stops in volgorde van gebeuren, met de locatie bij verzamelen', () => {
+  it('zonder bus verzamel je bij de locatie en begint de activiteit daar', () => {
+    expect(maakTijdlijn(activiteit())).toEqual([
+      { tijd: '18:30', wat: 'Verzamelen', plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12' },
+      { tijd: '20:00', wat: 'Begint' },
+      { tijd: '01:00', wat: 'Is afgelopen' },
+    ]);
+  });
+
+  it('met bus verzamel je bij de bus en is de locatie waar je naartoe gaat', () => {
     const stops = maakTijdlijn(
       activiteit({ busVertrektijd: '18:45:00', busLocatie: 'Parkeerplaats Sporthal' }),
     );
     expect(stops).toEqual([
-      { tijd: '18:30', wat: 'Verzamelen', plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12' },
-      { tijd: '18:45', wat: 'Bus vertrekt', icoon: 'bus', plek: 'Parkeerplaats Sporthal' },
-      { tijd: '20:00', wat: 'Bonte Avond begint' },
-      { tijd: '01:00', wat: 'Bonte Avond is afgelopen' },
+      { tijd: '18:30', wat: 'Verzamelen', plek: 'Parkeerplaats Sporthal' },
+      { tijd: '18:45', wat: 'Bus vertrekt', icoon: 'bus' },
+      { tijd: '20:00', wat: 'Begint', plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12' },
+      { tijd: '01:00', wat: 'Is afgelopen' },
     ]);
+  });
+
+  it('zet de vertrekplaats bij de bus zelf als er geen verzameltijd is', () => {
+    const stops = maakTijdlijn(
+      activiteit({ verzameltijd: null, busVertrektijd: '18:45:00', busLocatie: 'Parkeerplaats Sporthal' }),
+    );
+    expect(stops[0]).toEqual({
+      tijd: '18:45',
+      wat: 'Bus vertrekt',
+      icoon: 'bus',
+      plek: 'Parkeerplaats Sporthal',
+    });
+    expect(stops[1]).toEqual({
+      tijd: '20:00',
+      wat: 'Begint',
+      plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12',
+    });
+  });
+
+  it('met bus maar zonder bekende vertrekplaats staat bij Verzamelen geen plaats, en de locatie bij Begint', () => {
+    const stops = maakTijdlijn(activiteit({ busVertrektijd: '18:45:00' }));
+    expect(stops[0]).toEqual({ tijd: '18:30', wat: 'Verzamelen' });
+    expect(stops[2]).toEqual({
+      tijd: '20:00',
+      wat: 'Begint',
+      plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12',
+    });
+  });
+
+  it('zet de locatie bij het einde als de activiteit geen begintijd heeft en er een bus rijdt', () => {
+    const stops = maakTijdlijn(
+      activiteit({ starttijd: null, busVertrektijd: '18:45:00', busLocatie: 'Parkeerplaats Sporthal' }),
+    );
+    expect(stops.at(-1)).toEqual({
+      tijd: '01:00',
+      wat: 'Is afgelopen',
+      plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12',
+    });
   });
 
   it('toont alleen wat is ingevuld', () => {
     const stops = maakTijdlijn(activiteit({ verzameltijd: null, starttijd: null }));
     expect(stops).toEqual([
-      { tijd: '01:00', wat: 'Bonte Avond is afgelopen', plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12' },
+      { tijd: '01:00', wat: 'Is afgelopen', plek: 'Gemeenschapshuis De Kuus, Kerkstraat 12' },
     ]);
     expect(
       maakTijdlijn(activiteit({ verzameltijd: null, starttijd: null, eindtijd: null, locatie: null })),
     ).toEqual([]);
   });
 
-  it('laat de bus zonder plaats staan en zonder locatie ook de plek weg', () => {
+  it('laat zonder locatie de plaats weg', () => {
     const stops = maakTijdlijn(activiteit({ busVertrektijd: '18:45:00', locatie: ' ' }));
     expect(stops[0]).toEqual({ tijd: '18:30', wat: 'Verzamelen' });
-    expect(stops[1]).toEqual({ tijd: '18:45', wat: 'Bus vertrekt', icoon: 'bus' });
+    expect(stops[2]).toEqual({ tijd: '20:00', wat: 'Begint' });
   });
 });
 
