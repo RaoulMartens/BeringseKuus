@@ -1,0 +1,82 @@
+/* Alle dagen van een reeks tegelijk bewerken. Dezelfde tokens als de rest. */
+.formulier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+.velden {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.breed {
+  grid-column: 1 / -1;
+}
+
+.wijzigen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+  margin-bottom: 8px;
+}
+
+.uitleg {
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.selectveld {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.label {
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.select {
+  display: block;
+  width: 100%;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.knoppen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.noot {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+@media (max-width: 700px) {
+  .velden {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .knoppen {
+    flex-direction: column;
+  }
+
+  .knoppen > * {
+    width: 100%;
+  }
+}
