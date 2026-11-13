@@ -111,9 +111,10 @@ test('het welkomscherm toont de activiteit van vandaag met tijden, rolbezetting 
   const stop = (wat: string) => tijdlijn.getByRole('listitem').filter({ hasText: wat });
   await expect(stop('Verzamelen')).toContainText('18:30');
   await expect(stop('Verzamelen')).toContainText('Parkeerplaats Sporthal');
-  await expect(stop('Verzamelen')).not.toContainText('Zaal Test, Kerkstraat 1');
+  await expect(stop('Verzamelen')).not.toContainText('Zaal Test');
   await expect(stop('Bus vertrekt')).toContainText('18:45');
-  await expect(stop('Begint')).toContainText('Zaal Test, Kerkstraat 1');
+  await expect(stop('Begint')).toContainText('Zaal Test');
+  await expect(stop('Begint')).toContainText('Kerkstraat 1');
   await expect(stop('Is afgelopen')).toBeVisible();
   await expect(page.getByText(notitie)).toBeVisible();
 

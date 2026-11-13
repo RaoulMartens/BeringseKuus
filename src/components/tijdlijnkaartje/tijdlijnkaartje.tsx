@@ -2,8 +2,8 @@
 // volgorde van gebeuren, met de plaats bij de stop waar je ze nodig hebt (waar je verzamelt, waar de bus vertrekt). Een
 // lid leest hier wanneer en waar; wat niet is ingevuld, staat er niet (ontwerpregel).
 //
-// De opbouw volgt de breedte van het kaartje zelf, niet die van het scherm (container query): naast een zijkolom is het
-// kaartje smaller dan de pagina. Breed: de stops naast elkaar; smal: onder elkaar met de lijn ernaast.
+// De stops staan onder elkaar, één regel per moment (tijd, wat, waar). De opbouw volgt de breedte van het kaartje zelf, niet die van
+// het scherm (container query): naast een zijkolom is het kaartje smaller dan de pagina; dan komt de plaats onder tijd en wat.
 
 import { useId } from 'react';
 
@@ -20,6 +20,23 @@ interface Eigenschappen {
   /** Het kopniveau van de naam. */
   kop?: 'h2';
   stops: Stop[];
+}
+
+/**
+ * De plaats van een moment: de naam vet en het adres eronder. De locatie is één tekst ("Gemeenschapshuis De Kuus, Kerkstraat 12"); alles na
+ * de eerste komma is het adres. Zonder komma staat er alleen de naam.
+ */
+function Plek({ plek }: { plek: string }) {
+  const [naam = '', ...rest] = plek.split(',');
+  const adres = rest.join(',').trim();
+  return (
+    <span className={stijl.plek}>
+      <Icoon naam="locatie" className={stijl.plekIcoon} />
+      <span className={stijl.plekNaam}>{naam.trim()}</span>
+      {adres && ' '}
+      {adres && <span className={stijl.plekAdres}>{adres}</span>}
+    </span>
+  );
 }
 
 export function Tijdlijnkaartje({ dag, naam, kop: Kop, stops }: Eigenschappen) {
@@ -50,12 +67,7 @@ export function Tijdlijnkaartje({ dag, naam, kop: Kop, stops }: Eigenschappen) {
                   {stop.icoon && <Icoon naam={stop.icoon} className={stijl.watIcoon} />}
                   {stop.wat}
                 </span>
-                {stop.plek && (
-                  <span className={stijl.plek}>
-                    <Icoon naam="locatie" className={stijl.plekIcoon} />
-                    <span>{stop.plek}</span>
-                  </span>
-                )}
+                {stop.plek && <Plek plek={stop.plek} />}
               </li>
             ))}
           </ol>
