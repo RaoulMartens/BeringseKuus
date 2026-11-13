@@ -1,0 +1,81 @@
+/* Een reeks in het beheeroverzicht: één rij die opengaat, met hetzelfde ritme, dezelfde tekstgrootte en dezelfde randen als een
+   gewone lijstrij (src/components/lijst); de losse dagen staan ingesprongen eronder. */
+.reeks {
+  margin: 0;
+}
+
+.details {
+  display: block;
+}
+
+.samenvatting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px var(--padding-card);
+  border-top: 1px solid var(--neutraal-lijn);
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst);
+  cursor: pointer;
+  list-style: none;
+}
+
+.samenvatting::-webkit-details-marker {
+  display: none;
+}
+
+.samenvatting:hover {
+  background: var(--neutraal-hover);
+}
+
+/* geen lijn boven de eerste rij van de kaart, zoals bij de gewone rijen */
+.reeks:first-child > .details > .samenvatting {
+  border-top-color: transparent;
+}
+
+.reeks:last-child > .details:not([open]) > .samenvatting {
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+}
+
+/* het pijltje: omlaag als de rij dicht is, omhoog als hij openstaat */
+.chevron {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--neutraal-tekst-zacht);
+  transition: transform 0.12s;
+}
+
+.details[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.dagen {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px;
+}
+
+.dagRij {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--padding-card) 10px calc(var(--padding-card) + 16px);
+  color: var(--neutraal-tekst);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dagRij:hover {
+  background: var(--neutraal-hover);
+}
+
+.chevronRechts {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--neutraal-tekst-zacht);
+}

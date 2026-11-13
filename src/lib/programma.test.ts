@@ -8,6 +8,7 @@ import {
   langeDag,
   maakProgramma,
   maandTitel,
+  periodeTekst,
   programmaLink,
   reeksDatum,
   reeksRegel,
@@ -328,5 +329,15 @@ describe('reeksDatum en reeksRegel', () => {
   it('noemt geen datum of aantal dagen in de regel: dat staat in het datumblok', () => {
     const regel = reeksRegel(reeks(week, { starttijd: '10:00:00', locatie: 'Wieksjlaag' }));
     expect(regel).not.toMatch(/januari|t\/m|dagen/);
+  });
+});
+
+describe('periodeTekst', () => {
+  it('zegt de periode zoals een schermlezer het hoort', () => {
+    expect(periodeTekst('2027-01-04', '2027-01-08')).toBe('ma 4 t/m vr 8 januari');
+  });
+
+  it('noemt de maand twee keer als de periode een maandgrens kruist', () => {
+    expect(periodeTekst('2027-01-30', '2027-02-01')).toBe('za 30 januari t/m ma 1 februari');
   });
 });

@@ -11,6 +11,7 @@ import { Statuslabel } from '@/components/statuslabel/statuslabel';
 import { Tellers } from '@/components/tellers/tellers';
 import { eisBeheer } from '@/lib/beheer';
 import {
+  groepeerRegels,
   leesFilter,
   maakOverzicht,
   maakRij,
@@ -27,6 +28,7 @@ import { maakSupabase } from '@/lib/supabase/server';
 import { leesZelfNietZichtbaar } from './activiteiten/gegevens';
 import { leesBeheerderslijst } from './beheerders/gegevens';
 import stijl from './beheer.module.css';
+import { Beheerreeks } from './reeks';
 
 export const metadata: Metadata = { title: 'Beheer – Ledenplatform' };
 
@@ -43,22 +45,35 @@ const LEEG: Record<Exclude<Filter, 'alles'>, string> = {
 function Regels({ regels, zonderKop }: { regels: OverzichtRegel[]; zonderKop?: boolean }) {
   return (
     <Lijst zonderKop={zonderKop}>
-      {regels.map((regel) => (
-        <Lijstrij key={regel.id} href={`/beheer/activiteiten/${regel.id}`}>
-          <span className={stijl.tekst}>
-            <span className={stijl.dag}>{regel.dag}</span>
-            <strong className={stijl.naam}>
-              {regel.naam}
-              {regel.tijd && <span className={stijl.tijd}> — {regel.tijd}</span>}
-            </strong>
-            {regel.taak && <span className={stijl.taak}>{regel.taak}</span>}
-            {!regel.taak && regel.aanwezigheid && (
-              <span className={stijl.aanwezig}>{regel.aanwezigheid}</span>
-            )}
-          </span>
-          {regel.status === 'concept' && <Statuslabel status="concept">Concept</Statuslabel>}
-        </Lijstrij>
-      ))}
+      {groepeerRegels(regels).map((item) => {
+        // Dezelfde activiteit met dezelfde taak op drie of meer dagen na elkaar is één rij die opengaat.
+        if (item.soort === 'reeks') return <Beheerreeks key={item.regels[0]?.id} regels={item.regels} />;
+        const regel = item.regel;
+        return (
+          <Lijstrij key={regel.id} href={`/beheer/activiteiten/${regel.id}`}>
+            <span className={stijl.rijInhoud}>
+              <span className={stijl.tekst}>
+                <span className={stijl.dag}>{regel.dag}</span>
+                <strong className={stijl.naam}>
+                  {regel.naam}
+                  {regel.tijd && <span className={stijl.tijd}> — {regel.tijd}</span>}
+                </strong>
+                {regel.taak && <span className={stijl.taak}>{regel.taak}</span>}
+                {!regel.taak && regel.aanwezigheid && (
+                  <span className={stijl.aanwezig}>{regel.aanwezigheid}</span>
+                )}
+              </span>
+              {regel.status === 'concept' && (
+                <span className={stijl.label}>
+                  <Statuslabel status="concept" compactOpTelefoon>
+                    Concept
+                  </Statuslabel>
+                </span>
+              )}
+            </span>
+          </Lijstrij>
+        );
+      })}
     </Lijst>
   );
 }

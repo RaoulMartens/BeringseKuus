@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
   bezettingTaak,
   dagLabel,
+  groepeerRegels,
   indeelTaak,
   invulTaak,
   leesFilter,
   leesPlekkenPerRol,
   maakOverzicht,
   maakRij,
+  type OverzichtRegel,
   type OverzichtRij,
 } from './beheeroverzicht';
 
@@ -298,5 +300,57 @@ describe('maakRij', () => {
 
   it('slaat een status over die we niet kennen', () => {
     expect(maakRij({ ...basis, status: 'verwijderd' }, null)).toEqual([]);
+  });
+});
+
+describe('groepeerRegels', () => {
+  const regel = (naam: string, datum: string, rest: Partial<OverzichtRegel> = {}): OverzichtRegel => ({
+    id: `${naam}-${datum}`,
+    datum,
+    dag: datum,
+    naam,
+    tijd: null,
+    status: 'concept',
+    taak: 'Starttijd, eindtijd, locatie en eindverantwoordelijke invullen',
+    aanwezigheid: null,
+    ...rest,
+  });
+  const verkoop = (dag: number, rest: Partial<OverzichtRegel> = {}) =>
+    regel('Verkoop donateurskaarten', `2027-01-${String(dag).padStart(2, '0')}`, rest);
+
+  it('maakt van vijf dagen met dezelfde taak één reeks, op de plek van de eerste dag', () => {
+    const items = groepeerRegels([verkoop(4), verkoop(5), verkoop(6), verkoop(7), verkoop(8)]);
+    expect(items).toHaveLength(1);
+    expect(items[0]?.soort).toBe('reeks');
+    if (items[0]?.soort === 'reeks') expect(items[0].regels).toHaveLength(5);
+  });
+
+  it('laat twee dagen los', () => {
+    expect(groepeerRegels([verkoop(4), verkoop(5)]).map((i) => i.soort)).toEqual(['enkel', 'enkel']);
+  });
+
+  it('voegt niet samen wat een andere taak heeft: dan is er per dag iets anders te doen', () => {
+    const items = groepeerRegels([
+      verkoop(4),
+      verkoop(5, { taak: '2 werkers indelen' }),
+      verkoop(6),
+      verkoop(7, { taak: null }),
+    ]);
+    expect(items.every((i) => i.soort === 'enkel')).toBe(true);
+  });
+
+  it('voegt niet samen wat een andere aanwezigheid heeft', () => {
+    const items = groepeerRegels([
+      verkoop(4, { taak: null, aanwezigheid: '30 aanwezig', status: 'gepubliceerd' }),
+      verkoop(5, { taak: null, aanwezigheid: '29 aanwezig', status: 'gepubliceerd' }),
+      verkoop(6, { taak: null, aanwezigheid: '30 aanwezig', status: 'gepubliceerd' }),
+    ]);
+    expect(items.every((i) => i.soort === 'enkel')).toBe(true);
+  });
+
+  it('houdt een andere activiteit tussendoor op zijn plek en laat de reeks zijn plek', () => {
+    const vergadering = regel('Bestuursvergadering', '2027-01-05', { taak: '1 werker indelen' });
+    const items = groepeerRegels([verkoop(4), vergadering, verkoop(5), verkoop(6)]);
+    expect(items.map((i) => i.soort)).toEqual(['reeks', 'enkel']);
   });
 });
