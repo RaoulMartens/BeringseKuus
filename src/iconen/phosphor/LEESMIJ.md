@@ -12,3 +12,5 @@ Besluit 30-10-2026: een open set in plaats van de Central-iconen (die niet in ee
 - **Een icoon erbij of wisselen:** zet het bestand onder zijn Phosphor-naam in `regular/` (en `bold/`), zet de Nederlandse
   naam in `ICONEN` in het script, draai `node scripts/maak-iconen.ts`, en voeg het toe aan niets anders: de test controleert
   dat elk bestand wordt gebruikt en elk gebruikt icoon zijn bestand heeft.
+
+Rol-iconen erbij (13-11-2026, zelfde commit): `beer-bottle` (tapper), `fork-knife` (buffet), `wine` (ober), `ticket` (bonnenkassa).

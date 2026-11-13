@@ -42,6 +42,11 @@ export const ICONEN: Record<string, { phosphor: string; gewichten: readonly Gewi
   'rol-werker': { phosphor: 'hammer', gewichten: ['regular'] },
   'rol-drankhaler': { phosphor: 'beer-stein', gewichten: ['regular'] },
   'rol-fotograaf': { phosphor: 'camera', gewichten: ['regular'] },
+  // De vier soorten werk met een eigen icoon (voorheen de hamer van de werker): tapper, buffet, ober en bonnenkassa.
+  'rol-tapper': { phosphor: 'beer-bottle', gewichten: ['regular'] },
+  'rol-buffet': { phosphor: 'fork-knife', gewichten: ['regular'] },
+  'rol-ober': { phosphor: 'wine', gewichten: ['regular'] },
+  'rol-bonnenkassa': { phosphor: 'ticket', gewichten: ['regular'] },
   'rol-bob': { phosphor: 'steering-wheel', gewichten: ['regular'] },
   'rol-eindverantwoordelijke': { phosphor: 'shield', gewichten: ['regular'] },
   groep: { phosphor: 'users-three', gewichten: ['regular'] },

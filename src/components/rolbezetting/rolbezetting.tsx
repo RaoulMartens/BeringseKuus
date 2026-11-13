@@ -16,9 +16,13 @@ const ICOON: Partial<Record<string, IcoonNaam>> = {
   werker: 'rol-werker',
   drankhaler: 'rol-drankhaler',
   fotograaf: 'rol-fotograaf',
+  tapper: 'rol-tapper',
+  buffet: 'rol-buffet',
+  ober: 'rol-ober',
+  bonnenkassa: 'rol-bonnenkassa',
 };
 
-/** Het icoon van een rol. Tapper, buffet, ober, bonnenkassa en een rol die hier niet staat, zijn werk: het icoon van de werker. */
+/** Het icoon van een rol. Een rol die hier niet staat (een eigen rol) is werk: het icoon van de werker. */
 export function rolIcoon(rol: string): IcoonNaam {
   return ICOON[rol] ?? 'rol-werker';
 }
