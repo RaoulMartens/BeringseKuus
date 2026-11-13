@@ -116,6 +116,8 @@ export default async function Beheer({
     gepubliceerd?: string | string[];
     verwijderd?: string | string[];
     aangemaakt?: string | string[];
+    reekswijzigd?: string | string[];
+    reekspubliceerd?: string | string[];
   }>;
 }) {
   await eisBeheer();
@@ -127,6 +129,9 @@ export default async function Beheer({
   const verwijderd = z.uuid().safeParse(parameters.verwijderd);
   // Na "N concepten aanmaken": het aantal (meerdere activiteiten tegelijk, UC-006). Alleen een getal; verder niets in de adresbalk.
   const aangemaakt = z.coerce.number().int().min(1).max(200).safeParse(parameters.aangemaakt);
+  // Na "Opslaan als concept" of "Alle N dagen publiceren" bij een reeks: alleen het aantal dagen.
+  const reekswijzigd = z.coerce.number().int().min(1).max(50).safeParse(parameters.reekswijzigd);
+  const reekspubliceerd = z.coerce.number().int().min(1).max(50).safeParse(parameters.reekspubliceerd);
   const supabase = await maakSupabase();
   const teBevestigen = aantalTeBevestigen(await leesBeheerderslijst(supabase));
 
@@ -224,6 +229,17 @@ export default async function Beheer({
           Meerdere aanmaken
         </Knop>
       </div>
+      {reekswijzigd.success && (
+        <Melding soort="succes">
+          <strong>{reekswijzigd.data} dagen bijgewerkt.</strong> Leden zien ze pas als je publiceert.
+        </Melding>
+      )}
+      {reekspubliceerd.success && (
+        <Melding soort="succes">
+          <strong>{reekspubliceerd.data} dagen gepubliceerd.</strong> Leden zien ze nu. Er gaat nog geen
+          bericht uit.
+        </Melding>
+      )}
       {aangemaakt.success && (
         <Melding soort="succes">
           <strong>
