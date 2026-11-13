@@ -48,8 +48,22 @@ export async function leesGroepen(supabase: Supabase): Promise<{ groepen: Groep[
   };
 }
 
-/** De groepen waar dit lid in zit; een beheerder leest ook zijn eigen koppelingen (lid_groep, eigen_of_beheerder). */
+/**
+ * De groepen waar dit lid in zit; een beheerder leest ook zijn eigen koppelingen (lid_groep, eigen_of_beheerder). Een beheeraccount
+ * (alleen_beheer) ziet als lid alles (lid_mag_zien), dus voor hem zijn dat alle groepen.
+ */
 export async function leesEigenGroepen(supabase: Supabase, lidId: string): Promise<string[]> {
+  const { data: lid, error: lidFout } = await supabase
+    .from('leden')
+    .select('alleen_beheer')
+    .eq('id', lidId)
+    .maybeSingle();
+  if (lidFout) throw new Error(`lid niet te lezen: ${lidFout.code ?? lidFout.message}`);
+  if (lid?.alleen_beheer) {
+    const { data: alle, error } = await supabase.from('groepen').select('id');
+    if (error) throw new Error(`groepen niet te lezen: ${error.code ?? error.message}`);
+    return alle.map((groep) => groep.id);
+  }
   const { data, error } = await supabase.from('lid_groep').select('groep_id').eq('lid_id', lidId);
   if (error) throw new Error(`eigen groepen niet te lezen: ${error.code ?? error.message}`);
   return data.map((regel) => regel.groep_id);
