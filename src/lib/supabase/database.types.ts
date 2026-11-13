@@ -702,6 +702,15 @@ export type Database = {
       meld_af: { Args: { p_activiteit_id: string; p_toelichting?: string }; Returns: Json };
       ruil_dienst: { Args: { p_rol_slot_id: string; p_vervanger_id: string }; Returns: Json };
       trek_afmelding_in: { Args: { p_activiteit_id: string }; Returns: Json };
+      wie_komt_er: {
+        Args: { p_activiteit_id: string };
+        Returns: {
+          achternaam: string;
+          komt: boolean;
+          lid_id: string;
+          voornaam: string;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

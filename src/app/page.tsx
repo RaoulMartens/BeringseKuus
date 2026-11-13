@@ -4,6 +4,7 @@ import { Jouwstatus } from '@/components/jouwstatus/jouwstatus';
 import { Kaart } from '@/components/kaart/kaart';
 import { Knop } from '@/components/knop/knop';
 import { Schermkader } from '@/components/schermkader/schermkader';
+import { WieKomter } from '@/components/wiekomter/wiekomter';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { dagLabel, kiesWelkom } from '@/lib/ledenactiviteit';
 import { splitsDiensten } from '@/lib/mijndiensten';
@@ -14,7 +15,7 @@ import { VERENIGING } from '@/lib/vereniging';
 
 import { Activiteitblok, maakStatusRegel } from './activiteitblok';
 import { Dienstenkaart } from './dienstenkaart';
-import { leesIndelingen, leesKomendeActiviteiten } from './ledenactiviteit';
+import { leesIndelingen, leesKomendeActiviteiten, leesWieKomtEr } from './ledenactiviteit';
 import { leesDiensten } from './programma/mijn/gegevens';
 import stijl from './ledenscherm.module.css';
 
@@ -59,11 +60,23 @@ export default async function Startpagina() {
     );
   }
 
-  const indelingen = await leesIndelingen(
-    supabase,
-    activiteiten.map((a) => a.id),
-    gebruiker.lidId,
-  );
+  const activiteitIds = activiteiten.map((a) => a.id);
+  const [indelingen, rasters] = await Promise.all([
+    leesIndelingen(supabase, activiteitIds, gebruiker.lidId),
+    leesWieKomtEr(supabase, activiteitIds, gebruiker.lidId),
+  ]);
+  // Wie komt er (UC-010): onder de status, per activiteit; op een telefoon onderaan, na de rolbezetting.
+  const wieKomter = activiteiten.map((activiteit) => {
+    const raster = rasters.get(activiteit.id);
+    return raster ? (
+      <WieKomter
+        key={activiteit.id}
+        raster={raster}
+        activiteit={activiteit.naam}
+        metNaam={activiteiten.length > 1}
+      />
+    ) : null;
+  });
   const regels = activiteiten.flatMap((activiteit) => {
     const indeling = indelingen.get(activiteit.id);
     return indeling
@@ -88,6 +101,7 @@ export default async function Startpagina() {
         <div className={stijl.nietOpMobiel}>
           <Jouwstatus regels={regels} />
           {dienstenkaart}
+          {wieKomter}
         </div>
       }
     >
@@ -109,6 +123,7 @@ export default async function Startpagina() {
           />
         ) : null;
       })}
+      <div className={stijl.alleenMobiel}>{wieKomter}</div>
     </Schermkader>
   );
 }

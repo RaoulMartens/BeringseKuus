@@ -1,0 +1,115 @@
+/* "Wie komt er?", overgenomen uit docs/visueel/stijl.css (".wf-komt-er", ".wf-lid"). Het bolletje is er voor het overzicht; de
+   naam staat bij hover en focus. De rand bij focus is er alleen voor het toetsenbord (focus-visible), niet bij hover of tikken. */
+.kaart {
+  background: var(--neutraal-kaart);
+  border-radius: var(--radius-card);
+  padding: var(--padding-card);
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  margin: 0;
+  font: 700 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.activiteit {
+  margin: 2px 0 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.telling {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.telling strong {
+  color: var(--neutraal-tekst);
+  font-size: 1.125rem;
+}
+
+.leden {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lid {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--status-succes-tint);
+  color: var(--status-succes-tekst);
+  font: 700 0.6875rem/1 var(--font-tekst);
+  letter-spacing: 0.02em;
+  cursor: default;
+}
+
+.af {
+  background: transparent;
+  border: 1.5px dashed var(--neutraal-lijn-sterk);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.lid:hover,
+.lid:focus {
+  z-index: 1;
+  outline: none;
+}
+
+.lid:focus-visible {
+  outline: 2px solid var(--thema-primair);
+  outline-offset: 2px;
+}
+
+.lid[data-naam]:hover::after,
+.lid[data-naam]:focus::after {
+  content: attr(data-naam);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: var(--radius-control);
+  background: var(--neutraal-tekst);
+  color: #fff;
+  font: 600 0.8125rem/1.3 var(--font-tekst);
+  letter-spacing: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.legenda {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 0.8125rem;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.legenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.klein {
+  width: 12px;
+  height: 12px;
+}
+
+.af.klein {
+  border-width: 1px;
+}
