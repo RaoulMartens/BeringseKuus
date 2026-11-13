@@ -1,4 +1,4 @@
-// Meerdere dagen van een reeks tegelijk bewerken (migratie 20261113110000, UX-FLOWS.md "Reeksen"): dezelfde tijden, plaats, notitie,
+// Meerdere dagen van een reeks tegelijk bewerken (migratie 20261113150000, UX-FLOWS.md "Reeksen"): dezelfde tijden, plaats, notitie,
 // doelgroep en eindverantwoordelijke voor alle dagen in één keer invullen, en eventueel alle dagen tegelijk publiceren. Alles hier
 // is zuivere logica zonder database of scherm: wat de dagen gemeen hebben, wat de beheerder werkelijk verandert, en de
 // foutteksten per dag. De controles zelf doet de database, per dag, met activiteit_opslaan.

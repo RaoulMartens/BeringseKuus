@@ -1,4 +1,4 @@
--- Databasetests voor meerdere dagen tegelijk bewerken (migratie 20261113110000): wie het mag, dat alle dagen dezelfde gegevens
+-- Databasetests voor meerdere dagen tegelijk bewerken (migratie 20261113150000): wie het mag, dat alle dagen dezelfde gegevens
 -- krijgen, publiceren van alle dagen tegelijk, en dat het alles of niets is. Draaien met: npm run test:db. Alles in één
 -- transactie die wordt teruggedraaid. Alleen eigen namen ("T ...").
 
