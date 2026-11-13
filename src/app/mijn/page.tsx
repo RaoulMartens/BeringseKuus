@@ -7,7 +7,9 @@ import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { huidigeGebruiker } from '@/lib/gebruiker';
+import { jeBent } from '@/lib/jebent';
 import { huidigeAuthGebruiker } from '@/lib/sessie';
+import { maakSupabase } from '@/lib/supabase/server';
 
 import { logUit } from './acties';
 import stijl from './mijn.module.css';
@@ -37,6 +39,18 @@ export default async function MijnAccount() {
     );
   }
 
+  // De groepen waar je in zit (Bestuur, Raad van Elf, …): ze bepalen welke activiteiten je ziet (R22). Op volgorde van de groepen.
+  const supabase = await maakSupabase();
+  const { data: koppelingen, error } = await supabase
+    .from('lid_groep')
+    .select('groepen(naam, volgorde)')
+    .eq('lid_id', gebruiker.lidId);
+  if (error) throw new Error(`groepen niet te lezen: ${error.code ?? error.message}`);
+  const groepen = koppelingen
+    .flatMap((koppeling) => (koppeling.groepen ? [koppeling.groepen] : []))
+    .sort((a, b) => a.volgorde - b.volgorde)
+    .map((groep) => groep.naam);
+
   return (
     <Schermkader titel="Mijn account" terug={{ href: '/', tekst: 'Terug naar start' }}>
       <Kaart>
@@ -53,7 +67,7 @@ export default async function MijnAccount() {
           </div>
           <div>
             <dt>Je bent</dt>
-            <dd>{gebruiker.isBeheerder ? 'Lid en bestuurslid' : 'Lid'}</dd>
+            <dd>{jeBent(groepen, gebruiker.isBeheerder)}</dd>
           </div>
         </dl>
         <form action={logUit}>
