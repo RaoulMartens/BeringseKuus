@@ -113,6 +113,100 @@ function perMaand(lijst: ProgrammaActiviteit[]): Maand[] {
   return maanden;
 }
 
+/**
+ * Een reeks: dezelfde activiteit op meerdere opeenvolgende dagen, zoals het verkopen van donateurskaarten van maandag tot
+ * en met vrijdag. Zo'n reeks is in het programma één rij, met de losse dagen eronder. Zonder dit staat dezelfde naam
+ * vijf keer onder elkaar en lijkt het programma een lijst met fouten.
+ */
+export interface Reeks {
+  naam: string;
+  status: ActiviteitStatus;
+  /** Op volgorde van datum, minstens MIN_REEKS. */
+  activiteiten: ProgrammaActiviteit[];
+}
+
+/** Een rij in het programma: een enkele activiteit, of een reeks. */
+export type ProgrammaItem =
+  { soort: 'enkel'; activiteit: ProgrammaActiviteit } | { soort: 'reeks'; reeks: Reeks };
+
+/**
+ * Vanaf hoeveel opeenvolgende dagen het een reeks is. Twee dagen (een vrijdag en een zaterdag met dezelfde naam) zijn twee
+ * avonden die elk hun eigen rij verdienen; bij drie of meer is het één terugkerende activiteit.
+ */
+export const MIN_REEKS = 3;
+
+function dagenTussen(van: string, tot: string): number {
+  return Math.round((alsDatum(tot).getTime() - alsDatum(van).getTime()) / 86_400_000);
+}
+
+/**
+ * Voegt dezelfde activiteit op opeenvolgende dagen samen tot één rij. Dezelfde activiteit is: dezelfde naam, status, starttijd
+ * en locatie. Een reeks staat op de plek van zijn eerste dag; de overige dagen verdwijnen uit de lijst (ze zitten in de reeks).
+ * Een andere activiteit tussendoor (een vergadering op dag 2) breekt de reeks niet: die telt per soort activiteit.
+ */
+export function groepeerReeksen(lijst: ProgrammaActiviteit[]): ProgrammaItem[] {
+  const perSoort = new Map<string, ProgrammaActiviteit[]>();
+  for (const a of lijst) {
+    const sleutel = [a.naam, a.status, a.starttijd ?? '', a.locatie ?? ''].join('\u0000');
+    perSoort.set(sleutel, [...(perSoort.get(sleutel) ?? []), a]);
+  }
+
+  const reeksVanEerste = new Map<string, ProgrammaActiviteit[]>();
+  const inReeks = new Set<string>();
+  for (const groep of perSoort.values()) {
+    const opDatum = [...groep].sort((x, y) => (x.datum < y.datum ? -1 : x.datum > y.datum ? 1 : 0));
+    let lopend: ProgrammaActiviteit[] = [];
+    const sluit = () => {
+      if (lopend.length >= MIN_REEKS && lopend[0]) {
+        reeksVanEerste.set(lopend[0].id, lopend);
+        for (const a of lopend) inReeks.add(a.id);
+      }
+      lopend = [];
+    };
+    for (const a of opDatum) {
+      const vorige = lopend[lopend.length - 1];
+      if (vorige && dagenTussen(vorige.datum, a.datum) !== 1) sluit();
+      lopend.push(a);
+    }
+    sluit();
+  }
+
+  const items: ProgrammaItem[] = [];
+  for (const a of lijst) {
+    const reeks = reeksVanEerste.get(a.id);
+    if (reeks) items.push({ soort: 'reeks', reeks: { naam: a.naam, status: a.status, activiteiten: reeks } });
+    else if (!inReeks.has(a.id)) items.push({ soort: 'enkel', activiteit: a });
+  }
+  return items;
+}
+
+/**
+ * De periode van een reeks voor een schermlezer: "ma 4 t/m vr 8 januari". Zichtbaar staat de periode in het datumblok
+ * ("4–8", "MA–VR"); in de tekst herhalen we haar niet.
+ */
+export function reeksDatum(reeks: Reeks): string {
+  const eerste = reeks.activiteiten[0];
+  const laatste = reeks.activiteiten[reeks.activiteiten.length - 1];
+  if (!eerste || !laatste) throw new Error('lege reeks');
+  const van = dagTekst(eerste.datum);
+  const tot = dagTekst(laatste.datum);
+  const maand = tot.lang.split(' ').slice(2).join(' ');
+  // Dezelfde maand: "ma 4 t/m vr 8 januari"; een reeks die de maandgrens kruist krijgt de maand twee keer.
+  const vanTekst = van.lang.split(' ').slice(2).join(' ') === maand ? `${van.weekdag} ${van.dag}` : van.lang;
+  return `${vanTekst} t/m ${tot.lang}`;
+}
+
+/**
+ * De regel onder de naam van een reeks: tijd en plaats, zoals bij elke andere rij. Die zijn voor alle dagen gelijk (anders was
+ * het geen reeks). Het aantal dagen staat niet in de tekst: het datumblok toont de periode ("4–8"). Leeg als er geen tijd en
+ * plaats zijn.
+ */
+export function reeksRegel(reeks: Reeks): string {
+  const eerste = reeks.activiteiten[0];
+  if (!eerste) throw new Error('lege reeks');
+  return regelOnderNaam(eerste);
+}
+
 /** Is de activiteit geweest op dit moment? Het exacte eindmoment telt als geweest (R16). */
 export function isGeweest(activiteit: Pick<ProgrammaActiviteit, 'eindigtOm'>, nu: Date): boolean {
   const einde = Date.parse(activiteit.eindigtOm);

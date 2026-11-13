@@ -5,9 +5,9 @@ import { Datumblok } from '@/components/datumblok/datumblok';
 import { Kaart } from '@/components/kaart/kaart';
 import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Schermkader } from '@/components/schermkader/schermkader';
-import { Statuslabel } from '@/components/statuslabel/statuslabel';
 import {
   dagTekst,
+  groepeerReeksen,
   isActiviteitStatus,
   maakProgramma,
   programmaLink,
@@ -23,6 +23,8 @@ import { maakSupabase } from '@/lib/supabase/server';
 
 import { leesDiensten } from './mijn/gegevens';
 import stijl from './programma.module.css';
+import { Reeksrij } from './reeks';
+import { Rijstatus } from './rijstatus';
 import { Programmawisselaar } from './wisselaar';
 
 export const metadata: Metadata = { title: 'Programma – Ledenplatform' };
@@ -49,7 +51,19 @@ function Maandkaart({
   return (
     <Kaart titel={maand.titel} kop={kop} lijst>
       <Lijst>
-        {maand.activiteiten.map((activiteit) => {
+        {groepeerReeksen(maand.activiteiten).map((item) => {
+          if (item.soort === 'reeks') {
+            return (
+              <Reeksrij
+                key={item.reeks.activiteiten[0]?.id}
+                reeks={item.reeks}
+                vandaag={vandaag}
+                geweest={geweest}
+                zichtbaarAlsLid={zichtbaarAlsLid}
+              />
+            );
+          }
+          const activiteit = item.activiteit;
           const dag = dagTekst(activiteit.datum);
           const regel = regelOnderNaam(activiteit);
           return (
@@ -58,15 +72,20 @@ function Maandkaart({
               uitgeschakeld={geweest}
               href={programmaLink(activiteit, zichtbaarAlsLid.has(activiteit.id))}
             >
-              <Datumblok {...dag} vandaag={activiteit.datum === vandaag} />
-              <span className={stijl.tekst}>
-                <strong className={stijl.naam}>{activiteit.naam}</strong>
-                {regel && <span className={stijl.regel}>{regel}</span>}
+              <span className={stijl.rijInhoud}>
+                <Datumblok {...dag} vandaag={activiteit.datum === vandaag} />
+                <span className={stijl.kolom}>
+                  <span className={stijl.tekst}>
+                    <strong className={stijl.naam}>{activiteit.naam}</strong>
+                    {regel && <span className={stijl.regel}>{regel}</span>}
+                  </span>
+                  {activiteit.status !== 'gepubliceerd' && (
+                    <span className={stijl.label}>
+                      <Rijstatus status={activiteit.status} />
+                    </span>
+                  )}
+                </span>
               </span>
-              {activiteit.status === 'concept' && <Statuslabel status="concept">Concept</Statuslabel>}
-              {activiteit.status === 'geannuleerd' && (
-                <Statuslabel status="geannuleerd">Geannuleerd</Statuslabel>
-              )}
             </Lijstrij>
           );
         })}

@@ -41,3 +41,22 @@
   color: var(--status-fout-tekst);
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--status-fout) 35%, transparent);
 }
+
+/* Een label onder de tekst van een lijstrij op een telefoon: kleiner, zodat de rij strak blijft (programma). */
+@media (max-width: 700px) {
+  .compactOpTelefoon {
+    gap: 6px;
+    font-size: 0.75rem;
+    line-height: 1.3333;
+    padding: 3px 10px 3px 8px;
+  }
+
+  .compactOpTelefoon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .compactOpTelefoon.zonderIcoon {
+    padding-left: 10px;
+  }
+}

@@ -23,7 +23,11 @@ test.beforeAll(() => {
       ('${naam('komend')}', current_date + 5, '18:30', '23:00', 'Testlocatie', 'gepubliceerd'),
       ('${naam('geweest')}', current_date - 5, '20:00', '23:00', 'Testlocatie', 'gepubliceerd'),
       ('${naam('bestuur')}', current_date + 6, '20:00', '23:00', 'Testlocatie', 'gepubliceerd'),
-      ('${naam('concept')}', current_date + 7, null, null, null, 'concept');
+      ('${naam('concept')}', current_date + 7, null, null, null, 'concept'),
+      ('${naam('reeks')}', current_date + 20, '10:00', '12:00', 'Testlocatie', 'gepubliceerd'),
+      ('${naam('reeks')}', current_date + 21, '10:00', '12:00', 'Testlocatie', 'gepubliceerd'),
+      ('${naam('reeks')}', current_date + 22, '10:00', '12:00', 'Testlocatie', 'gepubliceerd'),
+      ('${naam('reeks')}', current_date + 23, '10:00', '12:00', 'Testlocatie', 'gepubliceerd');
     insert into public.activiteit_groep (activiteit_id, groep_id)
       select a.id, g.id from public.activiteiten a, public.groepen g
        where a.naam = '${naam('bestuur')}' and g.naam = 'Bestuur';
@@ -83,6 +87,25 @@ test('een lid ziet gepubliceerde activiteiten, geen concept en niets voor een an
     page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }),
   ).toHaveCount(0);
   await expect(page.getByRole('link', { name: /^Mijn account \(/ })).toBeVisible();
+});
+
+test('dezelfde activiteit op meerdere opeenvolgende dagen is één rij die opengaat', async ({ page }) => {
+  await logInAlsLid(page);
+  await page.goto('/programma');
+
+  // Eén rij voor de reeks, niet vier keer dezelfde naam onder elkaar.
+  const reeks = page.locator('summary').filter({ hasText: naam('reeks') });
+  await expect(reeks).toHaveCount(1);
+  await expect(reeks).toContainText('t/m');
+  await expect(page.getByText(naam('reeks'))).toHaveCount(1);
+
+  // Opengeklapt staan de losse dagen er, elk een link naar de activiteit zelf.
+  await reeks.click();
+  const dagen = page.locator('details', { has: reeks }).getByRole('link');
+  await expect(dagen).toHaveCount(4);
+  await dagen.first().click();
+  await expect(page).toHaveURL(/\/programma\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(naam('reeks'));
 });
 
 test('een beheerder met een code ziet ook het concept en de activiteit voor het bestuur', async ({
