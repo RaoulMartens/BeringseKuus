@@ -45,6 +45,17 @@ export function Beheerreeks({ regels }: { regels: OverzichtRegel[] }) {
           <Icoon naam="chevron-omlaag" className={stijl.chevron} />
         </summary>
         <ul className={stijl.dagen}>
+          {eerste.status === 'concept' && (
+            <li>
+              <Link
+                href={`/beheer/activiteiten/reeks?ids=${regels.map((regel) => regel.id).join(',')}`}
+                className={[stijl.dagRij, stijl.alle].join(' ')}
+              >
+                <span>Alle {regels.length} dagen bewerken</span>
+                <Icoon naam="chevron-rechts" className={stijl.chevronRechts} />
+              </Link>
+            </li>
+          )}
           {regels.map((regel) => (
             <li key={regel.id}>
               <Link href={`/beheer/activiteiten/${regel.id}`} className={stijl.dagRij}>

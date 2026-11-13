@@ -79,3 +79,10 @@
   flex-shrink: 0;
   color: var(--neutraal-tekst-zacht);
 }
+
+/* "Alle N dagen bewerken": de eerste regel onder de reeks, vet, met een lijn eronder. */
+.alle {
+  font-weight: 600;
+  border-bottom: 1px solid var(--neutraal-lijn);
+  margin-bottom: 4px;
+}

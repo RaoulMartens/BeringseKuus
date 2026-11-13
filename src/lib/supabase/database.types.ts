@@ -678,6 +678,15 @@ export type Database = {
       };
       activiteit_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
       activiteiten_bulk_aanmaken: { Args: { p_aanmaak_id: string; p_regels: Json }; Returns: Json };
+      activiteiten_bulk_wijzigen: {
+        Args: {
+          p_activiteiten: Json;
+          p_eindverantwoordelijke?: string;
+          p_publiceren?: boolean;
+          p_velden?: Json;
+        };
+        Returns: Json;
+      };
       beheerder_bevestigen: { Args: { p_app_id: string; p_lid_id: string }; Returns: Json };
       beheerder_intrekken: { Args: { p_lid_id: string }; Returns: Json };
       beheerder_kandidaten: {

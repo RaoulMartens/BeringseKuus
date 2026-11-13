@@ -154,11 +154,12 @@ test('dezelfde activiteit met dezelfde taak op vier dagen na elkaar is één rij
   await expect(page.getByText(naam)).toHaveCount(1);
   await expect(samenvatting).toContainText('t/m');
 
-  // Opengeklapt staan de vier dagen er, elk een link naar zijn eigen activiteit in beheer.
+  // Opengeklapt staat eerst "Alle 4 dagen bewerken" (een concept-reeks), dan de vier dagen, elk een link naar zijn eigen activiteit.
   await samenvatting.click();
   const dagen = page.locator('details', { has: samenvatting }).getByRole('link');
-  await expect(dagen).toHaveCount(4);
-  await dagen.first().click();
+  await expect(dagen).toHaveCount(5);
+  await expect(dagen.first()).toHaveText('Alle 4 dagen bewerken');
+  await dagen.nth(1).click();
   await expect(page).toHaveURL(/\/beheer\/activiteiten\/[0-9a-f-]{36}$/);
 });
 
