@@ -17,7 +17,7 @@ iemand ermee zou kunnen doen.
 - De code in deze repository.
 - De app die uit deze code wordt gebouwd, zodra die in gebruik is.
 
-Niet: problemen bij Supabase, Cloudflare, Resend of GitHub zelf (meld die bij die partij), aanvallen die alleen
+Niet: problemen bij Supabase, Cloudflare, Postmark of GitHub zelf (meld die bij die partij), aanvallen die alleen
 werken door de site plat te leggen, en misleiding van mensen (phishing, social engineering).
 
 ## Wat je kunt verwachten

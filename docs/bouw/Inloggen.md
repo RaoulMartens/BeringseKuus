@@ -4,8 +4,12 @@ Een lid vult zijn e-mailadres in, ontvangt een cijfercode en voert die op de web
 De code vervangt de normale inloglink: de mail bevat geen URL die Outlook kan blokkeren. Dit verandert de extra
 beveiligingsstap voor het bestuur niet.
 
-**Besluit 30-10-2026:** de bouwer kiest voor mailcodes en tijdelijk de bestaande Gmail-mailbox als afzender, zodat een
-kijkproef zonder eigen verzenddomein mogelijk is. De geldigheid is op verzoek 24 uur voor het ontwikkelproject. Deze
+**Stand 13-11-2026: de inlogmail gaat via Postmark** (zie "Via Postmark" hieronder), niet meer via Gmail. De afzender is
+tijdelijk een adres op het domein van het bedrijf van de begeleider; het besluit over een eigen afzenderdomein voor het platform
+ligt nog open (voorstel van de begeleider: één domein voor het platform, met een eigen domein per vereniging als keuze).
+
+**Besluit 30-10-2026 (voor de kijkproef, inmiddels vervangen door Postmark):** de bouwer kiest voor mailcodes en tijdelijk de
+bestaande Gmail-mailbox als afzender, zodat een kijkproef zonder eigen verzenddomein mogelijk is. De geldigheid is op verzoek 24 uur voor het ontwikkelproject. Deze
 Supabase-instelling geldt ook voor andere e-maillinks, zoals herstellen en bevestigen; het is geen uitzondering per lid.
 
 ## Hoe het werkt
@@ -48,7 +52,28 @@ zo'n link niet, alleen de bevestigingsknop.
 - **Authentication, Emails, SMTP Settings:** een werkende SMTP-provider. De standaardmail van Supabase is alleen
   voor organisatieleden en is geen algemene verzending naar leden.
 
-### Tijdelijk via een bestaande Gmail-mailbox
+### Via Postmark (sinds 11-11-2026)
+
+Supabase verstuurt de inlogmail via de SMTP-server van Postmark. De gegevens staan alleen in Supabase (Authentication, Emails,
+SMTP Settings) en komen nooit in de repository, in logs of in een chat.
+
+| Instelling | Waarde |
+| --- | --- |
+| Sender email address | Een adres op het geverifieerde afzenderdomein (tijdelijk dat van het bedrijf van de begeleider) |
+| Sender name | Ledenplatform |
+| Host | smtp.postmarkapp.com |
+| Port | 587 |
+| Username en password | De SMTP-gegevens van de Postmark-server (het server-token); het wachtwoord staat alleen in Supabase |
+| Rate limit for sending emails | 100 per uur (Authentication, Rate Limits; de standaard van 30 is te laag als leden na een uitnodiging tegelijk inloggen) |
+
+Op 11-11-2026 is gecontroleerd dat een inlogcode bij een Gmail-adres aankomt, in de inbox en niet in de spam, en dat de mail door
+het afzenderdomein is ondertekend (DKIM) en via het bounce-adres van Postmark loopt. Het Postmark-token vervang je zoals in
+`docs/hosting.md` ("Geheimen") staat: eerst het nieuwe in Supabase zetten, dán het oude intrekken.
+
+Wat dit **niet** is: berichten aan leden (bij publiceren, wijzigen of verwijderen) bestaan nog niet; alleen de inlogmail gaat uit.
+Het besluit daarover staat open (O-1).
+
+### Eerder: een bestaande Gmail-mailbox (ontwikkelproef)
 
 Een eigen domein is hiervoor niet nodig. De eigenaar van de Gmail-mailbox maakt zelf een Google-appwachtwoord aan
 (tweestapsverificatie vereist) en vult dit rechtstreeks in Supabase in. Het wachtwoord komt nooit in de repository,
@@ -63,9 +88,8 @@ logs of chats.
 | Username | Het volledige Gmail-adres |
 | Password | Het Google-appwachtwoord |
 
-Gmail is hier voor een kleine ontwikkelproef, met de verzendgrenzen en afleverbaarheid van die mailbox. Voor breder
-gebruik wordt de verzenddienst opnieuw gekozen. Resend blijft ook mogelijk: de testafzender op `resend.dev` mag
-alleen naar het eigen account mailen; voor andere ontvangers vraagt Resend een geverifieerd verzenddomein.
+Gmail was bedoeld voor een kleine ontwikkelproef, met de verzendgrenzen en afleverbaarheid van die mailbox. Voor de pilot is
+daarom Postmark gekozen (besluit van de begeleider, 05-11-2026); Resend is daarmee niet meer de bedoelde dienst.
 
 ## Controleren
 

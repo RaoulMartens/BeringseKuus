@@ -130,7 +130,7 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
    Waar vind je de waarden: Supabase, het project, knop **Connect**, tabblad *.env.local*. Neem alleen de waarden
    over; de namen daar beginnen met `NEXT_PUBLIC_`, en die gebruikt deze app bewust niet (alles met `NEXT_PUBLIC_`
    gaat mee naar de browser). Neem de *publishable key* (`sb_publishable_…`), nooit de *secret key*.
-6. **Supabase online**, met de mailserver (Resend) eerst: zie `docs/bouw/Inloggen.md`, "Online instellen". Zonder
+6. **Supabase online**, met de mailserver (Postmark) eerst: zie `docs/bouw/Inloggen.md`, "Online instellen". Zonder
    eigen mailserver laat Supabase de mailtekst niet aanpassen, en zonder de eigen tekst (met `token_hash`) werkt
    inloggen niet.
 7. **Opnieuw uitrollen:** Actions, `uitrol`, de laatste run, **Re-run all jobs**. Groen = de nieuwe versie antwoordt
@@ -300,7 +300,7 @@ Claude maakt geen accounts aan en zet geen sleutels. De volgorde telt.
     - `delete from auth.sessions` en `delete from auth.mfa_factors` in de SQL Editor mogen online. De volledige
       herstelroute uit `Beheerders.md` is doorlopen: sessies weg, app weg, nieuwe app, controle, bevestigen, beheer.
     - Het gratis plan stuurt mail alleen naar adressen van mensen in de Supabase-organisatie en max. 30 per uur: voor
-      leden is een eigen mailserver (Resend, eigen domein) nodig, zoals de pilotvoorwaarden al zeggen (`Fase-1-plan` 2.7).
+      leden is een eigen mailserver (Postmark, eigen afzenderdomein) nodig, zoals de pilotvoorwaarden al zeggen (`Fase-1-plan` 2.7).
 
 **Het adres van de site staat op vier plekken.** Bij een nieuw adres (eigen domein, ander subdomein) alle vier
 aanpassen: de GitHub-variabele `SITE_URL`, het Worker-geheim `SITE_URL`, en in Supabase de Site URL en de Redirect
@@ -309,7 +309,8 @@ URL.
 ## Geheimen
 
 Alle geheimen en waar ze staan (review F0-12). Een sleutel die op twee plekken staat, vervang je op beide, en pas
-daarna trek je de oude in. Alle accounts (GitHub, Cloudflare, Supabase, Resend) staan nu op naam van de bouwer; een
+daarna trek je de oude in. Alle accounts (GitHub, Cloudflare, Supabase) staan nu op naam van de bouwer; wie het Postmark-account
+beheert, is nog te beslissen (zie `Inloggen.md`); een
 tweede beheerder komt er vóór de pilot (`Bouwbesluiten` 5.2), en wie dat wordt, wordt vóór fase 1 besloten.
 
 | Geheim | Waar het staat | Ontbreekt of klopt niet: wat gaat stuk | Vervangen | Verloopt |
@@ -318,7 +319,7 @@ tweede beheerder komt er vóór de pilot (`Bouwbesluiten` 5.2), en wie dat wordt
 | `VERBODEN_WOORDEN` (namen, geen sleutels) | GitHub: als Actions-geheim én als Dependabot-geheim; lokaal `.verboden-woorden` | `controle:repo` is rood: bij een gewone pull request zonder het Actions-geheim, bij een Dependabot-PR zonder het Dependabot-geheim | Beide geheimen tegelijk aanpassen (Settings, Secrets and variables, Actions en Dependabot) | Nee |
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Worker `ledenplatform` (type *Secret*) | Ontbreken: `/mijn` geeft een serverfout en de controle na de uitrol is rood. Kloppen ze niet: inloggen werkt niet, maar de controle blijft groen (punt 5 van "Hoe het werkt") | Supabase, API Keys: nieuwe *publishable key* maken, als geheim zetten, oude verwijderen | Nee |
 | `SITE_URL` | GitHub (variabele, omgeving `ontwikkel`), Worker `ledenplatform` (geheim), Supabase (Site URL en Redirect URL) | De inloglink wijst naar een verkeerd adres, of Supabase weigert hem | Alle vier plekken, zie hierboven | Nee |
-| Resend-sleutel voor de inlogmail | Supabase, Authentication, Emails, SMTP Settings (als wachtwoord) | Er komen geen inlogmails meer; leden kunnen niet inloggen | Resend, API Keys: nieuwe sleutel met *Sending access*, eerst in Supabase zetten, dán de oude intrekken (`docs/bouw/Inloggen.md`) | Nee |
+| Postmark-token voor de inlogmail | Supabase, Authentication, Emails, SMTP Settings (als wachtwoord) | Er komen geen inlogmails meer; leden kunnen niet inloggen | Postmark, de server, API Tokens: nieuw token, eerst in Supabase zetten, dán het oude intrekken (`docs/bouw/Inloggen.md`) | Nee |
 | `SUPABASE_DB_URL` (de verbinding met de database, met het wachtwoord erin) | GitHub, eigen omgeving `ontwikkel-database`; alleen de job `migraties` krijgt hem | De job `migraties` is rood, en de app rolt niet uit | Nieuw databasewachtwoord (hieronder), dan de string opnieuw maken zoals in stap 13 en het geheim vervangen | Nee |
 | Databasewachtwoord van Supabase | Wachtwoordmanager van de beheerder, en in `SUPABASE_DB_URL` | Migraties kunnen niet online | Supabase, Project Settings, Database, *Reset database password*; daarna `SUPABASE_DB_URL` vervangen | Nee |
 | `PROEF_AGENDA_TOKEN` | Worker `ledenplatform` | De proef-feed geeft voor elk token een 404 (zo hoort het na de proef) | Stap 11 | Verwijderd 29-10-2026 |
@@ -363,10 +364,10 @@ helpt hier niet. Supabase, het project: bovenaan staat dat het gepauzeerd is, me
 duurt een paar minuten; daarna werkt alles weer. Op Pro (vanaf de pilot) pauzeert een project niet.
 
 **Er komen geen inlogmails meer** (review F0-20). Eerst kijken waar het stokt: Supabase, Authentication, Rate Limits
-(hoeveel mails per uur Supabase verstuurt), en Resend, Logs (komt de mail daar aan, en met welke fout). Resend gratis
-verstuurt 100 mails per dag (`Bouwbesluiten` 3.2). Iemand die het formulier steeds opnieuw invult met adressen van
+(hoeveel mails per uur Supabase verstuurt; nu 100), en Postmark, Activity (komt de mail daar aan, en met welke fout). De grens van
+het Postmark-plan is nog na te lopen (`Bouwbesluiten` 3.2 ging uit van Resend). Iemand die het formulier steeds opnieuw invult met adressen van
 leden, kan die grens opmaken; er is nog geen CAPTCHA of eigen limiet. Voor 42 leden is dat nu acceptabel; vóór de
-pilot bekijken we Turnstile (Supabase ondersteunt het). Een ingetrokken of verlopen Resend-sleutel: zie Geheimen.
+pilot bekijken we Turnstile (Supabase ondersteunt het). Een ingetrokken of verlopen Postmark-token: zie Geheimen.
 
 **Een pull request van Dependabot** (review F0-04). Dependabot opent pull requests voor nieuwe versies. Die draaien
 dezelfde `check`, maar krijgen alleen Dependabot-geheimen: daarom staat `VERBODEN_WOORDEN` ook daar (Geheimen). Is

@@ -1,6 +1,6 @@
 // Maakt een eenmalige inloglink voor een lid van het ONLINE project, zonder dat er een mail voor nodig is. Bedoeld voor de
-// tijd dat de mailserver nog niet naar leden mag sturen (Resend zonder eigen domein: alleen naar het adres van het eigen
-// account), bijvoorbeeld om de opdrachtgever het platform te laten zien. De link geeft de ontvanger een sessie als dit lid.
+// tijd dat de mailserver nog niet naar leden mag sturen (toen: Resend zonder eigen domein, alleen naar het adres van het
+// eigen account; nu loopt de inlogmail via Postmark), bijvoorbeeld om de opdrachtgever het platform te laten zien. De link geeft de ontvanger een sessie als dit lid.
 // Stuur hem dus alleen privé naar die ene persoon (bijvoorbeeld een berichtje), nooit in een groep of een mail.
 //
 //   node scripts/maak-inloglink.ts naam@example.com

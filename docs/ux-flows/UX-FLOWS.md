@@ -387,6 +387,45 @@ De opdrachtgever gebruikt het in een eigen ontwerp voor het welkomscherm; de opd
   blokkadetekst naar de eindverantwoordelijke te laten verwijzen: die is per activiteit bekend.
 - Wat **"Kuus"** betekent, legt de site niet uit.
 
+## Beheerders beheren in de app (10-11-2026, voorstel goedgekeurd door de bouwer en gebouwd)
+
+**Aanleiding.** Voor de pilot moeten ongeveer tien bestuursleden beheerder worden. Beheerder worden gaat in twee stappen
+(`Beheerders.md`): iemand krijgt de rol en stelt zelf een authenticator-app in, en een **andere beheerder bevestigt** dat de
+app van die persoon is. Tot nu toe kon dat alleen met SQL door de bouwer. De bouwer wil dat niet voor iedereen zelf controleren;
+De opdrachtgever, die de mensen kent, kan dat in de app doen. De procedure verandert niet, alleen wie het doet en waar.
+
+**Schermen** (8, `ronde19_beheerders.py`): overzicht `admin-beheerders`, kiezen, beheerder maken bevestigen, toegang bevestigen,
+rechten intrekken bevestigen, en drie keer het overzicht met een melding. Ingang: kaart "Beheerders" in de zijkolom van het
+activiteitenoverzicht, met als regel de taak ("1 toegang bevestigen"), zoals "Vraagt aandacht" dat voor activiteiten doet.
+
+**Keuzes en onderbouwing**
+- *Sorteren op werk, in woorden.* "Vraagt aandacht" bovenaan met de taak ("Toegang bevestigen"), daaronder wie beheerder is. Zelfde logica als het activiteitenoverzicht.
+- *De controle blijft inhoudelijk.* De bevestigpagina toont de naam van de app, het moment en het aantal apps, precies wat de handleiding laat nalezen, met de waarschuwing het de persoon zelf te vragen, liever persoonlijk of telefonisch dan per mail of chat. Een knop die alleen "OK" zegt zou de controle waardeloos maken.
+- *Bevestigen op een eigen pagina* met werkwoord op de knop en Annuleren (consistentieregel "Bevestigen"); melding in de woorden van de knop (B3).
+- *Geen acties op je eigen regel.* Je kunt jezelf niet bevestigen of intrekken; daardoor kan de laatste beheerder ook niet verdwijnen.
+- *Geen bericht.* Het platform mailt niet bij het maken van een beheerder (berichten zijn nog niet gebouwd, O-1); het scherm zegt dat je het de persoon zelf vertelt.
+
+**Open punten**
+- De opdrachtgever of de begeleider moet bevestigen dat beheerders elkaars toegang in de app mogen goedkeuren (nu doet de bouwer dat met SQL).
+- Wie een beheerder mag *maken*: elke beheerder (voorstel) of alleen een tweede, aangewezen persoon.
+- Telefoon kwijt (`mfa-toestel-kwijt`): "de app losmaken" heeft hier nog geen eigen scherm; intrekken en opnieuw beginnen is de omweg.
+- Uitgewerkt als UC-009 (`use-cases.md`) en in de screen map. Gebouwd op 10-11-2026: zie `docs/bouw/Beheerders.md` in de repo, "In de app".
+
+## Reeksen in het programma (10-11-2026, gebouwd)
+
+**Aanleiding.** Het echte programma bevat activiteiten die elke dag terugkomen, zoals "Verkoop donateurskaarten" van maandag tot en met vrijdag. Als elke dag een eigen rij kreeg, stond dezelfde naam vijf keer onder elkaar en voelde de lijst slordig (de bouwer, 11-11-2026).
+
+**Keuze.** Dezelfde activiteit (naam, status, tijd en plaats gelijk) op **drie of meer opeenvolgende dagen** is één rij: datumblok "4–8 / MA–VR", de naam, en eronder "ma 4 t/m vr 8 januari · 5 dagen". De rij klapt open (`<details>`) met de losse dagen, elk een link naar de activiteit zelf.
+
+**Onderbouwing**
+- *Drie of meer.* Twee dagen met dezelfde naam, zoals de Bonte Avond op vrijdag en zaterdag, zijn twee avonden met elk hun eigen rij. Bij drie of meer is het één terugkerende activiteit.
+- *Alleen wat echt gelijk is.* Een afwijkende tijd, plaats of status breekt de reeks: dan weet een lid niet meer wat er klopt als alles onder één kop staat.
+- *Een andere activiteit tussendoor breekt de reeks niet.* Een vergadering op dag 2 hoort bij zijn eigen dag.
+- *Uitklappen, niet doorklikken.* Een lid wil snel zien hoe lang iets loopt en kiest pas dan een dag; `<details>` werkt met toetsenbord en zonder JavaScript.
+- *Alleen in het Programma.* Mijn diensten en de beheeroverzichten tonen per dienst of activiteit hun eigen regel.
+
+**Open.** De wireframes en de visuele versie (`docs/visueel/`) hebben deze rij nog niet; ze is alleen in de code gebouwd.
+
 ## Consistentieregels
 
 Getoetst op 25-09-2026 over alle schermen (`tools/inventaris.py` zet per scherm de knoppen,
@@ -516,6 +555,7 @@ staan met onderbouwing in [use-cases.md](use-cases.md) onder "Besloten punten".
 | Opslaan in één transactie: alles of niets, `verwachte_bezetter` per plek, publiceren in dezelfde stap | ✅ V6 (3.3, 4.4, 5.5) | ⏳ nog niet |
 | Databasefunctie `activiteiten_bulk_aanmaken` (UC-006): één transactie, drie controles | ⏳ nog niet | ⏳ nog niet |
 | Databasefunctie `concept_verwijderen` (UC-004 AF-10): alleen admin, alleen een concept, geen meldingen | ⏳ nog niet | ⏳ nog niet |
+| Externe helper: alleen een naam, ook als BOB, nooit eindverantwoordelijke (R17, 09-11-2026) | ⏳ nog niet (V9) | ⏳ nog niet |
 
 Het FO staat nog op V4. De bouwgids is wat de bouwer volgt en is daarom eerst bijgewerkt;
 het FO moet dezelfde punten krijgen zodat beide documenten hetzelfde zeggen.

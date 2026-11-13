@@ -34,7 +34,8 @@ gedrag of eigen tekst.
 
 Next.js (App Router, TypeScript), Supabase (Postgres, RLS, RPC-functies, Auth met magic link,
 MFA voor admins), **Cloudflare Workers met de OpenNext-adapter** (niet Pages: dat is alleen statisch),
-Resend voor mail. Zie bouwgids hoofdstuk 2 en `Bouwbesluiten` punt 3. De drie proefroutes in
+Postmark voor mail (Supabase verstuurt de inlogmail via Postmark-SMTP; berichten aan leden zijn nog niet gebouwd, zie
+`docs/bouw/Inloggen.md`). Zie bouwgids hoofdstuk 2 en `Bouwbesluiten` punt 3. De drie proefroutes in
 `Bouwbesluiten` 3.1 (`.ics`-route, magic-link-inlog, geplande taak) bewijzen fase 0 op echte Workers;
 de Next.js-versie staat vast. Gratis plannen tijdens het bouwen, **nooit met echte ledengegevens**.
 
@@ -56,7 +57,7 @@ niet vlak voor een activiteit.
 Alles wat je commit is voor iedereen leesbaar en blijft in de geschiedenis staan. Commit daarom **nooit**:
 
 - ledengegevens of echte e-mailadressen en telefoonnummers (testdata is fictief);
-- sleutels, wachtwoorden of `.env`-bestanden (service-role-sleutel, Resend-sleutel);
+- sleutels, wachtwoorden of `.env`-bestanden (service-role-sleutel, Postmark-token);
 - de Central-iconen, foto's van de vereniging, het logo of een lettertype zonder vermelding in
   `docs/licenties.md` met bron en licentie;
 - persoonsnamen van de opdrachtgever, de begeleider of anderen; gebruik rollen;
