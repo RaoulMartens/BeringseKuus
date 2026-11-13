@@ -216,3 +216,33 @@ test('Mijn diensten: niet ingelogd naar het inloggen', async ({ page }) => {
   await page.goto('/programma/mijn');
   await expect(page).toHaveURL(/\/inloggen/);
 });
+
+// Een lange naam met een lange rol: het label staat naast de tekst (groot scherm) of eronder (telefoon), maar valt er nooit overheen.
+// Op een telefoon verdween de naam eerst achter het label ("eindverantwoordelijke").
+test('Mijn diensten: label en tekst vallen niet over elkaar, ook niet met een lange naam', async ({
+  page,
+}) => {
+  const { lidId } = await logInAlsLid(page);
+  const naam = maakNaam('Intern kennis maken met Prins/Adjudant en de Raad van Elf');
+  const id = maakActiviteit(naam, [lidId], { dag: `${VANDAAG} + 3` });
+  zetPlek(id, 'bonnenkassa', lidId);
+
+  await page.goto('/programma/mijn');
+  const rij = blok(page, 'Komende diensten').getByRole('listitem').first();
+  await expect(rij).toContainText(naam);
+  await expect(rij).toContainText('bonnenkassa');
+  await page.evaluate(() => document.fonts.ready);
+
+  const tekst = await rij.locator('strong').boundingBox();
+  const regel = await rij.getByText(/Zaal Test/).boundingBox();
+  const label = await rij.getByText('bonnenkassa').boundingBox();
+  if (!tekst || !regel || !label) throw new Error('de rij heeft geen afmetingen');
+  const overlap = (a: NonNullable<typeof tekst>, b: NonNullable<typeof tekst>) =>
+    a.x < b.x + b.width - 1 &&
+    b.x < a.x + a.width - 1 &&
+    a.y < b.y + b.height - 1 &&
+    b.y < a.y + a.height - 1;
+  expect(overlap(tekst, label)).toBe(false);
+  expect(overlap(regel, label)).toBe(false);
+  await isNetjes(page);
+});
