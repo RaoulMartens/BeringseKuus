@@ -32,7 +32,20 @@ interface Rij {
   eindigt_om: string | null;
 }
 
-function alsActiviteit(rij: Rij): LedenActiviteit[] {
+/**
+ * De vaste vertrekplaats van de bus (verenigingsinstellingen): daar vertrekt de bus als er bij de activiteit geen andere plaats
+ * staat ("Andere vertrekplaats": leeg betekent de vaste plek). Een lid leest de instellingen van zijn vereniging.
+ */
+async function leesVasteBusplek(supabase: Supabase): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('verenigingsinstellingen')
+    .select('bus_vertrekplaats')
+    .maybeSingle();
+  if (error) throw new Error(`instellingen niet te lezen: ${error.code ?? error.message}`);
+  return data?.bus_vertrekplaats?.trim() || null;
+}
+
+function alsActiviteit(rij: Rij, vasteBusplek: string | null): LedenActiviteit[] {
   if (!rij.id || !rij.naam || !rij.datum || !rij.eindigt_om || !isActiviteitStatus(rij.status)) return [];
   return [
     {
@@ -44,7 +57,7 @@ function alsActiviteit(rij: Rij): LedenActiviteit[] {
       eindtijd: rij.eindtijd,
       locatie: rij.locatie,
       busVertrektijd: rij.bus_vertrektijd,
-      busLocatie: rij.bus_locatie,
+      busLocatie: rij.bus_locatie?.trim() || vasteBusplek,
       notitie: rij.notitie,
       status: rij.status,
       eindigtOm: rij.eindigt_om,
@@ -61,7 +74,8 @@ export async function leesKomendeActiviteiten(supabase: Supabase, nu: Date): Pro
     .gt('eindigt_om', nu.toISOString())
     .order('datum', { ascending: true });
   if (error) throw new Error(`activiteiten niet te lezen: ${error.code ?? error.message}`);
-  return data.flatMap(alsActiviteit);
+  const vasteBusplek = data.some((rij) => rij.bus_vertrektijd) ? await leesVasteBusplek(supabase) : null;
+  return data.flatMap((rij) => alsActiviteit(rij, vasteBusplek));
 }
 
 /** Eén activiteit voor het activiteitscherm van een lid; leeg als hij er niet is of het lid hem niet mag zien. */
@@ -72,7 +86,9 @@ export async function leesActiviteitVoorLid(supabase: Supabase, id: string): Pro
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(`activiteit niet te lezen: ${error.code ?? error.message}`);
-  return data ? (alsActiviteit(data)[0] ?? null) : null;
+  if (!data) return null;
+  const vasteBusplek = data.bus_vertrektijd ? await leesVasteBusplek(supabase) : null;
+  return alsActiviteit(data, vasteBusplek)[0] ?? null;
 }
 
 /** Wat bij een activiteit hoort: wie op de plekken staat, of dit lid is afgemeld en het nummer van de eindverantwoordelijke. */
