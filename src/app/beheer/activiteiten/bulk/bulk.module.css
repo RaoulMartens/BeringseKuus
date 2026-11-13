@@ -1,0 +1,169 @@
+/* Meerdere activiteiten tegelijk aanmaken: de twee stappen (bestand kiezen, regels controleren). Dezelfde tokens als de rest. */
+.stap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+.download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--neutraal-tekst);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.download svg {
+  width: 18px;
+  height: 18px;
+}
+
+.bestandsveld {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.bestandslabel {
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.bestand {
+  display: block;
+  width: 100%;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+/* De knop van de bestandskiezer van de browser: dezelfde stijl als de andere knoppen met alleen een rand. */
+.bestand::file-selector-button {
+  margin-right: 12px;
+  padding: 6px 14px;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-tekst);
+  border-radius: var(--radius-control);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+  cursor: pointer;
+}
+
+.bestand::file-selector-button:hover {
+  background: var(--neutraal-hover);
+}
+
+.bestandsnaam {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+/* Een regel op het controlescherm: de tekst en "Niet meenemen" op een rij, daaronder de velden die niet kloppen. */
+.regel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.kop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tekst {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dag {
+  font-size: 0.75rem;
+  line-height: 1.3333;
+  font-weight: 600;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.naam {
+  font: 700 1rem/1.5 var(--font-tekst);
+  overflow-wrap: break-word;
+}
+
+.tijd {
+  font-weight: 400;
+  color: var(--neutraal-tekst-zacht);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* Een regel die niet wordt meegenomen: doorgestreept en zachter. */
+.weg {
+  text-decoration: line-through;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.velden {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.voet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.aantal {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.aantal span {
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst-zacht);
+}
+
+@media (max-width: 700px) {
+  .velden {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .voet {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .voet > button {
+    width: 100%;
+  }
+}

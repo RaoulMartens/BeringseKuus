@@ -11,6 +11,12 @@
       "sha256": "5435880b2e9306a06dc29587147f9cb5ce337ef7611e0dded68bfb7fe3b2a264",
       "reden": "Opgeschoonde kopie uit de ontwerpmap: persoonsnamen vervangen door rollen; de tekst (word/document.xml) is nagelopen op namen, e-mailadressen en telefoonnummers",
       "gecontroleerd": "2026-10-27"
+    },
+    {
+      "pad": "public/activiteiten-sjabloon.xlsx",
+      "sha256": "32f782bc7da0e0fb7250c133bda953a0ec0de051d4a4a9dcb254e8bdd2db31cc",
+      "reden": "Het Excel-sjabloon voor de import van activiteiten (eigen werk): één tabblad met de kolomnamen, twee voorbeeldregels met verzonnen gegevens ('Voorbeeld: ...') en een tabblad met uitleg. De inhoud (xl/worksheets) is nagelopen: geen echte namen, e-mailadressen of telefoonnummers",
+      "gecontroleerd": "2026-11-13"
     }
   ]
 }

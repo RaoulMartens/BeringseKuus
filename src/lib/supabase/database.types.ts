@@ -192,6 +192,46 @@ export type Database = {
           },
         ];
       };
+      bulk_aanmaken: {
+        Row: {
+          aangemaakt: string;
+          aanmaak_id: string;
+          activiteit_ids: string[];
+          door_lid_id: string | null;
+          vereniging_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          aangemaakt?: string;
+          aanmaak_id: string;
+          activiteit_ids: string[];
+          door_lid_id?: string | null;
+          vereniging_id?: string;
+        };
+        Update: {
+          aangemaakt?: string;
+          aanmaak_id?: string;
+          activiteit_ids?: string[];
+          door_lid_id?: string | null;
+          vereniging_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'bulk_aanmaken_door_lid_id_fkey';
+            columns: ['door_lid_id'];
+            isOneToOne: false;
+            referencedRelation: 'leden';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'bulk_aanmaken_vereniging_id_fkey';
+            columns: ['vereniging_id'];
+            isOneToOne: false;
+            referencedRelation: 'verenigingen';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       groepen: {
         Row: {
           id: string;
@@ -634,6 +674,7 @@ export type Database = {
         Returns: Json;
       };
       activiteit_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
+      activiteiten_bulk_aanmaken: { Args: { p_aanmaak_id: string; p_regels: Json }; Returns: Json };
       beheerder_bevestigen: { Args: { p_app_id: string; p_lid_id: string }; Returns: Json };
       beheerder_intrekken: { Args: { p_lid_id: string }; Returns: Json };
       beheerder_kandidaten: {
