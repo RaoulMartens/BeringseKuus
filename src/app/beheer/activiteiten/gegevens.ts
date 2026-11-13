@@ -12,16 +12,22 @@ import type { BestaandePlek, Eindverantwoordelijke, Rolkeuze } from './plekken';
 
 type Supabase = Awaited<ReturnType<typeof maakSupabase>>;
 
-/** De groepen met het aantal actieve leden per groep, en het aantal actieve leden in totaal ("Iedereen"). */
+/** De groepen met het aantal actieve leden per groep, en het aantal actieve leden in totaal ("Iedereen"), zonder beheeraccounts. */
 export async function leesGroepen(supabase: Supabase): Promise<{ groepen: Groep[]; aantalLeden: number }> {
   const [groepen, koppelingen, leden] = await Promise.all([
     supabase.from('groepen').select('id, naam').order('volgorde'),
     supabase
       .from('lid_groep')
-      .select('groep_id, leden!inner(actief, type)')
+      .select('groep_id, leden!inner(actief, type, alleen_beheer)')
       .eq('leden.actief', true)
-      .eq('leden.type', 'lid'),
-    supabase.from('leden').select('id', { count: 'exact', head: true }).eq('type', 'lid').eq('actief', true),
+      .eq('leden.type', 'lid')
+      .eq('leden.alleen_beheer', false),
+    supabase
+      .from('leden')
+      .select('id', { count: 'exact', head: true })
+      .eq('type', 'lid')
+      .eq('actief', true)
+      .eq('alleen_beheer', false),
   ]);
   if (groepen.error) throw new Error(`groepen niet te lezen: ${groepen.error.code ?? groepen.error.message}`);
   if (koppelingen.error)
@@ -183,13 +189,14 @@ export interface Kandidaat {
   telefoon: string | null;
 }
 
-/** De actieve leden en externe helpers, op voornaam. Alleen een beheerder met een code leest dit (rechten van de database). */
+/** De actieve leden en externe helpers, op voornaam, zonder beheeraccounts. Alleen een beheerder met een code leest dit (rechten van de database). */
 export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
   const [leden, prive] = await Promise.all([
     supabase
       .from('leden')
       .select('id, voornaam, achternaam, type')
       .eq('actief', true)
+      .eq('alleen_beheer', false)
       .order('voornaam')
       .order('achternaam'),
     supabase.from('leden_prive').select('lid_id, mag_bob, mag_eindverantw, telefoon'),
