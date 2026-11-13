@@ -227,6 +227,7 @@ export type Database = {
           aangemaakt: string;
           achternaam: string;
           actief: boolean;
+          alleen_beheer: boolean;
           auth_user_id: string | null;
           id: string;
           type: string;
@@ -238,6 +239,7 @@ export type Database = {
           aangemaakt?: string;
           achternaam: string;
           actief?: boolean;
+          alleen_beheer?: boolean;
           auth_user_id?: string | null;
           id?: string;
           type: string;
@@ -248,6 +250,7 @@ export type Database = {
           aangemaakt?: string;
           achternaam?: string;
           actief?: boolean;
+          alleen_beheer?: boolean;
           auth_user_id?: string | null;
           id?: string;
           type?: string;

@@ -115,3 +115,17 @@ telefoonnummer zichtbaar is voor alle leden die de activiteit zien (R10): dat is
 
 `scripts/zet-leden.ts` (het commando en de uitvoering), `scripts/leden-invoer.ts` (de lijst lezen en vergelijken, met tests) en `e2e/zet-leden.spec.ts`
 (het geheel tegen de lokale Supabase). Het script gebruikt de secret key van het project (`service_role`): die omzeilt de rechten van de database, dus alleen de bouwer draait dit, vanaf zijn eigen computer.
+
+## Een beheeraccount zonder lidschap
+
+Beheer hoort bij een lid (`is_admin` staat in `leden_prive` en `huidig_lid()` eist een lid), dus een persoon die zowel als lid als als beheerder wil
+kijken, heeft twee accounts: een gewoon lid en een beheeraccount. Het beheeraccount is technisch een tweede lidrij. Met de vlag
+`leden.alleen_beheer` telt hij nergens mee als lid: niet in het aantal aanwezigen, niet in "Wie komt er?", niet als vervanger en niet in de
+keuzelijst om in te delen. Hij kan nog wel inloggen en beheren.
+
+1. Zet het account in de lijst (`npm run leden:zet`), zonder groepen: dan ziet hij als lid alleen activiteiten voor iedereen.
+2. Zet de vlag aan (SQL Editor): `update public.leden set alleen_beheer = true where id = (select lid_id from public.leden_prive where email = '<adres>');`
+3. Maak het account beheerder in de app (Beheer, Beheerders) en laat de persoon een app instellen; bevestig daarna de toegang
+   (procedure in `Beheerders.md`).
+
+Een scherm om de vlag te zetten komt bij ledenbeheer (fase 4).
