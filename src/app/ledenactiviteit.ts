@@ -8,6 +8,7 @@ import {
   type LedenActiviteit,
 } from '@/lib/ledenactiviteit';
 import { isActiviteitStatus } from '@/lib/programma';
+import { maakRaster, type Raster } from '@/lib/wiekomter';
 import type { maakSupabase } from '@/lib/supabase/server';
 
 type Supabase = Awaited<ReturnType<typeof maakSupabase>>;
@@ -156,4 +157,24 @@ export async function leesIndelingen(
     if (indeling) indeling.telefoon = telefoonBijEindverantwoordelijke(indeling.plekken, contact);
   }
   return uitkomst;
+}
+
+/**
+ * Wie komt er (UC-010): per activiteit het raster van alle leden voor wie hij is, met wie is afgemeld. Via wie_komt_er(), de enige
+ * route naar de afmeldingen van anderen: de functie geeft naam en komt ja/nee, nooit een reden. Een activiteit die het lid niet
+ * mag zien geeft een leeg raster.
+ */
+export async function leesWieKomtEr(
+  supabase: Supabase,
+  activiteitIds: string[],
+  eigenLidId: string,
+): Promise<Map<string, Raster>> {
+  const regels = await Promise.all(
+    activiteitIds.map(async (id) => {
+      const { data, error } = await supabase.rpc('wie_komt_er', { p_activiteit_id: id });
+      if (error) throw new Error();
+      return [id, maakRaster(data, eigenLidId)] as const;
+    }),
+  );
+  return new Map(regels);
 }

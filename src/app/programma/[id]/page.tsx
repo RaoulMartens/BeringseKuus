@@ -5,13 +5,14 @@ import { z } from 'zod';
 import { Jouwstatus } from '@/components/jouwstatus/jouwstatus';
 import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
+import { WieKomter } from '@/components/wiekomter/wiekomter';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { langeDag } from '@/lib/programma';
 import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { Activiteitblok, maakStatusRegel } from '../../activiteitblok';
-import { leesActiviteitVoorLid, leesIndelingen } from '../../ledenactiviteit';
+import { leesActiviteitVoorLid, leesIndelingen, leesWieKomtEr } from '../../ledenactiviteit';
 import stijl from '../../ledenscherm.module.css';
 
 export const metadata: Metadata = { title: 'Activiteit – Ledenplatform' };
@@ -35,6 +36,8 @@ export default async function ActiviteitVoorLid({ params }: { params: Promise<{ 
 
   const indeling = (await leesIndelingen(supabase, [activiteit.id], gebruiker.lidId)).get(activiteit.id);
   if (!indeling) notFound();
+  const raster = (await leesWieKomtEr(supabase, [activiteit.id], gebruiker.lidId)).get(activiteit.id);
+  const wieKomter = raster ? <WieKomter raster={raster} activiteit={activiteit.naam} /> : null;
   const nu = new Date();
   const regels = [maakStatusRegel(activiteit, indeling, gebruiker.lidId, gebruiker.isBeheerder, nu)];
 
@@ -46,6 +49,7 @@ export default async function ActiviteitVoorLid({ params }: { params: Promise<{ 
       zijkolom={
         <div className={stijl.nietOpMobiel}>
           <Jouwstatus regels={regels} />
+          {wieKomter}
         </div>
       }
     >
@@ -61,6 +65,7 @@ export default async function ActiviteitVoorLid({ params }: { params: Promise<{ 
         eigenLidId={gebruiker.lidId}
         metNaam={false}
       />
+      <div className={stijl.alleenMobiel}>{wieKomter}</div>
     </Schermkader>
   );
 }

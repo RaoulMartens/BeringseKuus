@@ -37,7 +37,7 @@ select ok(not has_function_privilege('authenticated', 'public.proef_functie()', 
 -- leesfuncties van het bestuur, beheerstatus voor de beveiligingsstap, het seizoen van vandaag (huidig_seizoen) en
 -- het telefoonnummer van de eindverantwoordelijke (contact_eindverantwoordelijke, R10: de enige route naar een nummer
 -- van een ander lid), en de ledenhandelingen van fase 3 (Datamodel-fase-3.md punt 5): meld_af, trek_afmelding_in,
--- ruil_dienst en beschikbare_vervangers. Voor anon niets.
+-- ruil_dienst en beschikbare_vervangers, en wie_komt_er van UC-010 (namen en komt ja/nee, nooit een toelichting). Voor anon niets.
 select is_empty(
   $$ select p.oid::regprocedure::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -50,7 +50,7 @@ select is_empty(
       where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
         and p.proname <> all (array['activiteit_opslaan', 'activiteit_verwijderen', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus', 'beheerders_lijst', 'beheerder_kandidaten', 'beheerder_maken', 'beheerder_bevestigen', 'beheerder_intrekken',
                                     'huidig_seizoen', 'contact_eindverantwoordelijke', 'meld_af',
-                                    'trek_afmelding_in', 'ruil_dienst', 'beschikbare_vervangers']) $$,
+                                    'trek_afmelding_in', 'ruil_dienst', 'beschikbare_vervangers', 'wie_komt_er']) $$,
   'ingelogd: in public alleen de functies die de app aanroept zijn uit te voeren'
 );
 
