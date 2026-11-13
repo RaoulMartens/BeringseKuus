@@ -1,7 +1,28 @@
 /* De regels van het beheeroverzicht: de dag als klein label, de naam met de tijd, en eronder wat er te doen is
    (docs/visueel/stijl.css, sectie 13h). */
-.tekst {
+/* De inhoud van een rij: tekst en label. Op een groot scherm staat het label rechts; op een telefoon is er naast de tekst geen
+   ruimte voor en staat het eronder, kleiner (zoals in het programma). */
+.rijInhoud {
   flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+
+.label {
+  display: flex;
+}
+
+@media (max-width: 700px) {
+  .rijInhoud {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 6px;
+  }
+}
+
+.tekst {
   min-width: 0;
   display: flex;
   flex-direction: column;

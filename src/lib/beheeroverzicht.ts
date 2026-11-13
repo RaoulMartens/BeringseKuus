@@ -5,7 +5,13 @@
 // Een regel zegt wat er te doen is ("1 werker indelen"), niet "N plekken open" (ontwerpbesluit: dat was onduidelijk) en
 // zonder symbolen: de doelgroep leest woorden sneller.
 
-import { dagTekst, isActiviteitStatus, tijdTekst, type ActiviteitStatus } from '@/lib/programma';
+import {
+  dagTekst,
+  groepeerOpeenvolgend,
+  isActiviteitStatus,
+  tijdTekst,
+  type ActiviteitStatus,
+} from '@/lib/programma';
 import { rolAantal } from '@/lib/rollen';
 
 /** Een activiteit heet "bijna te weinig" bij het minimum plus deze marge (Datamodel-fase-1.md punt 5). */
@@ -37,6 +43,8 @@ export type Filter = 'alles' | 'diensten' | 'concepten';
 
 export interface OverzichtRegel {
   id: string;
+  /** YYYY-MM-DD; de dag zelf, voor het samenvoegen van dezelfde activiteit op opeenvolgende dagen. */
+  datum: string;
   /** "Vandaag", "Morgen" of "vr 5 februari". */
   dag: string;
   naam: string;
@@ -151,6 +159,7 @@ function maakRegel(rij: OverzichtRij, vandaag: string): OverzichtRegel {
   ].filter((taak): taak is string => taak !== null);
   return {
     id: rij.activiteitId,
+    datum: rij.datum,
     dag: dagLabel(rij.datum, vandaag),
     naam: rij.naam,
     tijd: tijdTekst(rij.tijd),
@@ -232,4 +241,23 @@ export function maakRij(
       tijd,
     },
   ];
+}
+
+/** Een rij in het beheeroverzicht: een regel, of dezelfde activiteit op meerdere opeenvolgende dagen als één rij. */
+export type OverzichtItem =
+  { soort: 'enkel'; regel: OverzichtRegel } | { soort: 'reeks'; regels: OverzichtRegel[] };
+
+/**
+ * Voegt dezelfde activiteit op drie of meer opeenvolgende dagen samen tot één rij, zoals in het programma. Dezelfde is: dezelfde
+ * naam, status, tijd, taak en aanwezigheid. Zo staat "Verkoop donateurskaarten" met dezelfde taak niet vijf keer onder
+ * elkaar; de losse dagen klappen open en elk opent zijn eigen activiteit.
+ */
+export function groepeerRegels(regels: OverzichtRegel[]): OverzichtItem[] {
+  return groepeerOpeenvolgend(
+    regels,
+    (r) => [r.naam, r.status, r.tijd ?? '', r.taak ?? '', r.aanwezigheid ?? ''].join('\u0000'),
+    (r) => r.datum,
+  ).map((rij): OverzichtItem =>
+    rij.soort === 'enkel' ? { soort: 'enkel', regel: rij.item } : { soort: 'reeks', regels: rij.items },
+  );
 }

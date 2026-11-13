@@ -140,44 +140,79 @@ function dagenTussen(van: string, tot: string): number {
 }
 
 /**
- * Voegt dezelfde activiteit op opeenvolgende dagen samen tot één rij. Dezelfde activiteit is: dezelfde naam, status, starttijd
- * en locatie. Een reeks staat op de plek van zijn eerste dag; de overige dagen verdwijnen uit de lijst (ze zitten in de reeks).
- * Een andere activiteit tussendoor (een vergadering op dag 2) breekt de reeks niet: die telt per soort activiteit.
+ * Voegt dingen op opeenvolgende dagen samen tot één reeks: dezelfde sleutel (bijvoorbeeld naam, status, tijd en plaats) op
+ * drie of meer dagen na elkaar (MIN_REEKS). Een reeks staat op de plek van zijn eerste dag; de overige dagen verdwijnen uit de
+ * lijst (ze zitten in de reeks). Een ander ding tussendoor breekt de reeks niet: die telt per sleutel. Algemeen, zodat het
+ * programma en het beheeroverzicht dezelfde regels gebruiken.
  */
-export function groepeerReeksen(lijst: ProgrammaActiviteit[]): ProgrammaItem[] {
-  const perSoort = new Map<string, ProgrammaActiviteit[]>();
-  for (const a of lijst) {
-    const sleutel = [a.naam, a.status, a.starttijd ?? '', a.locatie ?? ''].join('\u0000');
-    perSoort.set(sleutel, [...(perSoort.get(sleutel) ?? []), a]);
+export function groepeerOpeenvolgend<T extends { id: string }>(
+  lijst: T[],
+  sleutel: (item: T) => string,
+  datum: (item: T) => string,
+): Array<{ soort: 'enkel'; item: T } | { soort: 'reeks'; items: T[] }> {
+  const perSleutel = new Map<string, T[]>();
+  for (const item of lijst) {
+    const k = sleutel(item);
+    perSleutel.set(k, [...(perSleutel.get(k) ?? []), item]);
   }
 
-  const reeksVanEerste = new Map<string, ProgrammaActiviteit[]>();
+  const reeksVanEerste = new Map<string, T[]>();
   const inReeks = new Set<string>();
-  for (const groep of perSoort.values()) {
-    const opDatum = [...groep].sort((x, y) => (x.datum < y.datum ? -1 : x.datum > y.datum ? 1 : 0));
-    let lopend: ProgrammaActiviteit[] = [];
+  for (const groep of perSleutel.values()) {
+    const opDatum = [...groep].sort((x, y) => (datum(x) < datum(y) ? -1 : datum(x) > datum(y) ? 1 : 0));
+    let lopend: T[] = [];
     const sluit = () => {
-      if (lopend.length >= MIN_REEKS && lopend[0]) {
-        reeksVanEerste.set(lopend[0].id, lopend);
-        for (const a of lopend) inReeks.add(a.id);
+      const eerste = lopend[0];
+      if (lopend.length >= MIN_REEKS && eerste) {
+        reeksVanEerste.set(eerste.id, lopend);
+        for (const item of lopend) inReeks.add(item.id);
       }
       lopend = [];
     };
-    for (const a of opDatum) {
+    for (const item of opDatum) {
       const vorige = lopend[lopend.length - 1];
-      if (vorige && dagenTussen(vorige.datum, a.datum) !== 1) sluit();
-      lopend.push(a);
+      if (vorige && dagenTussen(datum(vorige), datum(item)) !== 1) sluit();
+      lopend.push(item);
     }
     sluit();
   }
 
-  const items: ProgrammaItem[] = [];
-  for (const a of lijst) {
-    const reeks = reeksVanEerste.get(a.id);
-    if (reeks) items.push({ soort: 'reeks', reeks: { naam: a.naam, status: a.status, activiteiten: reeks } });
-    else if (!inReeks.has(a.id)) items.push({ soort: 'enkel', activiteit: a });
+  const uit: Array<{ soort: 'enkel'; item: T } | { soort: 'reeks'; items: T[] }> = [];
+  for (const item of lijst) {
+    const reeks = reeksVanEerste.get(item.id);
+    if (reeks) uit.push({ soort: 'reeks', items: reeks });
+    else if (!inReeks.has(item.id)) uit.push({ soort: 'enkel', item });
   }
-  return items;
+  return uit;
+}
+
+/**
+ * Voegt dezelfde activiteit op opeenvolgende dagen samen tot één rij. Dezelfde activiteit is: dezelfde naam, status, starttijd
+ * en locatie.
+ */
+export function groepeerReeksen(lijst: ProgrammaActiviteit[]): ProgrammaItem[] {
+  return groepeerOpeenvolgend(
+    lijst,
+    (a) => [a.naam, a.status, a.starttijd ?? '', a.locatie ?? ''].join('\u0000'),
+    (a) => a.datum,
+  ).map((rij): ProgrammaItem => {
+    if (rij.soort === 'enkel') return { soort: 'enkel', activiteit: rij.item };
+    const eerste = rij.items[0];
+    if (!eerste) throw new Error('lege reeks');
+    return { soort: 'reeks', reeks: { naam: eerste.naam, status: eerste.status, activiteiten: rij.items } };
+  });
+}
+
+/**
+ * De periode van twee dagen, zoals een schermlezer het hoort: "ma 4 t/m vr 8 januari". Een periode die de maandgrens kruist
+ * krijgt de maand twee keer.
+ */
+export function periodeTekst(eerste: string, laatste: string): string {
+  const van = dagTekst(eerste);
+  const tot = dagTekst(laatste);
+  const maand = (lang: string) => lang.split(' ').slice(2).join(' ');
+  const vanTekst = maand(van.lang) === maand(tot.lang) ? `${van.weekdag} ${van.dag}` : van.lang;
+  return `${vanTekst} t/m ${tot.lang}`;
 }
 
 /**
@@ -188,12 +223,7 @@ export function reeksDatum(reeks: Reeks): string {
   const eerste = reeks.activiteiten[0];
   const laatste = reeks.activiteiten[reeks.activiteiten.length - 1];
   if (!eerste || !laatste) throw new Error('lege reeks');
-  const van = dagTekst(eerste.datum);
-  const tot = dagTekst(laatste.datum);
-  const maand = tot.lang.split(' ').slice(2).join(' ');
-  // Dezelfde maand: "ma 4 t/m vr 8 januari"; een reeks die de maandgrens kruist krijgt de maand twee keer.
-  const vanTekst = van.lang.split(' ').slice(2).join(' ') === maand ? `${van.weekdag} ${van.dag}` : van.lang;
-  return `${vanTekst} t/m ${tot.lang}`;
+  return periodeTekst(eerste.datum, laatste.datum);
 }
 
 /**

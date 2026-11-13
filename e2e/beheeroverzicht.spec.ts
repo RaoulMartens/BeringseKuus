@@ -135,6 +135,33 @@ test('een teller is ook een filter, en "Alles tonen" brengt je terug', async ({ 
   await expect(kaart(page, 'Op orde')).toBeVisible();
 });
 
+test('dezelfde activiteit met dezelfde taak op vier dagen na elkaar is één rij die opengaat', async ({
+  page,
+}) => {
+  aangemaakt.push(await logInAlsBeheerder(page));
+  reeks += 1;
+  const naam = maakNaam(reeks)('reeks');
+  // Vier concepten met dezelfde naam op vier dagen na elkaar: hetzelfde ontbreekt bij alle vier.
+  psql(`
+    insert into public.activiteiten (naam, datum)
+    select '${naam}', current_date + 40 + g from generate_series(0, 3) g;
+  `);
+
+  await page.goto('/beheer');
+  // Eén rij voor de reeks, niet vier keer dezelfde naam onder elkaar.
+  const samenvatting = page.locator('summary').filter({ hasText: naam });
+  await expect(samenvatting).toHaveCount(1);
+  await expect(page.getByText(naam)).toHaveCount(1);
+  await expect(samenvatting).toContainText('t/m');
+
+  // Opengeklapt staan de vier dagen er, elk een link naar zijn eigen activiteit in beheer.
+  await samenvatting.click();
+  const dagen = page.locator('details', { has: samenvatting }).getByRole('link');
+  await expect(dagen).toHaveCount(4);
+  await dagen.first().click();
+  await expect(page).toHaveURL(/\/beheer\/activiteiten\/[0-9a-f-]{36}$/);
+});
+
 test('een lid zonder beheerrechten komt er niet in', async ({ page }) => {
   const email = nieuwAdres();
   aangemaakt.push(await maakLidMetRol(email));
