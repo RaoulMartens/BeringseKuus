@@ -10,6 +10,8 @@
 //
 // Persoonsgegevens: foutmeldingen noemen het regelnummer en de kolom, nooit de waarde.
 
+import { kleineTussenvoegsels } from '../src/lib/naam.ts';
+
 export interface LidRegel {
   /** Het regelnummer in het bestand (de kopregel is 1), voor de meldingen. */
   regel: number;
@@ -202,7 +204,8 @@ export function leesLeden(tekst: string, bekendeGroepen: string[]): Invoer {
     const fout = (tekst: string) => fouten.push(`Regel ${regel}: ${tekst}`);
 
     const voornaam = veld('voornaam');
-    const achternaam = veld('achternaam');
+    // Een tussenvoegsel krijgt een kleine letter ('Van der Berg' wordt 'van der Berg'): zo staat het ook in de database.
+    const achternaam = kleineTussenvoegsels(veld('achternaam'));
     if (voornaam === '') fout('de voornaam ontbreekt.');
     if (achternaam === '') fout('de achternaam ontbreekt.');
     if (voornaam.length > MAX_NAAM || achternaam.length > MAX_NAAM)

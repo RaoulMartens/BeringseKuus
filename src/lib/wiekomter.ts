@@ -2,6 +2,8 @@
 // gestippeld = afgemeld. De reden van een afmelding staat er niet en is er ook niet: de database geeft haar niet mee.
 // Dit bestand maakt van de rijen uit wie_komt_er() wat het scherm toont; het scherm zelf staat in components/wiekomter.
 
+import { hoofdwoord } from './naam';
+
 /** Eén rij uit de databasefunctie wie_komt_er(). */
 export interface WieKomtErRij {
   lid_id: string;
@@ -22,60 +24,6 @@ export interface Raster {
   leden: RasterLid[];
   aanwezig: number;
   afgemeld: number;
-}
-
-// Tussenvoegsels van Nederlandse achternamen: ze tellen niet mee voor de initiaal, ook niet met een hoofdletter (zoals in "Van der Voorbeeld"
-// of "Van Test", zoals ze soms zijn ingevoerd). De lijst volgt de gangbare lijst van tussenvoegsels in het Nederlands.
-const TUSSENVOEGSELS = new Set([
-  'aan',
-  'af',
-  'al',
-  'bij',
-  'de',
-  'den',
-  'der',
-  'di',
-  'die',
-  'du',
-  'el',
-  'het',
-  'in',
-  'la',
-  'le',
-  'les',
-  'onder',
-  'op',
-  'over',
-  'te',
-  'ten',
-  'ter',
-  'tot',
-  'uit',
-  'uijt',
-  'van',
-  'vanden',
-  'vander',
-  'ver',
-  'von',
-  'voor',
-  'vor',
-  "'s",
-  "'t",
-  '’s',
-  '’t',
-]);
-
-/** Het woord van de achternaam waar de initiaal van komt: het eerste woord dat geen tussenvoegsel is ("van der Berg" wordt Berg, "d'Hondt" wordt Hondt). */
-function hoofdwoord(achternaam: string): string {
-  const woorden = achternaam.trim().split(/\s+/).filter(Boolean);
-  for (const woord of woorden) {
-    // een tussenvoegsel dat aan de naam vastzit: d'Hondt, 's-Gravesande, 't-Hart
-    const vast = /^(?:d['’]|l['’]|['’]s-?|['’]t-?)(.+)$/i.exec(woord);
-    if (vast?.[1]) return vast[1];
-    if (TUSSENVOEGSELS.has(woord.toLowerCase())) continue;
-    return woord;
-  }
-  return woorden[0] ?? '';
 }
 
 /** De eerste letter van een woord; "IJ" is in het Nederlands één letter. */
