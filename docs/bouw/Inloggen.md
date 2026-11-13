@@ -82,3 +82,22 @@ Bronnen: [Supabase passwordless](https://supabase.com/docs/guides/auth/auth-emai
 [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
 [Gmail SMTP](https://support.google.com/a/answer/176600),
 [Google-appwachtwoorden](https://support.google.com/accounts/answer/185833).
+
+## Aflevering bij Hotmail en Outlook (13-11-2026)
+
+Eén lid met een Hotmail-adres kreeg de inlogcode niet. Wat is nagekeken:
+
+- Het inlogaccount klopte (bestaat, adres gelijk, bevestigd, niet geblokkeerd, gekoppeld aan het lid).
+- Supabase accepteerde de aanvraag zonder fout (`/otp`, status 200) en Postmark meldde *Delivered*: Microsoft nam de mail aan
+  (`250 2.6.0 ... Queued mail for delivery`). Het probleem zit dus na het verzenden: de mail komt in Ongewenst, in Overige of nergens.
+- SPF, DKIM en DMARC van het afzenderdomein staan goed (DMARC `p=none`).
+- Het online sjabloon is gelijk aan `supabase/templates/inloglink.html`. De grootte van de mail (ongeveer 13 KB) zit in de headers
+  en de handtekening, niet in de tekst.
+
+Aanpak, in volgorde: het lid zoekt in alle mappen (ook Overige en Verwijderde items) op outlook.live.com en stelt de afzender in als
+veilig; een tweede Outlook-adres als test; de twee Message-ID's aan Postmark-support voorleggen (zij kunnen bij Microsoft navragen); het
+sjabloon als volledig HTML-document met een zin over wie de mail stuurt (deze wijziging); een afzendernaam met de naam van de vereniging.
+
+Wat niet kan met alleen Supabase: een tekstversie meesturen, want een sjabloon heeft alleen een HTML-veld. Dat vraagt een Send Email
+Hook van Supabase naar de Postmark-API (HTML en tekst, en de berichtstroom die Postmark aanbeveelt voor transactionele mail). Dat is
+werk voor later als dit een patroon blijkt.
