@@ -129,3 +129,29 @@ keuzelijst om in te delen. Hij kan nog wel inloggen en beheren.
    (procedure in `Beheerders.md`).
 
 Een scherm om de vlag te zetten komt bij ledenbeheer (fase 4).
+
+## De uitnodiging sturen
+
+Het platform stuurt zelf geen uitnodiging (`Inloggen.md`: het enige wat het mailt, is de inlogcode). Met `npm run leden:uitnodigen` verstuurt de bouwer
+een gewone uitnodigingsmail via Postmark, vanaf zijn eigen computer: eerst één testmail aan zichzelf, dan aan iedereen die kan inloggen.
+
+**Wie de mail krijgt:** actieve leden (geen externe helpers) met een inlogaccount, elk adres één keer, en geen beheeraccounts (`alleen_beheer`). De mail
+heeft een tekst- en een HTML-versie, geen afbeeldingen en geen volglinks, en spreekt het lid met zijn voornaam aan.
+
+Zet de gegevens in je eigen terminal, in een subshell zodat ze niet blijven staan, nooit in een bestand of een chat:
+
+```bash
+(
+  read -rs POSTMARK_SERVER_TOKEN && export POSTMARK_SERVER_TOKEN      # de Server API token van Postmark; er verschijnt niets op het scherm
+  npm run leden:uitnodigen -- --van <afzender> --ondertekening "<naam, functie>" --test <jouw adres>
+)
+```
+
+1. **Test:** zoals hierboven. Er gaat precies één mail naar het adres achter `--test`, met `[TEST]` in het onderwerp. Controleer in Postmark, Activity, dat hij op
+   *Delivered* staat, en lees hem zoals een lid hem leest (ook op een telefoon).
+2. **Tellen:** `--alle` zonder `--ja` meldt alleen hoeveel leden de mail zouden krijgen (en zet `SUPABASE_URL` en `SUPABASE_SECRET_KEY` erbij, zoals bij `leden:zet`).
+3. **Versturen:** `--alle --ja`. Het script vraagt je `VERSTUUR <aantal>` te typen. Daarna gaat er één mail per lid, met een korte pauze ertussen.
+
+`--van` is een afzender die Postmark kent (dezelfde als voor de inlogcode); `--antwoord <adres>` zet een adres voor antwoorden. Wat er in de uitvoer staat: aantallen en
+volgnummers, geen namen of adressen. Een mislukte mail krijgt een volgnummer en de Postmark-foutcode; de rest gaat door. **Draai `--alle --ja` niet twee keer**: elk lid krijgt
+dan twee mails.
