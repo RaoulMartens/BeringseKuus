@@ -52,6 +52,14 @@
   padding: 10px var(--padding-control-x);
   font: 400 0.875rem/1.4286 var(--font-tekst);
   color: var(--neutraal-tekst);
+  /* Het pijltje van de browser staat vast op een paar pixels van de rand en volgt de opvulling van het veld niet. Een eigen chevron
+     (dezelfde als de rest van de app) staat op dezelfde afstand van de rand als de tekst links: --padding-control-x. */
+  appearance: none;
+  padding-right: calc(var(--padding-control-x) + 16px + 12px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%235e5753'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--padding-control-x) center;
+  background-size: 16px 16px;
 }
 
 .knoppen {
