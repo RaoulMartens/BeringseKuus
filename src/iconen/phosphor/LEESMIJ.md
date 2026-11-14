@@ -13,4 +13,4 @@ Besluit 30-10-2026: een open set in plaats van de Central-iconen (die niet in ee
   naam in `ICONEN` in het script, draai `node scripts/maak-iconen.ts`, en voeg het toe aan niets anders: de test controleert
   dat elk bestand wordt gebruikt en elk gebruikt icoon zijn bestand heeft.
 
-Rol-iconen erbij (13-11-2026, zelfde commit): `beer-bottle` (tapper), `fork-knife` (buffet), `wine` (ober), `ticket` (bonnenkassa).
+Rol-iconen erbij (zelfde commit): `beer-stein` (tapper), `person-simple-walk` (drankhaler: iemand die gaat halen), `fork-knife` (buffet), `call-bell` (ober), `ticket` (bonnenkassa). Een kraan of tap bestaat niet in deze set.
