@@ -172,7 +172,7 @@ test('twee activiteiten op één dag staan op tijd onder elkaar, met een regel p
   expect(await geenZijwaartsSchuiven(page)).toBe(false);
 });
 
-test('een afgemeld lid ziet dat; een activiteit zonder indeling, bus en notitie zegt wat nog niet is ingevuld', async ({
+test('een afgemeld lid ziet dat; een activiteit zonder indeling, bus en notitie toont alleen wat er is', async ({
   page,
 }) => {
   const { lidId } = await logInAlsLid(page);
@@ -190,9 +190,9 @@ test('een afgemeld lid ziet dat; een activiteit zonder indeling, bus en notitie 
     'href',
     '/programma',
   );
-  await expect(
-    page.getByText('Busvertrek en de notitie “belangrijk om te weten” zijn nog niet ingevuld.'),
-  ).toBeVisible();
+  // Wat niet is ingevuld, staat er niet: geen regel over de bus of de notitie (ontwerpregel: toon alleen wat is ingevuld).
+  await expect(page.getByText(/nog niet ingevuld/)).toHaveCount(0);
+  await expect(page.getByText('Bus vertrekt')).toHaveCount(0);
   await expect(page.getByText('De rest van de indeling volgt nog.')).toBeVisible();
   await expect(page.getByRole('region', { name: `Rolbezetting ${naam}` }).getByText(ger.naam)).toBeVisible();
   await expect(

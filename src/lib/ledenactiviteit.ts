@@ -121,20 +121,6 @@ export function maakTijdlijn(a: LedenActiviteit): Stop[] {
   return stops;
 }
 
-/**
- * Wat er nog niet is ingevuld, in woorden, in plaats van stilzwijgend weg te laten (UC-001 AF-7): de bus en de notitie
- * "belangrijk om te weten" liggen bij een activiteit verderop in het seizoen vaak nog niet vast.
- */
-export function nogNietIngevuld(a: Pick<LedenActiviteit, 'busVertrektijd' | 'notitie'>): string | null {
-  const geenBus = !a.busVertrektijd;
-  const geenNotitie = !a.notitie?.trim();
-  if (geenBus && geenNotitie)
-    return 'Busvertrek en de notitie “belangrijk om te weten” zijn nog niet ingevuld.';
-  if (geenBus) return 'Busvertrek is nog niet ingevuld.';
-  if (geenNotitie) return 'De notitie “belangrijk om te weten” is nog niet ingevuld.';
-  return null;
-}
-
 // ===== Rolbezetting =====
 
 /** De naam van een rol op het scherm van een lid; de bak is geen dienst en heeft hier geen naam. */

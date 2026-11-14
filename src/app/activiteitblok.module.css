@@ -36,13 +36,6 @@
 }
 
 /* wat nog niet is ingevuld: zacht, geen waarschuwing */
-.nogNiet {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.4286;
-  color: var(--neutraal-tekst-zacht);
-}
-
 @supports (corner-shape: squircle) {
   .belangrijk {
     corner-shape: squircle;
