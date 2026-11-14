@@ -171,18 +171,18 @@ test('Mijn diensten: komende diensten op datum, afgemeld, en wat al geweest is',
   await expect(page.getByRole('heading', { name: 'Afgemeld' })).toHaveCount(0);
 });
 
-test('Mijn diensten zonder diensten: de lege staat, en de kaart op Start', async ({ page }) => {
+test('Mijn diensten zonder diensten: de lege staat, en geen kaart op Start', async ({ page }) => {
   const { lidId } = await logInAlsLid(page);
   const naam = maakNaam('zonder dienst');
   maakActiviteit(naam, [lidId]);
 
-  // Op Start staat geen eigen rij: de kaart "Mijn diensten" onder de statuskaart.
+  // Op Start staat geen eigen rij en ook geen kaart "Mijn diensten": zonder komende diensten zegt die niets. Mijn diensten blijft
+  // bereikbaar via het programma.
   await page.goto('/');
+  await expect(page.getByRole('heading', { level: 2, name: naam })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Al je diensten' })).toHaveCount(0);
-  const kaart = page.getByRole('link', { name: /^Mijn diensten/ }).first();
-  await expect(kaart).toContainText('nog geen diensten');
-  await kaart.click();
-  await expect(page).toHaveURL(/\/programma\/mijn$/);
+  await expect(page.getByRole('link', { name: /^Mijn diensten/ })).toHaveCount(0);
+  await page.goto('/programma/mijn');
 
   await expect(page.getByText('Je staat nog nergens als dienst ingedeeld.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Afgemeld' })).toHaveCount(0);

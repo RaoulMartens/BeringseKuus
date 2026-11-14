@@ -13,7 +13,6 @@ import {
   isNogNietIngedeeld,
   maakJouwstatus,
   maakTijdlijn,
-  nogNietIngevuld,
   statusZin,
   type LedenActiviteit,
 } from '@/lib/ledenactiviteit';
@@ -44,7 +43,6 @@ export function Activiteitblok({
   alleDienstenHref,
 }: Eigenschappen) {
   const groepen = groepeerRollen(indeling.plekken, eigenLidId);
-  const ontbreekt = nogNietIngevuld(activiteit);
   const notitie = activiteit.notitie?.trim();
 
   return (
@@ -64,7 +62,6 @@ export function Activiteitblok({
           <p className={stijl.belangrijkTekst}>{notitie}</p>
         </section>
       )}
-      {ontbreekt && <p className={stijl.nogNiet}>{ontbreekt}</p>}
       <Rolbezetting
         activiteit={activiteit.naam}
         groepen={groepen}

@@ -85,12 +85,14 @@ export default async function Startpagina() {
   });
 
   // Mijn diensten (UC-007): staat het lid zelf in de rolbezetting, dan is de ingang "Al je diensten" op die rij; anders een kaart onder
-  // de statuskaart met hoeveel diensten er komen.
+  // de statuskaart met hoeveel diensten er komen. Zonder komende diensten staat de kaart er niet: "nog geen diensten" zegt een lid
+  // niets waar hij iets mee kan (Mijn diensten blijft bereikbaar via het programma).
   const heeftEigenRij = activiteiten.some((activiteit) =>
     indelingen.get(activiteit.id)?.plekken.some((plek) => plek.lidId === gebruiker.lidId),
   );
   const aantalDiensten = heeftEigenRij ? 0 : splitsDiensten(await leesDiensten(supabase), nu).komend.length;
-  const dienstenkaart = heeftEigenRij ? null : <Dienstenkaart aantal={aantalDiensten} />;
+  const dienstenkaart =
+    heeftEigenRij || aantalDiensten === 0 ? null : <Dienstenkaart aantal={aantalDiensten} />;
 
   return (
     <Schermkader

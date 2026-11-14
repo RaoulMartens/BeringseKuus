@@ -7,7 +7,6 @@ import {
   kiesWelkom,
   maakJouwstatus,
   maakTijdlijn,
-  nogNietIngevuld,
   rolLabel,
   telefoonBijEindverantwoordelijke,
   statusZin,
@@ -198,21 +197,6 @@ describe('maakTijdlijn', () => {
     const stops = maakTijdlijn(activiteit({ busVertrektijd: '18:45:00', locatie: ' ' }));
     expect(stops[0]).toEqual({ tijd: '18:30', wat: 'Verzamelen' });
     expect(stops[2]).toEqual({ tijd: '20:00', wat: 'Begint' });
-  });
-});
-
-describe('nogNietIngevuld', () => {
-  it('benoemt wat ontbreekt', () => {
-    expect(nogNietIngevuld({ busVertrektijd: null, notitie: null })).toBe(
-      'Busvertrek en de notitie “belangrijk om te weten” zijn nog niet ingevuld.',
-    );
-    expect(nogNietIngevuld({ busVertrektijd: null, notitie: 'Jas mee' })).toBe(
-      'Busvertrek is nog niet ingevuld.',
-    );
-    expect(nogNietIngevuld({ busVertrektijd: '18:45:00', notitie: '  ' })).toBe(
-      'De notitie “belangrijk om te weten” is nog niet ingevuld.',
-    );
-    expect(nogNietIngevuld({ busVertrektijd: '18:45:00', notitie: 'Jas mee' })).toBeNull();
   });
 });
 
