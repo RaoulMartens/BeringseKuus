@@ -46,6 +46,25 @@ test('leesArgumenten: weigert wat onduidelijk of gevaarlijk is', () => {
   }
 });
 
+test('leesArgumenten: één echte uitnodiging aan één adres vraagt een voornaam en laat geen mengvormen toe', () => {
+  const goed = leesArgumenten([...BASIS, '--aan', 'rick@example.com', '--voornaam', 'Rick']);
+  assert.ok(!('fout' in goed));
+  if ('fout' in goed) return;
+  assert.equal(goed.aan, 'rick@example.com');
+  assert.equal(goed.test, null);
+  assert.equal(goed.alle, false);
+  assert.equal(goed.voornaam, 'Rick');
+  for (const slecht of [
+    [...BASIS, '--aan', 'rick@example.com'],
+    [...BASIS, '--aan', 'geen-adres', '--voornaam', 'Rick'],
+    [...BASIS, '--aan', 'rick@example.com', '--voornaam', 'Rick', '--alle'],
+    [...BASIS, '--aan', 'rick@example.com', '--voornaam', 'Rick', '--test', 'ik@example.com'],
+    [...BASIS, '--aan', 'rick@example.com', '--voornaam', 'Rick', '--ja'],
+  ]) {
+    assert.ok('fout' in leesArgumenten(slecht), slecht.join(' '));
+  }
+});
+
 test('geldigAdres: gewone adressen wel, rommel niet', () => {
   assert.equal(geldigAdres('anna@example.com'), true);
   assert.equal(geldigAdres('anna.voorbeeld+kuus@example.com'), true);

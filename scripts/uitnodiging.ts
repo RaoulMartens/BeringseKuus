@@ -8,8 +8,10 @@
 export const STANDAARD_SITE = 'https://beringsekuus.crispy-concepts.nl';
 
 export interface Opdracht {
-  /** Alleen naar dit adres, als test. */
+  /** Alleen naar dit adres, als test (met [TEST] in het onderwerp). */
   test: string | null;
+  /** Eén echte uitnodiging aan dit adres, bijvoorbeeld voor een lid dat met een verkeerd adres is aangemaakt. */
+  aan: string | null;
   /** Naar alle leden die kunnen inloggen. Zonder --ja alleen een telling. */
   alle: boolean;
   doorvoeren: boolean;
@@ -25,6 +27,7 @@ export const GEBRUIK = [
   'Gebruik:',
   '  npm run leden:uitnodigen -- --van <afzender> --ondertekening "<naam, functie>" --test <jouw adres> [--voornaam <naam>]',
   '  npm run leden:uitnodigen -- --van <afzender> --ondertekening "<naam, functie>" --alle [--ja]',
+  '  npm run leden:uitnodigen -- --van <afzender> --ondertekening "<naam, functie>" --aan <adres> --voornaam <naam>',
   'Opties: --antwoord <adres> (waar een antwoord heen gaat), --site <https-adres> (standaard de site van de vereniging).',
   'Zonder --ja telt --alle alleen hoeveel mails er zouden gaan. De Postmark-sleutel staat in POSTMARK_SERVER_TOKEN, de gegevens van Supabase in',
   'SUPABASE_URL en SUPABASE_SECRET_KEY (alleen voor --alle), in je eigen terminal (docs/bouw/Pilotleden.md).',
@@ -46,7 +49,7 @@ export function leesArgumenten(argumenten: string[]): Opdracht | { fout: string 
     if (argument === '--alle') alle = true;
     else if (argument === '--ja') doorvoeren = true;
     else if (
-      ['--test', '--van', '--ondertekening', '--antwoord', '--site', '--voornaam'].includes(argument)
+      ['--test', '--aan', '--van', '--ondertekening', '--antwoord', '--site', '--voornaam'].includes(argument)
     ) {
       const waarde = argumenten[i + 1];
       if (waarde === undefined || waarde.startsWith('--'))
@@ -57,25 +60,33 @@ export function leesArgumenten(argumenten: string[]): Opdracht | { fout: string 
   }
 
   const test = waarden.get('--test') ?? null;
+  const aan = waarden.get('--aan') ?? null;
   const van = waarden.get('--van') ?? '';
   const ondertekening = (waarden.get('--ondertekening') ?? '').trim();
   const antwoordAan = waarden.get('--antwoord') ?? null;
   const site = (waarden.get('--site') ?? STANDAARD_SITE).replace(/\/$/, '');
 
-  if ((test === null) === !alle)
-    return { fout: `Kies precies één van --test <adres> of --alle.\n${GEBRUIK}` };
+  if ([test !== null, aan !== null, alle].filter(Boolean).length !== 1)
+    return { fout: `Kies precies één van --test <adres>, --aan <adres> of --alle.\n${GEBRUIK}` };
   if (!geldigAdres(van)) return { fout: `--van is geen e-mailadres.\n${GEBRUIK}` };
   if (ondertekening === '' || ondertekening.length > 120)
     return { fout: `--ondertekening ontbreekt of is te lang.\n${GEBRUIK}` };
   if (test !== null && !geldigAdres(test)) return { fout: '--test is geen e-mailadres.' };
+  if (aan !== null && !geldigAdres(aan)) return { fout: '--aan is geen e-mailadres.' };
+  if (aan !== null && !(waarden.get('--voornaam') ?? '').trim())
+    return {
+      fout: '--aan vraagt --voornaam: de aanhef van een echte uitnodiging is de voornaam van het lid.',
+    };
   if (antwoordAan !== null && !geldigAdres(antwoordAan)) return { fout: '--antwoord is geen e-mailadres.' };
   if (!/^https:\/\/[a-z0-9.-]+$/i.test(site))
     return { fout: '--site moet een https-adres zijn zonder pad, zoals https://voorbeeld.nl.' };
   if (/[\p{Cc}\p{Cf}]/u.test(ondertekening)) return { fout: '--ondertekening bevat een onzichtbaar teken.' };
-  if (doorvoeren && !alle) return { fout: '--ja hoort bij --alle; een testmail gaat zonder --ja.' };
+  if (doorvoeren && !alle)
+    return { fout: '--ja hoort bij --alle; een testmail of een enkele uitnodiging gaat zonder --ja.' };
 
   return {
     test,
+    aan,
     alle,
     doorvoeren,
     van,

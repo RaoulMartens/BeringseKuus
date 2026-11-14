@@ -131,6 +131,28 @@ async function hoofd(): Promise<number> {
     return 0;
   }
 
+  // ===== Eén echte uitnodiging aan één adres =====
+  if (opdracht.aan !== null) {
+    if (!token) {
+      console.error('leden:uitnodigen: zet POSTMARK_SERVER_TOKEN in je eigen terminal.');
+      return 1;
+    }
+    const mail = maakUitnodiging({
+      voornaam: opdracht.voornaam,
+      ondertekening: opdracht.ondertekening,
+      site: opdracht.site,
+    });
+    const reden = await verstuurMail(opdracht.aan, mail, opdracht, token, verstuurder);
+    if (reden) {
+      console.error(`leden:uitnodigen: de uitnodiging is niet verstuurd (${reden}).`);
+      return 1;
+    }
+    console.log(
+      'leden:uitnodigen: uitnodiging verstuurd naar het opgegeven adres. Kijk in Postmark, Activity, of hij op Delivered staat.',
+    );
+    return 0;
+  }
+
   // ===== Alle leden =====
   const doel = leesOnlineDoel(process.env);
   if ('fout' in doel) {
