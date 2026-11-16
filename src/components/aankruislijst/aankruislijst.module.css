@@ -41,12 +41,41 @@
   background: var(--neutraal-hover);
 }
 
+/* Een eigen vakje in plaats van dat van de browser (docs/visueel/stijl.css, `.wf-vink`): 20 px, een hoek van 6 px en een rand van 1 px in de
+   kleur van de velden (--neutraal-lijn-sterk, 3,09:1 op wit). Het vakje van de browser heeft een hoek van ongeveer 2 px en een
+   dikkere, donkerdere rand, waardoor het uit de toon viel naast de velden en knoppen. Aangevinkt: het themarood met een wit
+   vinkje (5,34:1), in de vette variant omdat het naast vette tekst staat. */
 .optie input {
+  appearance: none;
+  box-sizing: border-box;
   flex: none;
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--thema-primair);
+  background-color: var(--neutraal-kaart);
+  background-image: none;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: 6px;
+}
+
+.optie input:checked {
+  background-color: var(--thema-primair);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%23ffffff'%3E%3Cpath d='M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z'/%3E%3C/svg%3E");
+  border-color: var(--thema-primair);
+}
+
+.optie input:focus-visible {
+  outline: 2px solid var(--thema-primair);
+  outline-offset: 2px;
+}
+
+@supports (corner-shape: squircle) {
+  .optie input {
+    corner-shape: squircle;
+  }
 }
 
 .label {
