@@ -30,6 +30,14 @@ const REGEL = z
     bus_vertrektijd: z.string().max(8).optional(),
     notitie: z.string().max(2000).optional(),
     groepen: z.array(z.uuid()).max(10).optional(),
+    // Alleen bij het kopiëren van een seizoen (een Excel-import kent deze velden niet).
+    bus_locatie: z.string().max(200).optional(),
+    afmeld_deadline: z.string().max(25).optional(),
+    min_aanwezigen: z.number().int().min(1).max(10_000).optional(),
+    plekken: z
+      .array(z.object({ rol_type: z.string().max(40), aantal: z.number().int().min(1).max(20) }).strict())
+      .max(20)
+      .optional(),
   })
   .strict();
 
