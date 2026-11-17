@@ -790,6 +790,17 @@ export type Database = {
         };
         Returns: Json;
       };
+      activiteit_opslaan_met_bak: {
+        Args: {
+          p_activiteit_id?: string;
+          p_bak?: Json;
+          p_publiceren?: boolean;
+          p_velden?: Json;
+          p_verwachte_versie?: number;
+          p_wijzigingen?: Json;
+        };
+        Returns: Json;
+      };
       activiteit_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
       activiteiten_bulk_aanmaken: { Args: { p_aanmaak_id: string; p_regels: Json }; Returns: Json };
       activiteiten_bulk_wijzigen: {
