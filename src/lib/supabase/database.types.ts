@@ -192,6 +192,81 @@ export type Database = {
           },
         ];
       };
+      berichten: {
+        Row: {
+          aangemaakt: string;
+          activiteit_datum: string;
+          activiteit_id: string | null;
+          activiteit_naam: string;
+          fout: string | null;
+          id: number;
+          lid_id: string;
+          pogingen: number;
+          status: string;
+          tekst: string;
+          vereniging_id: string;
+          verstuurd_op: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          aangemaakt?: string;
+          activiteit_datum: string;
+          activiteit_id?: string | null;
+          activiteit_naam: string;
+          fout?: string | null;
+          id?: never;
+          lid_id: string;
+          pogingen?: number;
+          status?: string;
+          tekst: string;
+          vereniging_id?: string;
+          verstuurd_op?: string | null;
+        };
+        Update: {
+          aangemaakt?: string;
+          activiteit_datum?: string;
+          activiteit_id?: string | null;
+          activiteit_naam?: string;
+          fout?: string | null;
+          id?: never;
+          lid_id?: string;
+          pogingen?: number;
+          status?: string;
+          tekst?: string;
+          vereniging_id?: string;
+          verstuurd_op?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'berichten_activiteit_id_fkey';
+            columns: ['activiteit_id'];
+            isOneToOne: false;
+            referencedRelation: 'activiteiten';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'berichten_activiteit_id_fkey';
+            columns: ['activiteit_id'];
+            isOneToOne: false;
+            referencedRelation: 'mijn_activiteiten';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'berichten_lid_id_fkey';
+            columns: ['lid_id'];
+            isOneToOne: false;
+            referencedRelation: 'leden';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'berichten_vereniging_id_fkey';
+            columns: ['vereniging_id'];
+            isOneToOne: false;
+            referencedRelation: 'verenigingen';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       bulk_aanmaken: {
         Row: {
           aangemaakt: string;
