@@ -26,3 +26,15 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+.uitleg {
+  margin: 0 0 16px;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.telefoon {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 28rem;
+}
