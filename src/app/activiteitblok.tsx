@@ -7,6 +7,7 @@ import { Rolbezetting } from '@/components/rolbezetting/rolbezetting';
 import type { StatusRegel } from '@/components/jouwstatus/jouwstatus';
 import { Tijdlijnkaartje } from '@/components/tijdlijnkaartje/tijdlijnkaartje';
 import { afmeldenHref, maakAanbod } from '@/lib/afmelden';
+import { groepeerBak } from '@/lib/bak';
 import { ruilHref } from '@/lib/ruilen';
 import {
   groepeerRollen,
@@ -44,6 +45,12 @@ export function Activiteitblok({
 }: Eigenschappen) {
   const groepen = groepeerRollen(indeling.plekken, eigenLidId);
   const notitie = activiteit.notitie?.trim();
+  // De bak (BA-8): onder de rolbezetting, alleen lezen, alleen kopjes waar iemand zit.
+  const bak = groepeerBak(indeling.bak, eigenLidId).map((groep) => ({
+    rol: groep.titel,
+    label: groep.titel,
+    namen: groep.namen,
+  }));
 
   return (
     <>
@@ -69,6 +76,9 @@ export function Activiteitblok({
         onderaan={isNogNietIngedeeld(groepen) ? 'De rest van de indeling volgt nog.' : undefined}
         eigenLink={alleDienstenHref ? { href: alleDienstenHref, tekst: 'Al je diensten' } : undefined}
       />
+      {bak.length > 0 && (
+        <Rolbezetting activiteit={activiteit.naam} groepen={bak} telefoon={null} titel="Bak" zonderIcoon />
+      )}
     </>
   );
 }
@@ -82,7 +92,12 @@ export function maakStatusRegel(
   nu: Date,
 ): StatusRegel {
   const groepen = groepeerRollen(indeling.plekken, eigenLidId);
-  const status = maakJouwstatus(activiteit.naam, groepen, indeling.afgemeld);
+  const status = maakJouwstatus(
+    activiteit.naam,
+    groepen,
+    indeling.afgemeld,
+    indeling.bak.some((plek) => plek.lidId === eigenLidId),
+  );
   const zin = statusZin(status);
   // Welke knoppen er staan: afmelden zonder dienst, intrekken als je bent afgemeld, en een uitleg bij een beheerrol of dienst.
   const ev = indeling.plekken.find((plek) => plek.rol === 'eindverantwoordelijke');

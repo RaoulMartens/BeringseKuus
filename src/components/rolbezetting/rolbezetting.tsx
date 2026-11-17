@@ -37,15 +37,27 @@ interface Eigenschappen {
   onderaan?: ReactNode;
   /** Een link op je eigen rij, bijvoorbeeld "Al je diensten" naar Mijn diensten (UC-007). Alleen als je zelf in de lijst staat. */
   eigenLink?: { href: string; tekst: string };
+  /** De kop van de kaart; "Bak" voor de bak (BA-8), die dezelfde opmaak heeft maar geen diensten bevat. */
+  titel?: string;
+  /** Zonder icoon bij de kopjes: de kopjes van de bak (prins en adjudant, vorst, Raad van Elf) zijn geen diensten. */
+  zonderIcoon?: boolean;
 }
 
-export function Rolbezetting({ groepen, telefoon, activiteit, onderaan, eigenLink }: Eigenschappen) {
+export function Rolbezetting({
+  groepen,
+  telefoon,
+  activiteit,
+  onderaan,
+  eigenLink,
+  titel = 'Rolbezetting',
+  zonderIcoon = false,
+}: Eigenschappen) {
   return (
-    <section className={stijl.kaart} aria-label={`Rolbezetting ${activiteit}`}>
-      <h2 className={stijl.titel}>Rolbezetting</h2>
+    <section className={stijl.kaart} aria-label={`${titel} ${activiteit}`}>
+      <h2 className={stijl.titel}>{titel}</h2>
       <div className={stijl.groepen}>
         {groepen.map((groep) => {
-          const icoon = rolIcoon(groep.rol);
+          const icoon = zonderIcoon ? null : rolIcoon(groep.rol);
           return (
             <div key={groep.rol} className={stijl.blok}>
               <span className={stijl.rol}>

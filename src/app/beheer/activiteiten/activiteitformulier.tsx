@@ -14,8 +14,10 @@ import { Melding } from '@/components/melding/melding';
 import { Veld } from '@/components/veld/veld';
 import { Tekstvak } from '@/components/veld/tekstvak';
 import { TEKENS_NAAM, TEKENS_NOTITIE } from '@/lib/activiteitformulier';
+import { bakUitTekst, type BakPlek } from '@/lib/bak';
 
 import { slaActiviteitOp, type FormulierStaat } from './acties';
+import { Bak } from './bak';
 import type { Kandidaat } from './gegevens';
 import { Plekken, type BestaandePlek, type Eindverantwoordelijke, type Rolkeuze } from './plekken';
 
@@ -49,11 +51,15 @@ interface Eigenschappen {
   rollen: Rolkeuze[];
   /** Wie zich voor deze activiteit heeft afgemeld. */
   afgemeld: string[];
+  /** De bak (BA-8): staat hij aan, en wie zit erin. */
+  bak: { actief: boolean; plekken: BakPlek[] };
+  /** De leden van de Raad van Elf, om de bak mee te vullen als hij wordt aangezet. */
+  raadsleden: string[];
   /** De activiteit is al gepubliceerd: leden zien elke wijziging direct (er gaat nog geen bericht uit). */
   gepubliceerd?: boolean;
 }
 
-const START: FormulierStaat = { fouten: {}, melding: null, waarden: null, kenmerk: 'start' };
+const START: FormulierStaat = { fouten: {}, melding: null, waarden: null, kenmerk: 'start', bak: null };
 
 function ledenTekst(aantal: number): string {
   return `${aantal} ${aantal === 1 ? 'lid' : 'leden'}`;
@@ -70,6 +76,8 @@ export function Activiteitformulier({
   kandidaten,
   rollen,
   afgemeld,
+  bak,
+  raadsleden,
   gepubliceerd = false,
 }: Eigenschappen) {
   const [staat, actie] = useActionState<FormulierStaat, FormData>(slaActiviteitOp, START);
@@ -232,6 +240,14 @@ export function Activiteitformulier({
           fout={fouten.plekken}
         />
       </Kaart>
+
+      <Bak
+        key={`bak-${staat.kenmerk}`}
+        begin={bakUitTekst(staat.bak) ?? bak}
+        raadsleden={raadsleden}
+        leden={kandidaten.filter((kandidaat) => !kandidaat.extern).map(({ id, naam }) => ({ id, naam }))}
+        fout={fouten.bak}
+      />
 
       <Kaart titel="Afmelden">
         <div className={stijl.velden}>

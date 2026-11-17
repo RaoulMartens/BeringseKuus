@@ -2,6 +2,7 @@
 // alleen gepubliceerde activiteiten voor zijn groepen (R15, R22), alleen bezette plekken (R13) en alleen zijn eigen afmelding.
 // Aan de serverkant, nooit in de browser. De uitleg wat het scherm ermee doet staat in src/lib/ledenactiviteit.ts.
 
+import { isBakLabel, type BakNaam } from '@/lib/bak';
 import {
   telefoonBijEindverantwoordelijke,
   type BezettePlek,
@@ -94,6 +95,8 @@ export async function leesActiviteitVoorLid(supabase: Supabase, id: string): Pro
 /** Wat bij een activiteit hoort: wie op de plekken staat, of dit lid is afgemeld en het nummer van de eindverantwoordelijke. */
 export interface Indeling {
   plekken: BezettePlek[];
+  /** Wie in de bak zit (BA-8): geen dienst, dus apart van de plekken. Lege plekken ziet een lid niet. */
+  bak: BakNaam[];
   afgemeld: boolean;
   telefoon: string | null;
 }
@@ -109,14 +112,14 @@ export async function leesIndelingen(
   eigenLidId: string,
 ): Promise<Map<string, Indeling>> {
   const uitkomst = new Map<string, Indeling>(
-    activiteitIds.map((id) => [id, { plekken: [], afgemeld: false, telefoon: null }]),
+    activiteitIds.map((id) => [id, { plekken: [], bak: [], afgemeld: false, telefoon: null }]),
   );
   if (activiteitIds.length === 0) return uitkomst;
 
   const [slots, afmeldingen, contacten] = await Promise.all([
     supabase
       .from('rol_slots')
-      .select('activiteit_id, rol_type, bezetter_id')
+      .select('activiteit_id, rol_type, bezetter_id, plek_label')
       .in('activiteit_id', activiteitIds)
       .not('bezetter_id', 'is', null)
       .order('volgorde'),
@@ -159,7 +162,12 @@ export async function leesIndelingen(
     const indeling = uitkomst.get(slot.activiteit_id);
     const naam = slot.bezetter_id ? namen.get(slot.bezetter_id) : undefined;
     if (indeling && slot.bezetter_id && naam) {
-      indeling.plekken.push({ rol: slot.rol_type, lidId: slot.bezetter_id, naam });
+      if (slot.rol_type === 'bak') {
+        if (isBakLabel(slot.plek_label))
+          indeling.bak.push({ label: slot.plek_label, lidId: slot.bezetter_id, naam });
+      } else {
+        indeling.plekken.push({ rol: slot.rol_type, lidId: slot.bezetter_id, naam });
+      }
     }
   }
   for (const regel of afmeldingen.data) {

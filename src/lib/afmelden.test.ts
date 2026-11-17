@@ -18,6 +18,17 @@ const NU = new Date('2027-01-21T12:00:00Z');
 const NIETS = { afmelden: false, overdragen: false, intrekken: false, hulp: null };
 
 describe('maakAanbod', () => {
+  it('een plek in de bak is een beheerrol: geen afmelden, wel het nummer van de eindverantwoordelijke (R23)', () => {
+    const aanbod = maakAanbod(TOEKOMST, NU, false, ['bak'], {
+      naam: 'Ger Hermans',
+      telefoon: '06 12 34 56 78',
+    });
+    expect(aanbod.afmelden).toBe(false);
+    expect(aanbod.overdragen).toBe(false);
+    expect(aanbod.hulp).toContain('Ger Hermans');
+    expect(aanbod.hulp).toContain('06 12 34 56 78');
+  });
+
   it('biedt afmelden aan voor wie zonder dienst op aanwezig staat', () => {
     expect(maakAanbod(TOEKOMST, NU, false, [])).toEqual({ ...NIETS, afmelden: true });
   });

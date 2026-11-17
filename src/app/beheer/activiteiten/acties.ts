@@ -11,7 +11,9 @@ import {
   vertaalOpslagfout,
   type Waarden,
 } from '@/lib/activiteitformulier';
+import { leesBak } from '@/lib/bak';
 import { eisBeheer } from '@/lib/beheer';
+import type { Json } from '@/lib/supabase/database.types';
 import { vertaalPubliceerfout } from '@/lib/publiceren';
 import { vertaalVerwijderfout } from '@/lib/verwijderen';
 import { maakSupabase } from '@/lib/supabase/server';
@@ -25,6 +27,8 @@ export interface FormulierStaat {
   waarden: Waarden | null;
   /** Een nieuw kenmerk bij elk antwoord: het formulier zet de onderdelen met eigen toestand er dan opnieuw mee neer. */
   kenmerk: string;
+  /** De bak zoals de beheerder hem had ingevuld (tekst uit het verborgen veld), terug in het formulier na een fout. */
+  bak: string | null;
 }
 
 /** Een antwoord voor het formulier, met een nieuw kenmerk. */
@@ -32,8 +36,9 @@ function antwoord(
   fouten: Record<string, string>,
   melding: string | null,
   waarden: Waarden | null,
+  bak: string | null = null,
 ): FormulierStaat {
-  return { fouten, melding, waarden, kenmerk: crypto.randomUUID() };
+  return { fouten, melding, waarden, kenmerk: crypto.randomUUID(), bak };
 }
 
 const ID = z.uuid();
@@ -48,39 +53,52 @@ const VERSIE = z.coerce.number().int().min(1).max(2_000_000_000);
 export async function slaActiviteitOp(_vorige: FormulierStaat, formulier: FormData): Promise<FormulierStaat> {
   await eisBeheer();
   const waarden = leesWaarden(formulier);
+  // De bak (BA-8) gaat in dezelfde aanroep mee: faalt iets, dan gaat er niets door. Bij een fout komt hij terug zoals hij was ingevuld.
+  const bakVeld = formulier.get('bak');
+  const bakTerug = typeof bakVeld === 'string' ? bakVeld : null;
+  const bak = leesBak(bakVeld);
 
   // Nieuw of bewerken staat er uitdrukkelijk in: een bewerking zonder id of versie wordt nooit een nieuw concept (CR-06).
   const doel = leesOpslagDoel(formulier);
   if (doel.soort === 'fout') {
     const code =
       doel.reden === 'versie' ? 'versie_verouderd' : doel.reden === 'id' ? 'activiteit_onbekend' : '';
-    return antwoord({}, vertaalOpslagfout(code, {}).melding, waarden);
+    return antwoord({}, vertaalOpslagfout(code, {}).melding, waarden, bakTerug);
   }
 
   const uitkomst = leesFormulier(formulier);
   if (!uitkomst.ok) {
-    return antwoord(uitkomst.fouten, null, waarden);
+    return antwoord(uitkomst.fouten, null, waarden, bakTerug);
+  }
+  if (bak === 'ongeldig') {
+    return antwoord(
+      { bak: 'Dit klopt niet. Controleer de bak en probeer het opnieuw.' },
+      null,
+      waarden,
+      bakTerug,
+    );
   }
 
   const supabase = await maakSupabase();
-  const { data, error } = await supabase.rpc('activiteit_opslaan', {
+  const { data, error } = await supabase.rpc('activiteit_opslaan_met_bak', {
     p_activiteit_id: doel.soort === 'bewerken' ? doel.id : undefined,
     p_velden: { ...uitkomst.velden },
     p_wijzigingen: uitkomst.wijzigingen.map((wijziging) => ({ ...wijziging })),
     p_publiceren: false,
     p_verwachte_versie: doel.soort === 'bewerken' ? doel.versie : undefined,
+    p_bak: bak === null ? undefined : (bak as unknown as Json),
   });
 
   if (error) {
     // De foutcode is een van onze eigen codes (SQLSTATE BK001); alleen de soort komt in het log, geen invoer.
     console.error(`activiteit niet opgeslagen: ${error.code ?? error.message}`);
     if (error.code !== 'BK001') {
-      return antwoord({}, vertaalOpslagfout('', {}).melding, waarden);
+      return antwoord({}, vertaalOpslagfout('', {}).melding, waarden, bakTerug);
     }
     // Is de beheerder tussentijds geen beheerder meer (de code is verlopen), dan naar het scherm dat daarbij hoort.
     if (error.message === 'geen_admin') redirect('/beheer');
     const tekst = vertaalOpslagfout(error.message, leesDetail(error.details));
-    return antwoord(tekst.fouten, tekst.melding, waarden);
+    return antwoord(tekst.fouten, tekst.melding, waarden, bakTerug);
   }
 
   const opgeslagen = z.object({ activiteit_id: ID }).safeParse(data);

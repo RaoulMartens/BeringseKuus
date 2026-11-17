@@ -2,6 +2,7 @@
 // leest hier alle plekken, leden en groepen (Datamodel-fase-1.md punt 6). Aan de serverkant, nooit in de browser.
 
 import { nogNodigOmTePubliceren, tijdstipVoorVeld, tijdVoorVeld } from '@/lib/activiteitformulier';
+import { isBakLabel, type BakPlek } from '@/lib/bak';
 import type { ActiviteitStatus } from '@/lib/programma';
 import { isActiviteitStatus } from '@/lib/programma';
 import { zelfNietZichtbaarTekst } from '@/lib/publiceren';
@@ -104,6 +105,8 @@ export interface ActiviteitGegevens {
   gekozenGroepen: string[];
   plekken: BestaandePlek[];
   eindverantwoordelijke: Eindverantwoordelijke;
+  /** De bak (BA-8): staat hij aan, en wie zit erin. */
+  bak: { actief: boolean; plekken: BakPlek[] };
   /** Wat er nog nodig is om te publiceren. */
   nogNodig: string[];
 }
@@ -113,7 +116,7 @@ export async function leesActiviteit(supabase: Supabase, id: string): Promise<Ac
   const { data: a, error } = await supabase
     .from('activiteiten')
     .select(
-      'id, naam, datum, verzameltijd, starttijd, eindtijd, locatie, bus_vertrektijd, bus_locatie, notitie, afmeld_deadline, min_aanwezigen, status, versie',
+      'id, naam, datum, verzameltijd, starttijd, eindtijd, locatie, bus_vertrektijd, bus_locatie, notitie, afmeld_deadline, min_aanwezigen, status, versie, bak_actief',
     )
     .eq('id', id)
     .maybeSingle();
@@ -121,7 +124,11 @@ export async function leesActiviteit(supabase: Supabase, id: string): Promise<Ac
   if (!a || !isActiviteitStatus(a.status)) return null;
 
   const [slots, groepen] = await Promise.all([
-    supabase.from('rol_slots').select('id, rol_type, bezetter_id').eq('activiteit_id', id).order('volgorde'),
+    supabase
+      .from('rol_slots')
+      .select('id, rol_type, bezetter_id, plek_label')
+      .eq('activiteit_id', id)
+      .order('volgorde'),
     supabase.from('activiteit_groep').select('groep_id').eq('activiteit_id', id),
   ]);
   if (slots.error) throw new Error(`plekken niet te lezen: ${slots.error.code ?? slots.error.message}`);
@@ -181,6 +188,21 @@ export async function leesActiviteit(supabase: Supabase, id: string): Promise<Ac
       telefoon: evTelefoon,
       nieuw: false,
     },
+    bak: {
+      actief: a.bak_actief,
+      plekken: slots.data.flatMap((slot): BakPlek[] =>
+        slot.rol_type === 'bak' && isBakLabel(slot.plek_label)
+          ? [
+              {
+                slotId: slot.id,
+                label: slot.plek_label,
+                bezetterId: slot.bezetter_id,
+                verwacht: slot.bezetter_id,
+              },
+            ]
+          : [],
+      ),
+    },
     nogNodig: nogNodigOmTePubliceren({
       starttijd: a.starttijd,
       eindtijd: a.eindtijd,
@@ -229,6 +251,22 @@ export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
       telefoon: regel?.telefoon?.trim() || null,
     };
   });
+}
+
+/**
+ * De actieve leden van de groep Raad van Elf, voor de bak: die wordt er vooraf mee gevuld (BA-8). Zonder beheeraccounts. Is er
+ * geen groep met die naam, dan is de lijst leeg en vult de beheerder de bak zelf.
+ */
+export async function leesRaadsleden(supabase: Supabase): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('lid_groep')
+    .select('lid_id, groepen!inner(naam), leden!inner(actief, type, alleen_beheer)')
+    .eq('groepen.naam', 'Raad van Elf')
+    .eq('leden.actief', true)
+    .eq('leden.type', 'lid')
+    .eq('leden.alleen_beheer', false);
+  if (error) throw new Error(`Raad van Elf niet te lezen: ${error.code ?? error.message}`);
+  return data.map((regel) => regel.lid_id);
 }
 
 /** Wie zich voor deze activiteit heeft afgemeld: die staat niet in de keuzelijst (BA-1). */
