@@ -185,17 +185,32 @@ export interface Jouwstatus {
   rollen: string[];
 }
 
-export function maakJouwstatus(naam: string, groepen: Rolgroep[], afgemeld: boolean): Jouwstatus {
+/**
+ * Een plek in de bak (BA-8) is geen dienst maar telt als beheerrol (R23): `rollen` bevat dan "bak", zodat je geen knop Afmelden
+ * krijgt maar het nummer van de eindverantwoordelijke (maakAanbod in src/lib/afmelden.ts).
+ */
+export function maakJouwstatus(
+  naam: string,
+  groepen: Rolgroep[],
+  afgemeld: boolean,
+  inBak = false,
+): Jouwstatus {
   const rollen = groepen.flatMap((groep) => (groep.namen.some((n) => n.jij) ? [groep.rol] : []));
-  return { naam, afgemeld, rollen };
+  return { naam, afgemeld, rollen: inBak ? [...rollen, 'bak'] : rollen };
 }
 
-/** De zin van het statuspaneel: "Je staat op aanwezig als werker.", "Je staat op aanwezig, zonder dienst." of "Je bent afgemeld." */
+/**
+ * De zin van het statuspaneel: "Je staat op aanwezig als werker.", "Je staat op aanwezig, zonder dienst.", "Je zit in de bak." of
+ * "Je bent afgemeld."
+ */
 export function statusZin(status: Jouwstatus): { soort: 'aanwezig' | 'afgemeld'; tekst: string } {
   if (status.afgemeld) return { soort: 'afgemeld', tekst: 'Je bent afgemeld.' };
+  const diensten = status.rollen.filter((rol) => rol !== 'bak');
+  if (diensten.length === 0 && status.rollen.length > 0)
+    return { soort: 'aanwezig', tekst: 'Je zit in de bak.' };
   if (status.rollen.length === 0) return { soort: 'aanwezig', tekst: 'Je staat op aanwezig, zonder dienst.' };
   return {
     soort: 'aanwezig',
-    tekst: `Je staat op aanwezig als ${status.rollen.map(rolInZin).join(' en ')}.`,
+    tekst: `Je staat op aanwezig als ${diensten.map(rolInZin).join(' en ')}.`,
   };
 }
