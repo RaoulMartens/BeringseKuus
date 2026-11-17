@@ -1,29 +1,25 @@
 import type { Metadata } from 'next';
 
+import { Kaart } from '@/components/kaart/kaart';
+import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { eisBeheer } from '@/lib/beheer';
 import { maakSupabase } from '@/lib/supabase/server';
 
-import { Importeren } from './importeren';
+import { leesSeizoenen } from './gegevens';
+import stijl from './bulk.module.css';
 
 export const metadata: Metadata = { title: 'Meerdere activiteiten aanmaken – Ledenplatform' };
 
 /**
- * Meerdere activiteiten tegelijk aanmaken met een Excel-bestand (UC-006). De pagina haalt alleen op wat het onderdeel nodig heeft:
- * de groepen (om "voor wie" te koppelen) en het seizoen van vandaag (voor een datum zonder jaar). Het bestand zelf wordt in de
- * browser gelezen.
+ * Het begin van "meerdere activiteiten tegelijk aanmaken" (UC-006, wireframe admin-bulk-start): het vorige seizoen kopiëren of een
+ * Excel-bestand importeren. Kopiëren staat er alleen als er een seizoen is om te kopiëren.
  */
 export default async function MeerdereAanmaken() {
   await eisBeheer();
   const supabase = await maakSupabase();
-
-  const { data: seizoen, error: seizoenFout } = await supabase.rpc('huidig_seizoen');
-  if (seizoenFout) throw new Error(`seizoen niet te lezen: ${seizoenFout.code ?? seizoenFout.message}`);
-  const { data: groepen, error: groepenFout } = await supabase
-    .from('groepen')
-    .select('id, naam')
-    .order('volgorde');
-  if (groepenFout) throw new Error(`groepen niet te lezen: ${groepenFout.code ?? groepenFout.message}`);
+  const seizoenen = await leesSeizoenen(supabase);
+  const laatste = seizoenen[0];
 
   return (
     <Schermkader
@@ -31,7 +27,29 @@ export default async function MeerdereAanmaken() {
       titel="Meerdere activiteiten aanmaken"
       terug={{ href: '/beheer', tekst: 'Terug naar activiteiten' }}
     >
-      <Importeren groepen={groepen} seizoen={seizoen} />
+      <Kaart lijst>
+        <Lijst zonderKop>
+          {laatste && (
+            <Lijstrij href="/beheer/activiteiten/bulk/kopieren">
+              <span className={stijl.keuze}>
+                <strong className={stijl.keuzetitel}>Vorig seizoen kopiëren</strong>
+                <span className={stijl.keuzehulp}>
+                  {laatste.naam} ·{' '}
+                  {laatste.activiteiten.length === 1
+                    ? '1 activiteit'
+                    : `${laatste.activiteiten.length} activiteiten`}
+                </span>
+              </span>
+            </Lijstrij>
+          )}
+          <Lijstrij href="/beheer/activiteiten/bulk/importeren">
+            <span className={stijl.keuze}>
+              <strong className={stijl.keuzetitel}>Excel-bestand importeren</strong>
+              <span className={stijl.keuzehulp}>Met het sjabloon van de vereniging</span>
+            </span>
+          </Lijstrij>
+        </Lijst>
+      </Kaart>
     </Schermkader>
   );
 }

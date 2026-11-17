@@ -40,7 +40,7 @@ test.afterAll(async () => {
 
 async function opBulkpagina(page: Page): Promise<void> {
   aangemaakt.push(await logInAlsBeheerder(page));
-  await page.goto('/beheer/activiteiten/bulk');
+  await page.goto('/beheer/activiteiten/bulk/importeren');
   await expect(page.getByRole('heading', { level: 1, name: 'Meerdere activiteiten aanmaken' })).toBeVisible();
 }
 
@@ -220,6 +220,10 @@ test('de ingang staat op het beheeroverzicht', async ({ page }) => {
   await page.getByRole('link', { name: /^Meerdere (tegelijk )?aanmaken$/ }).click();
   await expect(page).toHaveURL(/\/beheer\/activiteiten\/bulk$/);
   await expect(page.getByRole('link', { name: 'Terug naar activiteiten' })).toBeVisible();
+  // Eerst de keuze: het vorige seizoen kopiëren (zodra er een seizoen is, zie kopieren.spec.ts) of een Excel-bestand importeren.
+  await page.getByRole('link', { name: /Excel-bestand importeren/ }).click();
+  await expect(page).toHaveURL(/\/beheer\/activiteiten\/bulk\/importeren$/);
+  await expect(page.getByRole('link', { name: 'Terug naar meerdere aanmaken' })).toBeVisible();
   // Het sjabloon is te downloaden en schuift de pagina niet opzij.
   await expect(page.getByRole('link', { name: /Sjabloon downloaden/ })).toHaveAttribute(
     'href',
