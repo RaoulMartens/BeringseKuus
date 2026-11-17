@@ -14,29 +14,18 @@ export interface Berichtregel {
   activiteit_datum: string;
   /** Eén of meer regels, gescheiden door een regeleinde. */
   tekst: string;
-  pogingen: number;
-  /** ISO-tijdstip. */
-  aangemaakt: string;
 }
 
 /** Wat samen in één mail gaat. */
 export interface Groep {
   lidId: string;
+  activiteitId: string | null;
+  /** Naam en datum van de laatste regel: als de activiteit tussendoor is hernoemd of verplaatst, staat de nieuwste in de kop. */
   activiteitNaam: string;
   activiteitDatum: string;
   regels: string[];
   /** De id's van de berichten in deze mail, om na het versturen op "verstuurd" te zetten. */
   ids: number[];
-}
-
-/** Berichten ouder dan dit worden niet meer verstuurd: een mail over iets van gisteren is verwarrend, en dit voorkomt dat een
- *  lange storing (of het aanzetten van de mail na een tijd) in één keer een stapel oude berichten stuurt. */
-export const VERLOOP_UREN = 24;
-/** Na dit aantal mislukte pogingen geven we op (status mislukt). */
-export const MAX_POGINGEN = 5;
-
-export function isVerlopen(regel: Pick<Berichtregel, 'aangemaakt'>, nu: Date): boolean {
-  return nu.getTime() - new Date(regel.aangemaakt).getTime() > VERLOOP_UREN * 3_600_000;
 }
 
 /** Voegt de berichten van één lid over één activiteit samen, in de volgorde waarin ze klaarstonden. */
@@ -48,6 +37,7 @@ export function groepeer(berichten: readonly Berichtregel[]): Groep[] {
     if (!groep) {
       groep = {
         lidId: bericht.lid_id,
+        activiteitId: bericht.activiteit_id,
         activiteitNaam: bericht.activiteit_naam,
         activiteitDatum: bericht.activiteit_datum,
         regels: [],
@@ -55,6 +45,8 @@ export function groepeer(berichten: readonly Berichtregel[]): Groep[] {
       };
       groepen.set(sleutel, groep);
     }
+    groep.activiteitNaam = bericht.activiteit_naam;
+    groep.activiteitDatum = bericht.activiteit_datum;
     groep.ids.push(bericht.id);
     for (const regel of bericht.tekst.split('\n')) {
       const schoon = regel.trim();
@@ -62,6 +54,49 @@ export function groepeer(berichten: readonly Berichtregel[]): Groep[] {
     }
   }
   return [...groepen.values()];
+}
+
+/** Wat de Worker vlak vóór het versturen nog eens controleert (de database controleerde het bij het klaarzetten). */
+export interface LidStand {
+  actief: boolean;
+  type: string;
+  alleen_beheer: boolean;
+}
+export interface ActiviteitStand {
+  status: string;
+  /** ISO-tijdstip. */
+  eindigt_om: string;
+}
+
+/**
+ * Waarom een bericht toch niet meer verstuurd wordt, of null als het kan. Een lid dat sinds het klaarzetten inactief is
+ * geworden krijgt niets, en een bericht over een activiteit die nu niet meer gepubliceerd is of is afgelopen ook niet. Een
+ * bericht over een activiteit die er niet meer is (verwijderd, `activiteit_id` leeg) gaat wel uit: dat is de melding zelf.
+ */
+export function moetOverslaan(
+  groep: Pick<Groep, 'activiteitId'>,
+  lid: LidStand | undefined,
+  activiteit: ActiviteitStand | undefined,
+  nu: Date,
+): string | null {
+  if (!lid || !lid.actief || lid.type !== 'lid' || lid.alleen_beheer) return 'lid_niet_meer_actief';
+  if (groep.activiteitId !== null) {
+    if (
+      !activiteit ||
+      activiteit.status !== 'gepubliceerd' ||
+      new Date(activiteit.eindigt_om).getTime() < nu.getTime()
+    ) {
+      return 'activiteit_voorbij';
+    }
+  }
+  return null;
+}
+
+/** Een lijst in stukken, voor adressen met een lijst id's: een te lange URL wordt door de gateway geweigerd (HTTP 414). */
+export function inStukken<T>(lijst: readonly T[], grootte: number): T[][] {
+  const stukken: T[][] = [];
+  for (let i = 0; i < lijst.length; i += grootte) stukken.push(lijst.slice(i, i + grootte));
+  return stukken;
 }
 
 const DAGEN = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'] as const;

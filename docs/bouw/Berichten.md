@@ -8,11 +8,23 @@ document legt uit hoe het werkt, wat bewust niet, en hoe je het aanzet.
 1. **De database zet berichten klaar.** Bij een wijziging van een gepubliceerde activiteit zet een trigger een regel in de
    tabel `berichten` (een postvak-uit). Dat gebeurt in dezelfde transactie als de wijziging: faalt de wijziging, dan staat
    er ook geen bericht. Migratie `20261117120000_berichten.sql`, tests `supabase/tests/database/berichten.test.sql`.
-2. **De taken-Worker verstuurt ze.** `taken/worker.ts` draait elke minuut (Cron Trigger), haalt de wachtende regels op,
-   voegt de regels van één lid over één activiteit samen tot één mail (`taken/berichten.ts`) en verstuurt die via
-   Postmark. Daarna staat de regel op `verstuurd`. Gaat het mis, dan blijft hij staan voor de volgende minuut, tot vijf
-   pogingen; dan staat hij op `mislukt` met een foutcode. Een regel ouder dan 24 uur wordt niet meer verstuurd
-   (`mislukt`, fout `verlopen`).
+   **Velden en doelgroep samen:** de eerste keer dat een transactie een activiteit of zijn doelgroep aanraakt, bewaart de
+   database de beginsituatie (`berichten_voor`). Aan het einde van de transactie (uitgestelde trigger) vergelijkt hij
+   die met de eindsituatie. Zo hangt een bericht niet af van de volgorde waarin `activiteit_opslaan` velden en groepen
+   schrijft, en weet de database ook wie de activiteit voorheen zag (ook als "iedereen" nul groepen betekent). Een
+   activiteit die in dezelfde transactie is aangemaakt geeft niets.
+2. **De taken-Worker verstuurt ze.** `taken/worker.ts` draait elke minuut (Cron Trigger) en doet dit:
+   - **Oppakken** met de databasefunctie `claim_berichten` (alleen `service_role`): atomair (`for update skip locked`),
+     dus twee runs tegelijk krijgen nooit dezelfde regels, en in hele groepen van één lid en één activiteit, zodat die in
+     één mail kunnen. Het aantal pogingen telt hier, vóór het versturen. De functie zet ook op `mislukt` wat ouder is dan
+     24 uur (`verlopen`) of vijf keer is opgepakt (`te_veel_pogingen`). Een oppak-vergrendeling loopt na tien minuten af.
+   - **Opnieuw toetsen** vlak voor het versturen: een lid dat inactief is geworden of het beheeraccount is, en een
+     activiteit die niet meer gepubliceerd of al afgelopen is, krijgt niets (status `overgeslagen`). Het bericht over een
+     verwijderde activiteit gaat wel uit.
+   - **Versturen** via Postmark, één mail per groep. Lukt het, dan `verstuurd`. Lukt het niet, dan blijft het bericht
+     `wacht` met de foutcode; het komt terug zodra de vergrendeling afloopt, tot vijf pogingen.
+   - Eén mislukte groep stopt de rest van de run niet. De leesopdrachten staan in stukken van 40 id's, zodat de URL kort
+     blijft.
 3. **Waarom een postvak-uit en niet direct mailen?** Een bericht gaat zo alleen uit als de wijziging echt is doorgevoerd,
    een storing bij Postmark kan een wijziging niet laten mislukken, en alleen de taken-Worker heeft de geheime sleutels
    (de app niet: `docs/hosting.md`, Geheimen).
@@ -72,6 +84,10 @@ run schrijft dan één regel in de logs en doet niets. Zo zet je het aan, eerst 
   adres klopt niet; 429: te veel mails). Los de oorzaak op en zet de regels terug op `wacht` in de Table Editor.
 - `mislukt` met fout `geen_adres`: het lid heeft geen adres in `leden_prive`.
 - `mislukt` met fout `verlopen`: de regel was ouder dan 24 uur toen de Worker hem zag (mail stond uit).
-- Valt de verbinding weg tussen het versturen en het bijwerken van de status, dan krijgt dat lid dezelfde mail twee keer.
-  Dat is bewust het kleinere kwaad boven een mail die nooit aankomt.
+- `mislukt` met fout `te_veel_pogingen`: vijf keer opgepakt zonder `verstuurd` (Postmark weigerde steeds, of de Worker
+  stopte telkens halverwege).
+- `overgeslagen` met fout `lid_niet_meer_actief` of `activiteit_voorbij`: bij het versturen klopte het niet meer.
+- Valt de verbinding weg tussen het versturen en het bijwerken van de status (ook na één herhaling), dan kan dat lid
+  dezelfde mail nog een keer krijgen, hooguit tot het aantal pogingen op is (vijf). Dat is bewust het kleinere kwaad boven
+  een mail die nooit aankomt; Postmark kent geen sleutel om dubbel versturen te voorkomen.
 - De logs bevatten alleen aantallen en foutcodes, nooit namen, adressen of tekst.

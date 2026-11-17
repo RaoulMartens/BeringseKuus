@@ -3,17 +3,28 @@
 // zou de hele app die sleutel via process.env kunnen lezen, en die sleutel gaat om alle rechten heen.
 //
 // De taak: berichten per mail (O-1). De database zet bij een wijziging van een gepubliceerde activiteit regels klaar in
-// `berichten` (migratie 20261117120000); deze Worker haalt de wachtende regels op, voegt ze per lid en activiteit samen tot
-// één mail, verstuurt die via Postmark en zet ze op "verstuurd". Gaat het mis, dan blijft de regel staan voor de volgende
-// run, tot MAX_POGINGEN keer. Zijn de geheimen niet gezet, dan gebeurt er niets (de regels blijven staan tot ze verlopen).
+// `berichten` (migratie 20261117120000). Deze Worker pakt ze op met `claim_berichten` (atomair: twee runs tegelijk krijgen
+// nooit dezelfde regels, en het aantal pogingen telt vóór het versturen), controleert vlak voor het versturen nog eens of het
+// lid en de activiteit kloppen, voegt de regels per lid en activiteit samen tot één mail, verstuurt die via Postmark en zet
+// ze op "verstuurd". Eén mislukte mail stopt de rest van de run niet. Zijn de geheimen niet gezet, dan gebeurt er niets.
 //
-// Geheimen (type Secret, bij déze Worker): SUPABASE_URL, SUPABASE_SECRET_KEY, POSTMARK_TOKEN. Gewone variabelen: BERICHT_AFZENDER
-// (het afzenderadres, "Naam <adres>"), BERICHT_ONDERTEKENING en SITE_URL; en voor de proef BERICHT_TEST_ADRES (alle mail gaat dan naar dat ene adres). Uitleg: docs/bouw/Berichten.md.
+// Geheimen (type Secret, bij déze Worker): SUPABASE_URL, SUPABASE_SECRET_KEY, POSTMARK_TOKEN. Gewone instellingen, ook als
+// Secret: BERICHT_AFZENDER (het afzenderadres, "Naam <adres>"), BERICHT_ONDERTEKENING en SITE_URL; en voor de proef
+// BERICHT_TEST_ADRES (alle mail gaat dan naar dat ene adres). Uitleg: docs/bouw/Berichten.md.
 //
 // Geen fetch-handler: deze Worker heeft geen adres (workers_dev staat uit in taken/wrangler.jsonc). In de logs staan alleen
 // aantallen en foutcodes, geen namen, adressen of berichttekst.
 
-import { groepeer, isVerlopen, maakMail, MAX_POGINGEN, type Berichtregel, type Groep } from './berichten.ts';
+import {
+  groepeer,
+  inStukken,
+  maakMail,
+  moetOverslaan,
+  type ActiviteitStand,
+  type Berichtregel,
+  type Groep,
+  type LidStand,
+} from './berichten.ts';
 
 interface Omgeving {
   SUPABASE_URL?: string;
@@ -22,41 +33,57 @@ interface Omgeving {
   BERICHT_AFZENDER?: string;
   BERICHT_ONDERTEKENING?: string;
   SITE_URL?: string;
-  /** Alleen voor de proef: staat dit gezet, dan gaat elke mail naar dit adres (met [TEST] in het onderwerp) en niet naar het lid. */
+  /** Alleen voor de proef: staat dit gezet, dan gaat elke mail naar dit adres (met [TEST] in het onderwerp), niet naar het lid. */
   BERICHT_TEST_ADRES?: string;
 }
 
-/** Hoeveel wachtende regels één run verwerkt: de rest volgt de volgende minuut. */
-const PER_RUN = 300;
-
-function kolommen(...namen: string[]): string {
-  return namen.join(',');
+interface Db {
+  SUPABASE_URL: string;
+  SUPABASE_SECRET_KEY: string;
 }
 
-async function supabase(
-  omgeving: Required<Pick<Omgeving, 'SUPABASE_URL' | 'SUPABASE_SECRET_KEY'>>,
-  pad: string,
-  init?: RequestInit,
-): Promise<Response> {
-  return fetch(`${omgeving.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/${pad}`, {
+/** Hoeveel groepen (lid en activiteit) één run oppakt: de rest volgt de volgende minuut. */
+const GROEPEN_PER_RUN = 100;
+/** Hoeveel id's in één adres van een leesopdracht (een UUID is 36 tekens; de gateway weigert een te lange URL). */
+const ID_PER_AANVRAAG = 40;
+
+async function supabase(db: Db, pad: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${db.SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/${pad}`, {
     ...init,
     headers: {
       'content-type': 'application/json',
-      apikey: omgeving.SUPABASE_SECRET_KEY,
-      authorization: `Bearer ${omgeving.SUPABASE_SECRET_KEY}`,
+      apikey: db.SUPABASE_SECRET_KEY,
+      authorization: `Bearer ${db.SUPABASE_SECRET_KEY}`,
       ...init?.headers,
     },
   });
 }
 
-/** Zet berichten op een nieuwe status. Een mislukte schrijfactie wordt gemeld, niet verzwegen: anders gaat dezelfde mail dubbel. */
-async function zetStatus(
-  omgeving: Required<Pick<Omgeving, 'SUPABASE_URL' | 'SUPABASE_SECRET_KEY'>>,
-  ids: number[],
-  velden: Record<string, unknown>,
-): Promise<void> {
+async function leesRijen<T>(db: Db, pad: string): Promise<T[]> {
+  const antwoord = await supabase(db, pad);
+  if (!antwoord.ok) throw new Error(`lezen mislukt: ${antwoord.status}`);
+  return (await antwoord.json()) as T[];
+}
+
+/** Leest rijen voor een lijst id's, in stukken zodat het adres kort blijft. */
+async function leesVoorIds<T>(
+  db: Db,
+  tabel: string,
+  kolom: string,
+  ids: string[],
+  select: string,
+): Promise<T[]> {
+  const resultaat: T[] = [];
+  for (const stuk of inStukken(ids, ID_PER_AANVRAAG)) {
+    resultaat.push(...(await leesRijen<T>(db, `${tabel}?${kolom}=in.(${stuk.join(',')})&select=${select}`)));
+  }
+  return resultaat;
+}
+
+/** Zet berichten op een nieuwe stand. Een mislukte schrijfactie gooit een fout; de aanroeper vangt hem per groep op. */
+async function zetStand(db: Db, ids: number[], velden: Record<string, unknown>): Promise<void> {
   if (ids.length === 0) return;
-  const antwoord = await supabase(omgeving, `berichten?id=in.(${ids.join(',')})`, {
+  const antwoord = await supabase(db, `berichten?id=in.(${ids.join(',')})`, {
     method: 'PATCH',
     body: JSON.stringify(velden),
     headers: { prefer: 'return=minimal' },
@@ -64,101 +91,116 @@ async function zetStatus(
   if (!antwoord.ok) throw new Error(`berichten bijwerken mislukt: ${antwoord.status}`);
 }
 
-async function leesRijen<T>(
-  omgeving: Required<Pick<Omgeving, 'SUPABASE_URL' | 'SUPABASE_SECRET_KEY'>>,
-  pad: string,
-): Promise<T[]> {
-  const antwoord = await supabase(omgeving, pad);
-  if (!antwoord.ok) throw new Error(`lezen mislukt: ${antwoord.status}`);
-  return (await antwoord.json()) as T[];
+export interface Uitkomst {
+  verstuurd: number;
+  mislukt: number;
+  overgeslagen: number;
 }
 
-export async function verstuurBerichten(
-  env: Omgeving,
-  nu: Date = new Date(),
-): Promise<{ verstuurd: number; mislukt: number; verlopen: number }> {
+export async function verstuurBerichten(env: Omgeving, nu: Date = new Date()): Promise<Uitkomst> {
   const { SUPABASE_URL, SUPABASE_SECRET_KEY, POSTMARK_TOKEN, BERICHT_AFZENDER } = env;
+  const uitkomst: Uitkomst = { verstuurd: 0, mislukt: 0, overgeslagen: 0 };
   if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !POSTMARK_TOKEN || !BERICHT_AFZENDER) {
     console.log('berichten: geheimen of afzender ontbreken, niets verstuurd');
-    return { verstuurd: 0, mislukt: 0, verlopen: 0 };
+    return uitkomst;
   }
-  const db = { SUPABASE_URL, SUPABASE_SECRET_KEY };
+  const db: Db = { SUPABASE_URL, SUPABASE_SECRET_KEY };
 
-  const wachtend = await leesRijen<Berichtregel>(
-    db,
-    `berichten?status=eq.wacht&order=id.asc&limit=${PER_RUN}&select=${kolommen('id', 'lid_id', 'activiteit_id', 'activiteit_naam', 'activiteit_datum', 'tekst', 'pogingen', 'aangemaakt')}`,
-  );
-  if (wachtend.length === 0) return { verstuurd: 0, mislukt: 0, verlopen: 0 };
-
-  const verlopen = wachtend.filter((regel) => isVerlopen(regel, nu));
-  await zetStatus(
-    db,
-    verlopen.map((regel) => regel.id),
-    { status: 'mislukt', fout: 'verlopen' },
-  );
-  const te_sturen = wachtend.filter((regel) => !isVerlopen(regel, nu));
-  const groepen = groepeer(te_sturen);
-  if (groepen.length === 0) return { verstuurd: 0, mislukt: 0, verlopen: verlopen.length };
+  // Oppakken: atomair, in hele groepen, en het aantal pogingen telt hier al (de database ruimt ook te oude en te vaak
+  // geprobeerde berichten op).
+  const claim = await supabase(db, 'rpc/claim_berichten', {
+    method: 'POST',
+    body: JSON.stringify({ p_max_groepen: GROEPEN_PER_RUN }),
+  });
+  if (!claim.ok) throw new Error(`oppakken mislukt: ${claim.status}`);
+  const opgepakt = (await claim.json()) as Berichtregel[];
+  const groepen = groepeer(opgepakt);
+  if (groepen.length === 0) return uitkomst;
 
   const lidIds = [...new Set(groepen.map((groep) => groep.lidId))];
-  const lijst = lidIds.join(',');
-  const [leden, prive] = await Promise.all([
-    leesRijen<{ id: string; voornaam: string }>(db, `leden?id=in.(${lijst})&select=id,voornaam`),
-    leesRijen<{ lid_id: string; email: string }>(db, `leden_prive?lid_id=in.(${lijst})&select=lid_id,email`),
+  const activiteitIds = [
+    ...new Set(groepen.flatMap((groep) => (groep.activiteitId ? [groep.activiteitId] : []))),
+  ];
+  const [leden, prive, activiteiten] = await Promise.all([
+    leesVoorIds<LidStand & { id: string; voornaam: string }>(
+      db,
+      'leden',
+      'id',
+      lidIds,
+      'id,voornaam,actief,type,alleen_beheer',
+    ),
+    leesVoorIds<{ lid_id: string; email: string }>(db, 'leden_prive', 'lid_id', lidIds, 'lid_id,email'),
+    leesVoorIds<ActiviteitStand & { id: string }>(
+      db,
+      'activiteiten',
+      'id',
+      activiteitIds,
+      'id,status,eindigt_om',
+    ),
   ]);
-  const voornamen = new Map(leden.map((lid) => [lid.id, lid.voornaam]));
+  const ledenPerId = new Map(leden.map((lid) => [lid.id, lid]));
   const adressen = new Map(prive.map((lid) => [lid.lid_id, lid.email]));
+  const activiteitenPerId = new Map(activiteiten.map((activiteit) => [activiteit.id, activiteit]));
 
   const instellingen = {
     siteUrl: env.SITE_URL?.trim() || null,
     ondertekening: env.BERICHT_ONDERTEKENING?.trim() || 'Het ledenplatform',
   };
   const testAdres = env.BERICHT_TEST_ADRES?.trim() || null;
-  let verstuurd = 0;
-  let mislukt = 0;
 
   for (const groep of groepen) {
-    const adres = adressen.get(groep.lidId);
-    if (!adres) {
-      // Geen adres (bijvoorbeeld een externe helper): nooit sturen, ook niet opnieuw proberen.
-      await zetStatus(db, groep.ids, { status: 'mislukt', fout: 'geen_adres' });
-      mislukt += 1;
-      continue;
-    }
-    const fout = await stuur(
-      POSTMARK_TOKEN,
-      BERICHT_AFZENDER,
-      testAdres ?? adres,
-      testAdres !== null,
-      groep,
-      voornamen.get(groep.lidId) ?? '',
-      instellingen,
-    );
-    if (fout === null) {
-      await zetStatus(db, groep.ids, { status: 'verstuurd', verstuurd_op: nu.toISOString(), fout: null });
-      verstuurd += 1;
-      continue;
-    }
-    mislukt += 1;
-    // Per regel het aantal pogingen ophogen; bij te veel pogingen opgeven. Eén PATCH per poging-niveau.
-    const perPogingen = new Map<number, number[]>();
-    for (const regel of te_sturen.filter((r) => groep.ids.includes(r.id))) {
-      const lijstje = perPogingen.get(regel.pogingen) ?? [];
-      lijstje.push(regel.id);
-      perPogingen.set(regel.pogingen, lijstje);
-    }
-    for (const [pogingen, ids] of perPogingen) {
-      const nieuw = pogingen + 1;
-      await zetStatus(db, ids, {
-        pogingen: nieuw,
-        fout,
-        status: nieuw >= MAX_POGINGEN ? 'mislukt' : 'wacht',
-      });
+    try {
+      const lid = ledenPerId.get(groep.lidId);
+      const reden = moetOverslaan(
+        groep,
+        lid,
+        groep.activiteitId ? activiteitenPerId.get(groep.activiteitId) : undefined,
+        nu,
+      );
+      if (reden !== null) {
+        await zetStand(db, groep.ids, { status: 'overgeslagen', fout: reden, claim_tot: null });
+        uitkomst.overgeslagen += 1;
+        continue;
+      }
+      const adres = adressen.get(groep.lidId);
+      if (!adres) {
+        // Geen adres: nooit sturen, ook niet opnieuw proberen.
+        await zetStand(db, groep.ids, { status: 'mislukt', fout: 'geen_adres', claim_tot: null });
+        uitkomst.mislukt += 1;
+        continue;
+      }
+      const fout = await stuur(
+        POSTMARK_TOKEN,
+        BERICHT_AFZENDER,
+        testAdres ?? adres,
+        testAdres !== null,
+        groep,
+        lid?.voornaam ?? '',
+        instellingen,
+      );
+      if (fout === null) {
+        // De mail is weg: leg dat vast, en probeer het één keer opnieuw als het niet lukt (anders gaat hij later nog eens).
+        const verstuurd = { status: 'verstuurd', verstuurd_op: nu.toISOString(), fout: null };
+        await zetStand(db, groep.ids, verstuurd).catch(() => zetStand(db, groep.ids, verstuurd));
+        uitkomst.verstuurd += 1;
+      } else {
+        // Het aantal pogingen telde al bij het oppakken. De groep komt na het verlopen van de vergrendeling terug, of is
+        // na vijf pogingen mislukt (de database beslist).
+        await zetStand(db, groep.ids, { fout });
+        uitkomst.mislukt += 1;
+      }
+    } catch (fout) {
+      // Een mislukte schrijfactie voor één groep stopt de rest niet. De vergrendeling loopt vanzelf af en het aantal
+      // pogingen telde al, dus dit kan niet eindeloos herhalen.
+      uitkomst.mislukt += 1;
+      console.error(`berichten: groep mislukt: ${fout instanceof Error ? fout.message : 'onbekend'}`);
     }
   }
 
-  console.log(`berichten: ${verstuurd} verstuurd, ${mislukt} mislukt, ${verlopen.length} verlopen`);
-  return { verstuurd, mislukt, verlopen: verlopen.length };
+  console.log(
+    `berichten: ${uitkomst.verstuurd} verstuurd, ${uitkomst.mislukt} mislukt, ${uitkomst.overgeslagen} overgeslagen`,
+  );
+  return uitkomst;
 }
 
 /** Verstuurt één mail via Postmark. Geeft null bij succes, anders een korte foutcode (zonder adres of tekst). */

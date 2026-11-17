@@ -198,6 +198,7 @@ export type Database = {
           activiteit_datum: string;
           activiteit_id: string | null;
           activiteit_naam: string;
+          claim_tot: string | null;
           fout: string | null;
           id: number;
           lid_id: string;
@@ -213,6 +214,7 @@ export type Database = {
           activiteit_datum: string;
           activiteit_id?: string | null;
           activiteit_naam: string;
+          claim_tot?: string | null;
           fout?: string | null;
           id?: never;
           lid_id: string;
@@ -227,6 +229,7 @@ export type Database = {
           activiteit_datum?: string;
           activiteit_id?: string | null;
           activiteit_naam?: string;
+          claim_tot?: string | null;
           fout?: string | null;
           id?: never;
           lid_id?: string;
@@ -260,6 +263,42 @@ export type Database = {
           },
           {
             foreignKeyName: 'berichten_vereniging_id_fkey';
+            columns: ['vereniging_id'];
+            isOneToOne: false;
+            referencedRelation: 'verenigingen';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      berichten_voor: {
+        Row: {
+          activiteit_id: string;
+          groepen: string[] | null;
+          nieuw: boolean;
+          txid: number;
+          vereniging_id: string;
+          voor: Json | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          activiteit_id: string;
+          groepen?: string[] | null;
+          nieuw: boolean;
+          txid: number;
+          vereniging_id?: string;
+          voor?: Json | null;
+        };
+        Update: {
+          activiteit_id?: string;
+          groepen?: string[] | null;
+          nieuw?: boolean;
+          txid?: number;
+          vereniging_id?: string;
+          voor?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'berichten_voor_vereniging_id_fkey';
             columns: ['vereniging_id'];
             isOneToOne: false;
             referencedRelation: 'verenigingen';
@@ -816,6 +855,30 @@ export type Database = {
           reden: string;
           voornaam: string;
         }[];
+      };
+      claim_berichten: {
+        Args: { p_claim_minuten?: number; p_max_groepen?: number };
+        Returns: {
+          aangemaakt: string;
+          activiteit_datum: string;
+          activiteit_id: string | null;
+          activiteit_naam: string;
+          claim_tot: string | null;
+          fout: string | null;
+          id: number;
+          lid_id: string;
+          pogingen: number;
+          status: string;
+          tekst: string;
+          vereniging_id: string;
+          verstuurd_op: string | null;
+        }[];
+        SetofOptions: {
+          from: '*';
+          to: 'berichten';
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       concept_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
       contact_eindverantwoordelijke: {
