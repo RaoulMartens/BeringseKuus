@@ -675,6 +675,23 @@
         }
         .wf-kaartje-onder::before { left: -11px; }
         .wf-kaartje-onder::after { right: -11px; }
+        .wf-kaartje-plek {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+        .wf-kaartje-plek svg {
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .wf-kaartje-stop .wf-kaartje-plek strong {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+        }
         .wf-badge {
             display: inline-block;
             padding: 3px 10px;
@@ -1078,10 +1095,22 @@
 <table class="wf-table">
 <tr><th>Naam</th><td>Mark Hendriks</td></tr>
 <tr><th>E-mailadres</th><td>mark.hendriks@example.com</td></tr>
-<tr><th>Je bent</th><td>Lid en bestuurslid</td></tr>
+<tr><th>Je bent</th><td>Bestuur en beheerder</td></tr>
 </table>
 <div class="wf-spacer"></div>
 <a href="uitgelogd.html" class="wf-link"><div class="wf-button">Uitloggen</div></a></div>
+<div class="wf-card">
+<span class="wf-title">Je telefoonnummer</span>
+<div class="wf-spacer"></div>
+<div class="wf-subtitle">Dit nummer zie je alleen zelf. Alleen als jij eindverantwoordelijke bent van een activiteit, zien de leden die de activiteit zien je nummer erbij, zodat ze je kunnen bellen.</div>
+<div class="wf-spacer"></div>
+<div class="wf-veld">
+<span class="wf-label">Telefoonnummer</span>
+<div class="wf-input">06 12 34 56 78</div>
+<span class="wf-subtitle">Een nummer dat met 0 of + begint, bijvoorbeeld 06 12 34 56 78. Spaties en streepjes mogen.</span>
+</div>
+<div class="wf-spacer"></div>
+<div class="wf-button">Opslaan</div></div>
 <a href="mfa-toestel-kwijt.html" class="wf-link">
 <div class="wf-list-item"><span style="flex:1">Beheer: nieuwe telefoon of telefoon kwijt? Lees wat je dan doet</span><span>&rsaquo;</span></div>
 </a>
@@ -1090,7 +1119,7 @@
         </div>
 
         <div class="wf-footer">
-            mijn-account.html &mdash; Ontwerpgat uit de bouw (tijdelijk scherm, vervalt mogelijk in Start of Mijn diensten)
+            mijn-account.html &mdash; Ontwerpgat uit de bouw (tijdelijk scherm, vervalt mogelijk in Start of Mijn diensten). Bijgewerkt 17-11-2026 met je groepen bij &ldquo;Je bent&rdquo; en de kaart Je telefoonnummer (UC-011)
         </div>
     </div>
 </body>

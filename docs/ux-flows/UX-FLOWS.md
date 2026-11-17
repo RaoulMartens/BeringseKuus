@@ -797,7 +797,7 @@ reviewen in een schone chat tegen hoofdstuk 4, 5 en 7 van de bouwgids
 
 ## Na de bouw: wat het ontwerp veranderde (13 tot 17 november 2026)
 
-Tijdens de pilot (de leden zijn op 14-11 uitgenodigd) kwamen er ontwerpbesluiten bij die in de bouw zijn ontstaan en niet in de wireframes staan. Bron voor de woorden
+Tijdens de pilot (de leden zijn op 14-11 uitgenodigd) kwamen er ontwerpbesluiten bij die in de bouw zijn ontstaan. De wireframes zijn op 17-11-2026 bijgewerkt voor de tijdlijn van het kaartje (zeven schermen, geen strook met de locatie meer) en Mijn account (groepen, telefoonnummer); de visuele versie is daarbij byte voor byte gelijk gebleven. Bron voor de woorden
 is de visuele versie (`docs/visueel/INDEX.md`, punt 76 en 77); de techniek staat in de repo (`docs/bouw/`).
 
 - **Tijdlijn van het kaartje (antwoord van de opdrachtgever op vraag 6):** met een bus verzamel je bij de bus, dus de vertrekplaats staat bij *Verzamelen* en de locatie bij *Begint*; zonder bus staat de locatie bij *Verzamelen*. Waar je naartoe gaat, staat niet onder Verzamelen. De regels heten *Begint* en *Is afgelopen* (de naam staat al als kop en brak bij een lange naam over drie regels) en staan altijd onder elkaar, één regel per moment.

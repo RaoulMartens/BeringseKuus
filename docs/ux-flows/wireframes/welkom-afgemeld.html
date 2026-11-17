@@ -675,6 +675,23 @@
         }
         .wf-kaartje-onder::before { left: -11px; }
         .wf-kaartje-onder::after { right: -11px; }
+        .wf-kaartje-plek {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+        .wf-kaartje-plek svg {
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .wf-kaartje-stop .wf-kaartje-plek strong {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+        }
         .wf-badge {
             display: inline-block;
             padding: 3px 10px;
@@ -1083,28 +1100,25 @@
                             <span class="wf-kaartje-dot"></span>
                             <strong>18:30</strong>
                             <span class="wf-kaartje-naam">Verzamelen</span>
+                            <span class="wf-kaartje-plek"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><span><strong>Parkeerplaats Sporthal</strong></span></span>
                         </div>
                         <div class="wf-kaartje-stop">
                             <span class="wf-kaartje-dot"></span>
                             <strong>18:45</strong>
                             <span class="wf-kaartje-naam">Bus vertrekt</span>
-                            <span>Parkeerplaats Sporthal</span>
                         </div>
                         <div class="wf-kaartje-stop">
                             <span class="wf-kaartje-dot"></span>
                             <strong>20:00</strong>
-                            <span class="wf-kaartje-naam">Bonte Avond begint</span>
+                            <span class="wf-kaartje-naam">Begint</span>
+                            <span class="wf-kaartje-plek"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg><span><strong>Gemeenschapshuis De Kuus</strong>, Kerkstraat 12</span></span>
                         </div>
                         <div class="wf-kaartje-stop">
                             <span class="wf-kaartje-dot"></span>
                             <strong>01:00</strong>
-                            <span class="wf-kaartje-naam">Bonte Avond is afgelopen</span>
+                            <span class="wf-kaartje-naam">Is afgelopen</span>
                         </div>
                     </div>
-                </div>
-                <div class="wf-kaartje-onder">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
-                    <div><strong>Gemeenschapshuis De Kuus</strong>, Kerkstraat 12</div>
                 </div>
             </div>
 

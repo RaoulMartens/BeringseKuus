@@ -122,7 +122,7 @@ dubbelboeking maken.
    - **Programma → een rij aanklikken** — het systeem toont die activiteit. Kop: naam en datum van de activiteit.
 2. Vanaf hier is het scherm identiek: dezelfde opbouw, dezelfde acties. Alleen de vulling verschilt, want weken vooruit is nog niet alles ingevuld.
 3. Systeem toont per activiteit: datum, verzameltijd, starttijd, eindtijd, locatie.
-4. Systeem toont "Bus vertrekt" met de tijd en de vertrekplaats (de plaats is een vaste instelling van de vereniging, tenzij de admin voor deze activiteit een andere plek invult) en de notitie "Belangrijk om te weten" als die zijn ingevuld. Zijn ze leeg — wat bij een activiteit verderop in het seizoen normaal is — dan benoemt het scherm dat ze nog niet zijn ingevuld, in plaats van de blokken stilzwijgend weg te laten (AF-7).
+4. Systeem toont de tijdlijn van de activiteit: Verzamelen, bij een bus ook "Bus vertrekt", Begint en Is afgelopen, met de plaats erbij. Met een bus verzamel je bij de bus: de vertrekplaats (een vaste instelling van de vereniging, tenzij de admin voor deze activiteit een andere plek invult) staat bij Verzamelen en de locatie bij Begint. Zonder bus staat de locatie bij Verzamelen. Daaronder de notitie "Belangrijk om te weten" als die is ingevuld. Wat niet is ingevuld, blijft weg: er komt geen mededeling dat iets nog niet is ingevuld (besluit 13-11-2026; was AF-7).
 5. Systeem toont de rolbezetting: werkers, drankhalers, fotograaf, BOB, eindverantwoordelijke — met naam per bezet slot. Nog niet ingevulde rol-slots worden **niet** getoond aan leden (R13).
 6. Systeem toont **alleen** bij de eindverantwoordelijke het telefoonnummer (R10).
 7. Systeem haalt de **eigen** afmeldstatus op voor deze activiteit. Afmeldingen van andere leden worden hier niet opgehaald — die zijn pas nodig in UC-002 (zie daar, stap 3).
@@ -138,7 +138,7 @@ dubbelboeking maken.
 - **AF-4 — Lid heeft geen rol.** Rolbezetting wordt gewoon getoond; het lid ziet alleen de actie "Afmelden".
 - **AF-5 — Concept- of geannuleerde activiteit.** Niet zichtbaar voor leden; het systeem slaat ze over bij het bepalen van de eerstvolgende activiteit (R15).
 - **AF-6 — Laden mislukt.** Netwerk- of serverfout bij het ophalen. Systeem toont een foutmelding met "opnieuw proberen"; er is geen gedeeltelijk scherm.
-- **AF-7 — Activiteit nog niet ingedeeld.** Bij een activiteit die verder weg ligt heeft het bestuur vaak nog geen rol-slots gevuld. Omdat lege slots verborgen zijn (R13) zou de rolbezetting dan leeg zijn; het systeem toont in plaats daarvan dat de indeling nog niet is gemaakt. Ontbrekende busgegevens en een lege notitie worden op dezelfde manier benoemd in plaats van stilzwijgend weggelaten.
+- **AF-7 — Activiteit nog niet ingedeeld.** Bij een activiteit die verder weg ligt heeft het bestuur vaak nog geen rol-slots gevuld. Omdat lege slots verborgen zijn (R13) zou de rolbezetting dan leeg zijn; het systeem toont in plaats daarvan dat de indeling nog niet is gemaakt. Ontbrekende busgegevens en een lege notitie blijven weg, zonder mededeling (besluit 13-11-2026: toon alleen wat is ingevuld; "nog niet ingevuld" zegt een lid niets).
 - **AF-8 — Twee activiteiten op één dag (FO 7.1, R11).** Alle activiteiten van vandaag staan op het welkomscherm, onder elkaar **op tijd**, elk met tijden, locatie en eigen rolbezetting (de werkers verschillen per activiteit). In de zijkolom "Jouw status" staat per activiteit wat jij daar doet ("je staat op aanwezig als werker" of "je staat op aanwezig, zonder dienst") met de bijbehorende knoppen: Afmelden, en bij een ruilbare dienst ook Dienst overdragen. Zo staan alle acties op één plek en blijft de volgorde van de dag. *Wat nog komt of loopt:* zodra de eindtijd van een activiteit voorbij is (R16) verdwijnt hij van "Vandaag" en blijft de rest over; hij staat dan in het programma onder "Geweest dit seizoen". Voorbeeld: na 15:00 toont "Vandaag" alleen nog de receptie.
 
 **Postconditions**
@@ -739,4 +739,4 @@ het FO moet dezelfde punten krijgen zodat beide documenten hetzelfde zeggen.
 
 **Fout:** een nummer dat niet klopt geeft een melding bij het veld ("Dit nummer klopt niet. Een nummer dat met 0 of + begint, bijvoorbeeld 06 12 34 56 78. Spaties en streepjes mogen.") en bewaart niets.
 
-**Status:** gebouwd en online op 17-11-2026 (`zet_eigen_telefoon`). Staat niet in de wireframes.
+**Status:** gebouwd en online op 17-11-2026 (`zet_eigen_telefoon`). Staat in `mijn-account.html` (bijgewerkt 17-11-2026).
