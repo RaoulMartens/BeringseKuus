@@ -438,8 +438,10 @@ a.wf-link:active > .wf-annuleer.wf-gevaar { color: var(--status-fout); }
 .wf-spacer + .wf-rolblok { border-top: 0; }
 .wf-rolblok > .wf-role-type { width: 200px; flex-shrink: 0; display: inline-flex; align-items: center; gap: var(--gap-inline); font-weight: 600; color: var(--neutraal-tekst-zacht); }
 .wf-rolnamen { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.wf-rolnaam { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 20px; }
-.wf-rolnaam .wf-role-name { flex: 1; min-width: 0; }
+/* naam en knop ("Al je diensten") naast elkaar als ze passen, anders de knop onder de naam; de knop krimpt nooit (zonder dit werd de link nul breed en viel de knop over de naam) */
+.wf-rolnaam { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-height: 20px; }
+.wf-rolnaam > .wf-link { flex: none; }
+.wf-rolnaam .wf-role-name { flex: 1 1 9rem; min-width: 0; }
 .wf-slot-actie { margin-top: 8px; font-size: 0.875rem; color: var(--neutraal-tekst-zacht); }
 .wf-plek-weg { font-size: 0.875rem; color: var(--neutraal-tekst-zacht); white-space: nowrap; }
 .wf-plek-kruis { color: var(--neutraal-tekst-zacht); font-size: 1.125rem; line-height: 1; padding: 0 4px 0 10px; }
@@ -916,6 +918,36 @@ a.wf-link:hover > .wf-icoonrij .wf-icoontegel { background: var(--neutraal-kaart
 /* telefoonnummer achter een naam: een zacht telefoonicoon, het nummer breekt niet af */
 .wf-tel { display: inline-flex; align-items: center; gap: 6px; margin-inline-start: 12px; white-space: nowrap; vertical-align: -3px; }
 .wf-tel .ic { width: 16px; height: 16px; margin: 0; vertical-align: 0; color: var(--neutraal-tekst-zacht); }
+
+/* kaart "Wie komt er?" (UC-010, 13-11-2026): een bolletje met initialen per lid. Gevuld groen = komt, gestippeld en licht = afgemeld.
+   Zonder reden bij een afmelding; de naam verschijnt bij hover, focus en tikken (eigen tooltip: de browser-tooltip is traag en er is geen hover op mobiel). */
+.wf-komt-er .wf-label { display: block; }
+.wf-komt-er-telling { margin-top: 6px; color: var(--neutraal-tekst-zacht); }
+.wf-komt-er-telling strong { color: var(--neutraal-tekst); font-size: 1.125rem; }
+.wf-leden { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.wf-lid {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-sizing: border-box; width: 32px; height: 32px; border-radius: var(--radius-full);
+    background: var(--status-succes-tint); color: var(--status-succes-tekst);
+    font: 700 0.6875rem/1 var(--font-tekst); letter-spacing: 0.02em;
+    cursor: default;
+}
+.wf-lid-af { background: transparent; border: 1.5px dashed var(--neutraal-lijn-sterk); color: var(--neutraal-tekst-zacht); }
+.wf-lid:hover, .wf-lid:focus { z-index: 1; outline: none; }
+.wf-lid:focus-visible { outline: 2px solid var(--thema-primair); outline-offset: 2px; }   /* alleen met het toetsenbord; hover en tikken tonen alleen de naam */
+.wf-lid[data-naam]:hover::after, .wf-lid[data-naam]:focus::after {
+    content: attr(data-naam);
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    padding: 4px 10px; border-radius: var(--radius-control);
+    background: var(--neutraal-tekst); color: #FFFFFF;
+    font: 600 0.8125rem/1.3 var(--font-tekst); letter-spacing: 0; white-space: nowrap;
+    pointer-events: none; z-index: 2;
+}
+.wf-leden-legenda { display: flex; gap: 16px; margin-top: 16px; font-size: 0.8125rem; color: var(--neutraal-tekst-zacht); }
+.wf-leden-legenda > span { display: inline-flex; align-items: center; gap: 6px; }
+.wf-lid-klein { width: 12px; height: 12px; }
+.wf-lid-af.wf-lid-klein { border-width: 1px; }
 
 /* ---- 15. Mobiel (assumptie: breekpunt 700px, nog niet vastgesteld) ------- */
 @media (max-width: 700px) {

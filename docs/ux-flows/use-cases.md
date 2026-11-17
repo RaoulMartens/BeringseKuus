@@ -562,6 +562,42 @@ Het lid is beheerder met een bevestigde app, of is geen beheerder meer. Elke wij
 
 ---
 
+## UC-010 — Wie komt er? Aanwezigheid per activiteit bekijken
+
+| Veld | Inhoud |
+|------|--------|
+| **ID** | UC-010 |
+| **Naam** | Zien wie er bij een activiteit aanwezig is en wie zich heeft afgemeld |
+| **Actoren** | Lid (dus ook de beheerder, die de ledenschermen ziet) |
+| **Preconditions** | Ingelogd. De activiteit is gepubliceerd en het lid ziet haar (Voor wie, R22). |
+| **Aanleiding** | De opdrachtgever, 13-11-2026: beheerders willen per activiteit een overzichtje van wie komt en wie zich heeft afgemeld. **Niet in FO V4 en bouwgids V8.** Eerst op het bewerkscherm ontworpen; de bouwer: dat is een formulier, geen plek om te lezen, en het hoeft niet beperkt te zijn tot beheerders. |
+
+**Main flow**
+
+1. Het lid opent een activiteit (`welkom`, `activiteit-optocht`, `activiteit-bonte-avond-afgemeld`, `welkom-afgemeld`). In de zijkolom, onder "Jouw status", staat de kaart **Wie komt er?**: "27 aanwezig · 15 afgemeld".
+2. Daaronder een ledenraster: een bolletje met initialen per lid, gevuld grijs voor wie komt en gestippeld en licht voor wie is afgemeld. Hover (op mobiel: tikken) toont de naam. Geen dropdown.
+3. Er is niets te kiezen of te wijzigen. De kaart staat op mobiel onderaan de zijkolom (niet in de statusbalk).
+4. Een beheerder die de volledige afmeldingen wil nalopen, ziet op het bewerkscherm nog de kaart "Afgemeld" met toelichting (FO 4.2) en de link "Alle 15 bekijken ›" naar het ledenscherm.
+
+**Ontwerpkeuzes** (voorstel, nog niet voorgelegd aan de opdrachtgever)
+
+- *Op het ledenscherm, niet op het bewerkscherm.* Een overzicht lees je, een formulier wijzig je; en een beheerder opent een activiteit toch al via het ledenscherm ("Deze activiteit beheren"). Eén plek voor iedereen, niets dubbel.
+- *Visueel en klein:* een telling en een raster in plaats van een lijst of dropdown; je ziet in één oogopslag hoe vol het is en wie ontbreekt.
+- *Zonder reden.* De toelichting bij een afmelding ("Ziek") zien alleen beheerders, op het bewerkscherm. Namen zien is iets anders dan de reden zien.
+- *Aanwezig = leden voor wie de activiteit is (Voor wie) min de afgemelde.* Een lid buiten de groep staat nergens (R22). Een externe helper staat alleen bij zijn dienst.
+- *Geen nieuwe gegevens*, wel een nieuw recht: nu zien leden alleen hun eigen afmelding. De bouw moet bepalen hoe leden de namen van anderen mogen lezen (een leesfunctie met alleen naam, niet de reden).
+
+**Postconditions**
+Niets verandert.
+
+**Open vragen**
+
+1. *Besloten door de bouwer, 13-11-2026:* alle leden zien wie zich heeft afgemeld (zonder reden). vraag van de opdrachtgever ging over beheerders; meenemen in de vrijdag-update zodat hij het kan bevestigen. Zegt hij alleen beheerders, dan verhuist de kaart naar de beheerkant van het ledenscherm.
+2. *Aan de opdrachtgever:* wil hij de lijst ook afdrukken of exporteren (voor de zaal of de bus)?
+3. *Aan de opdrachtgever:* per dag van een reeks naast elkaar, of één activiteit per keer?
+
+---
+
 ## Beslispunten beheerkant — voor te leggen
 
 | # | Vraag | Voorstel |
@@ -689,3 +725,18 @@ UC-001 AF-6 (sinds 29-10-2026 beantwoord door `storing.html` en `fout.html`). Zi
 
 Het FO staat nog op V4. De bouwgids is wat de bouwer volgt en is daarom eerst bijgewerkt;
 het FO moet dezelfde punten krijgen zodat beide documenten hetzelfde zeggen.
+
+## UC-011: Mijn telefoonnummer zetten
+
+**Actor:** elk lid. **Aanleiding (de opdrachtgever, 05-11-2026):** voor een eindverantwoordelijke is het nummer nodig (R21), en het bestuur hoeft ze niet meer met een lijst te zetten.
+
+**Hoofdpad:** het lid opent *Mijn account*, vult bij *Je telefoonnummer* zijn nummer in en kiest *Opslaan*. Het scherm meldt "Je nummer is opgeslagen." en toont het nummer in de vorm die is bewaard (een mobiel nummer zonder spaties wordt "06 12 34 56 78").
+
+**Regels:**
+- **R25** Een nummer begint met een 0 of een plus, bestaat uit cijfers, spaties en streepjes, heeft 9 tot 15 cijfers en hooguit 20 tekens. De server controleert dit en de database controleert hetzelfde.
+- **R26** Een lid zet alleen zijn eigen nummer. Het nummer wissen kan niet: een eindverantwoordelijke zonder nummer houdt zijn activiteit tegen; wie zijn nummer kwijt wil, vraagt het bestuur.
+- **R27** Wie het nummer ziet, verandert niet: alleen de leden die een activiteit zien waarvan dit lid eindverantwoordelijke is (R10), en het bestuur (dat alle ledengegevens leest). De kaart zegt dat.
+
+**Fout:** een nummer dat niet klopt geeft een melding bij het veld ("Dit nummer klopt niet. Een nummer dat met 0 of + begint, bijvoorbeeld 06 12 34 56 78. Spaties en streepjes mogen.") en bewaart niets.
+
+**Status:** gebouwd en online op 17-11-2026 (`zet_eigen_telefoon`). Staat niet in de wireframes.

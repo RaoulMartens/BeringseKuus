@@ -411,6 +411,33 @@ activiteitenoverzicht, met als regel de taak ("1 toegang bevestigen"), zoals "Vr
 - Telefoon kwijt (`mfa-toestel-kwijt`): "de app losmaken" heeft hier nog geen eigen scherm; intrekken en opnieuw beginnen is de omweg.
 - Uitgewerkt als UC-009 (`use-cases.md`) en in de screen map. Gebouwd op 10-11-2026: zie `docs/bouw/Beheerders.md` in de repo, "In de app".
 
+## Aanwezigheid per activiteit (13-11-2026, prototype, nog niet gebouwd)
+
+**Aanleiding.** De opdrachtgever wil als beheerder per activiteit zien wie er komt en wie zich heeft afgemeld. Het bewerkscherm toonde een
+aantal ("27 aanwezig") en vier afmeldingen met een "Alle 15 tonen" dat nergens heen ging. Staat niet in FO V4 en bouwgids V8.
+
+**Hoe dit ontwerp tot stand kwam (13-11-2026, drie rondes met de bouwer).** (1) Eerst twee aparte schermen: vervallen, de bouwer wilde het klein houden.
+(2) Een uitgebreide kaart "Aanwezigheid" op het bewerkscherm: vervallen. Dat is een formulier om te wijzigen en geen plek om te lezen, een beheerder
+opent een activiteit toch via het ledenscherm, en de kaart was te tekstzwaar. (3) **Nu:** een kleine kaart op het ledenscherm van de activiteit.
+
+**Ontwerp** (`ronde20_aanwezigheid.py`, geen nieuwe schermen): onder "Jouw status" staat de kaart **Wie komt er?** met de telling
+("27 aanwezig · 15 afgemeld") en daaronder een **ledenraster** (variant A van vier alternatieven, gekozen door de bouwer): een bolletje met initialen per lid, gevuld grijs = komt, gestippeld en licht = afgemeld. Hover toont de naam. Geen dropdown en nauwelijks tekst.
+Op `welkom` (vr 22 jan, 27 + 15), `welkom-afgemeld` en `activiteit-bonte-avond-afgemeld` (za 23 jan, 30 + 12, Mark afgemeld) en `activiteit-optocht` (38 + 4).
+Het bewerkscherm heeft zijn eigen kaart "Afgemeld" terug, met toelichting (FO 4.2) en de link "Alle 15 bekijken ›" naar het ledenscherm.
+
+**Keuzes en onderbouwing**
+- *Waar je iets leest, niet waar je het wijzigt.* Eén plek voor iedereen, niets dubbel: de beheerder ziet de ledenschermen toch al.
+- *Visueel in plaats van tekst:* het raster laat in één oogopslag zien hoe vol het is en wie ontbreekt. Alternatieven die zijn afgevallen: gestapelde gezichten (je ziet niet wie), een schakelaar Aanwezig/Afgemeld met namen (meeste tekst) en een balkje per groep (dubbel met de telling). Op een telefoon is er geen hover; daar moet de naam bij tikken verschijnen (bouw), het low-fi prototype laat dat zien met het title-attribuut.
+- *Namen wel, reden niet.* De toelichting ("Ziek") is gevoelig en blijft voor beheerders, op het bewerkscherm.
+- *Aanwezig = leden voor wie de activiteit is (Voor wie) min de afgemelde* (R22).
+- *Alleen gepubliceerde activiteiten:* bij een concept is er niets om aan te melden.
+
+**Open punten voor de opdrachtgever**
+- Mogen alle leden zien wie zich heeft afgemeld? **De bouwer heeft op 13-11-2026 gekozen: ja, alle leden** (zonder reden). vraag van de opdrachtgever ging over beheerders; laat hem dit in de vrijdag-update bevestigen. Als het toch alleen beheerders mogen zijn, verhuist de kaart naar de beheerzijde van het ledenscherm (naast "Deze activiteit beheren").
+- Afdrukken of exporteren naar Excel (voor de zaal of de bus)?
+- Per dag van een reeks naast elkaar, of één activiteit per keer?
+- Uitgewerkt als UC-010 (`use-cases.md`).
+
 ## Reeksen in het programma (10-11-2026, gebouwd)
 
 **Aanleiding.** Het echte programma bevat activiteiten die elke dag terugkomen, zoals "Verkoop donateurskaarten" van maandag tot en met vrijdag. Als elke dag een eigen rij kreeg, stond dezelfde naam vijf keer onder elkaar en voelde de lijst slordig (de bouwer, 11-11-2026).
@@ -425,6 +452,32 @@ activiteitenoverzicht, met als regel de taak ("1 toegang bevestigen"), zoals "Vr
 - *Alleen in het Programma.* Mijn diensten en de beheeroverzichten tonen per dienst of activiteit hun eigen regel.
 
 **Open.** De wireframes en de visuele versie (`docs/visueel/`) hebben deze rij nog niet; ze is alleen in de code gebouwd.
+
+## UC-006: de Excel-import is gebouwd (13-11-2026)
+
+**Wat er is.** Beheer, "Meerdere tegelijk aanmaken" (op een telefoon "Meerdere aanmaken"): het sjabloon downloaden, het ingevulde Excel-bestand kiezen,
+de regels nalopen op het controlescherm en "N concepten aanmaken". De servercontrole is `activiteiten_bulk_aanmaken` (alles of niets, een
+foutcode met het regelnummer, idempotent op `aanmaak_id`, een logregel per activiteit).
+
+**Wat er nog niet is.** *Vorig seizoen kopiëren* (het verschuiven van datums, de vaste datum 11-11): het seizoen 2026/2027 is het eerste in het
+platform, dus er is nog niets om te kopiëren. Het komt op hetzelfde controlescherm. Daarom ook nog geen startscherm met de twee keuzes (`admin-bulk-start`):
+de knop gaat rechtstreeks naar het importeren. Ook nog niet: de kaart "Net klaargezet" bovenaan het overzicht na het aanmaken (nu alleen de melding
+"N concepten aangemaakt").
+
+**Keuzes en onderbouwing**
+- *Het bestand blijft in de browser.* Het wordt daar gelezen; de server krijgt alleen de regels en controleert ze zelf opnieuw. De browser keurt nooit definitief goed of af (bouwgids 6.2).
+- *Een eigen kleine lezer, geen pakket.* Een `.xlsx` is een zip met XML; de browser kan zelf uitpakken. Geen nieuwe afhankelijkheid, geen licentie of Dependabot-ruis, en de grenzen uit de bouwgids staan erin: alleen het eerste tabblad en alleen waarden (formules worden nooit uitgevoerd), geen macro's, hooguit 1 MB, 10 MB uitgepakt (tegen een zip-bom), 200 regels.
+- *Een regel met een fout toont wat er mist, op de regel zelf.* Wie een locatie of datum mist, vult hem hier in en hoeft niet terug naar Excel. Het veld blijft staan terwijl je typt, ook als het intussen klopt.
+- *"Niet meenemen" en "Toch meenemen"* zijn elkaars spiegel (zoals bij een plek); een weggelaten regel hoeft niet te kloppen en telt niet mee.
+- *"N concepten aanmaken" is uit tot alles klopt.* De knop zegt hoeveel er worden aangemaakt; leden zien ze pas bij publiceren (R18).
+- *Een datum zonder jaar* krijgt het jaar van het seizoen: september tot en met december het beginjaar, januari tot en met augustus het eindjaar.
+- *Voorbeeldregels* ("Voorbeeld: ...") worden overgeslagen en gemeld, zodat het sjabloon niet per ongeluk als voorbeeld wordt geïmporteerd.
+- *Dubbel klikken geeft nooit dubbele activiteiten.* De app maakt een `aanmaak_id` bij het openen van het controlescherm; de database geeft bij een tweede aanroep met dezelfde id het eerste resultaat terug.
+
+**Open punten**
+- Een waarschuwing als er al een activiteit met dezelfde naam en datum bestaat (ook een open vraag aan de opdrachtgever in UC-006): nu niet gebouwd.
+- De kolommen van eigen van de opdrachtgever Excel-sheet: het sjabloon heeft vaste kolommen (`naam`, `datum`, `verzameltijd`, `starttijd`, `eindtijd`, `locatie`, `busvertrek`, `notitie`, `voor_wie`); de volgorde mag wisselen en onbekende kolommen worden genegeerd.
+- De wireframes en de visuele versie hebben de schermen `admin-bulk-importeren` en `admin-bulk-controleren` al; ze zijn op het controlescherm uitgebreid met de velden op de regel (zie `admin-bulk-controleren-fouten`).
 
 ## Consistentieregels
 
@@ -741,3 +794,17 @@ volgende stap fase 3 uit de bouwgids: `ruil_dienst()`, `meld_af()` en
 `trek_afmelding_in()` bouwen mét row level security, en het resultaat laten
 reviewen in een schone chat tegen hoofdstuk 4, 5 en 7 van de bouwgids
 (bouwgids 11.3).
+
+## Na de bouw: wat het ontwerp veranderde (13 tot 17 november 2026)
+
+Tijdens de pilot (de leden zijn op 14-11 uitgenodigd) kwamen er ontwerpbesluiten bij die in de bouw zijn ontstaan en niet in de wireframes staan. Bron voor de woorden
+is de visuele versie (`docs/visueel/INDEX.md`, punt 76 en 77); de techniek staat in de repo (`docs/bouw/`).
+
+- **Tijdlijn van het kaartje (antwoord van de opdrachtgever op vraag 6):** met een bus verzamel je bij de bus, dus de vertrekplaats staat bij *Verzamelen* en de locatie bij *Begint*; zonder bus staat de locatie bij *Verzamelen*. Waar je naartoe gaat, staat niet onder Verzamelen. De regels heten *Begint* en *Is afgelopen* (de naam staat al als kop en brak bij een lange naam over drie regels) en staan altijd onder elkaar, één regel per moment.
+- **Toon alleen wat is ingevuld, ook als mededeling:** geen regel "Busvertrek is nog niet ingevuld" voor een lid (UC-001 AF-7 vervalt), en geen kaart "Mijn diensten" op Start zonder komende diensten ("nog geen diensten" zegt niets).
+- **Wie komt er? (UC-010):** het ledenraster is gebouwd zoals ontworpen. Alle leden zien de afgemelde namen, zonder reden; de opdrachtgever bevestigt dat nog. Initialen slaan een tussenvoegsel over; een naam hoort met een kleine letter achter een voornaam ("Piet van Voorbeeld").
+- **Twee accounts voor één persoon (de opdrachtgever, de bouwer):** een persoon die zowel als lid als als beheerder wil kijken, heeft een lidaccount en een beheeraccount. Het beheeraccount is er alleen om te beheren (`alleen_beheer`): het telt nergens als lid mee, ziet als lid alles en heet op Mijn account *Beheerder*. Een schakelaar **Bekijk als lid** voor beheerders zou het tweede account overbodig maken en is de volgende stap als dit blijft knellen.
+- **Mijn account:** *Je bent* noemt je groepen en of je beheerder bent ("Raad van Elf", "Bestuur en beheerder"); "lid" staat er alleen als je in geen groep zit. Een kaart *Je telefoonnummer*: een lid zet zijn eigen nummer (begint met 0 of +, wissen kan niet); alleen de eindverantwoordelijke van een activiteit toont het aan de leden die de activiteit zien.
+- **Rol-iconen:** elke soort werk heeft een eigen icoon (tapper bierpul, drankhaler lopend persoon, ober serveerbel, buffet bestek, bonnenkassa kaartje); de keuze kwam uit een voorbeeldpagina met de opties. Keuzelijsten en aankruisvakjes volgen de velden: dezelfde randkleur, een chevron op dezelfde afstand van de rand als de tekst, een vakje met een hoek van 6 px.
+- **De uitnodiging aan de leden:** een gewone mail met uitleg (tekst- en HTML-versie, zonder afbeeldingen en volglinks), met de eerlijke zin dat er nog geen mail uitgaat bij indelen. Het platform stuurt zelf geen uitnodiging; de bouwer verstuurt hem met een script.
+- **Nog open (ontwerp):** berichten per mail bij indelen en wijzigen (O-1), het bericht aan een lid bij een gewijzigde activiteit, en "Bekijk als lid".
