@@ -54,3 +54,37 @@ test('een beheeraccount (alleen beheer) heet op Mijn account gewoon Beheerder', 
   await page.reload();
   await expect(page.getByText('Je bent').locator('xpath=following-sibling::dd')).toHaveText('Beheerder');
 });
+
+test('een lid zet zijn eigen telefoonnummer op Mijn account', async ({ page }) => {
+  const email = nieuwAdres();
+  const uid = await maakLidMetRol(email);
+  aangemaakt.push(uid);
+  await page.goto(await bevestigAdresVoor(email));
+  await page.getByRole('button', { name: 'Inloggen' }).click();
+  await expect(page).toHaveURL(/\/mijn$/);
+
+  const lid = lidIdVan(uid);
+  const veld = page.getByLabel('Telefoonnummer');
+  await expect(veld).toHaveValue('');
+
+  // Een nummer dat niet klopt: een melding bij het veld, niets bewaard.
+  await veld.fill('abc');
+  await page.getByRole('button', { name: 'Opslaan' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Dit nummer klopt niet' })).toBeVisible();
+  expect(psql(`select coalesce(telefoon, '') from public.leden_prive where lid_id = '${lid}';`).trim()).toBe(
+    '',
+  );
+
+  // Een geldig nummer: bewaard in de vorm van de lijst, en het scherm meldt het.
+  await veld.fill('0612345678');
+  await page.getByRole('button', { name: 'Opslaan' }).click();
+  await expect(page.getByText('Je nummer is opgeslagen.')).toBeVisible();
+  await expect(veld).toHaveValue('06 12 34 56 78');
+  expect(psql(`select telefoon from public.leden_prive where lid_id = '${lid}';`).trim()).toBe(
+    '06 12 34 56 78',
+  );
+
+  // Na een nieuwe aanvraag staat het nummer er nog.
+  await page.reload();
+  await expect(page.getByLabel('Telefoonnummer')).toHaveValue('06 12 34 56 78');
+});

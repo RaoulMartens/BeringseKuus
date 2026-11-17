@@ -10,6 +10,11 @@
 //
 // Persoonsgegevens: foutmeldingen noemen het regelnummer en de kolom, nooit de waarde.
 
+import { normaliseerTelefoon } from '../src/lib/telefoon.ts';
+
+// Eén regel voor de ledenlijst en voor Mijn account (src/lib/telefoon.ts); de test van de lijst importeert hem van hier.
+export { normaliseerTelefoon };
+
 import { kleineTussenvoegsels } from '../src/lib/naam.ts';
 
 export interface LidRegel {
@@ -118,22 +123,6 @@ export function leesCsv(tekst: string, scheiding: string): string[][] {
 /** Excel in een Nederlandse instelling bewaart met een puntkomma; anders is het een komma. De kopregel beslist. */
 export function kiesScheiding(kopregel: string): string {
   return kopregel.split(';').length >= kopregel.split(',').length ? ';' : ',';
-}
-
-/**
- * Een telefoonnummer, dat alle leden te zien krijgen (R10): cijfers met eventueel spaties en streepjes, beginnend met een 0
- * (een Excel-nummer zonder voorloopnul valt dus af) of een plus; 9 tot 15 cijfers en hooguit 20 tekens. Spaties worden één spatie.
- */
-export function normaliseerTelefoon(waarde: string): string | null {
-  const schoon = waarde.trim().replace(/\s+/g, ' ');
-  if (schoon.length > 20 || !/^[0+][\d -]*$/.test(schoon)) return null;
-  const cijfers = schoon.replace(/\D/g, '');
-  if (cijfers.length < 9 || cijfers.length > 15) return null;
-  // Een gewoon Nederlands mobiel nummer zonder spaties ("0612345678") krijgt de vorm van de rest van de lijst.
-  const zonder = schoon.replace(/ /g, '');
-  if (/^06\d{8}$/.test(zonder))
-    return `${zonder.slice(0, 2)} ${zonder.slice(2, 4)} ${zonder.slice(4, 6)} ${zonder.slice(6, 8)} ${zonder.slice(8)}`;
-  return schoon;
 }
 
 /** "ja", "nee" en wat Excel er nog meer van maakt; een lege cel is `null` (niet wijzigen). */

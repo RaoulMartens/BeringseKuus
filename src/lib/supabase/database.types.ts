@@ -764,6 +764,7 @@ export type Database = {
           voornaam: string;
         }[];
       };
+      zet_eigen_telefoon: { Args: { p_telefoon: string }; Returns: undefined };
     };
     Enums: {
       [_ in never]: never;

@@ -12,6 +12,7 @@ import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { logUit } from './acties';
+import { Telefoonformulier } from './telefoonformulier';
 import stijl from './mijn.module.css';
 
 export const metadata: Metadata = { title: 'Mijn account – Ledenplatform' };
@@ -51,6 +52,14 @@ export default async function MijnAccount() {
     .sort((a, b) => a.volgorde - b.volgorde)
     .map((groep) => groep.naam);
 
+  // Je eigen nummer: een lid leest zijn eigen rij in leden_prive. Je kunt het zetten en wijzigen, niet wissen (zie zet_eigen_telefoon).
+  const { data: prive, error: priveFout } = await supabase
+    .from('leden_prive')
+    .select('telefoon')
+    .eq('lid_id', gebruiker.lidId)
+    .maybeSingle();
+  if (priveFout) throw new Error(`telefoonnummer niet te lezen: ${priveFout.code ?? priveFout.message}`);
+
   return (
     <Schermkader titel="Mijn account" terug={{ href: '/', tekst: 'Terug naar start' }}>
       <Kaart>
@@ -75,6 +84,13 @@ export default async function MijnAccount() {
             Uitloggen
           </Knop>
         </form>
+      </Kaart>
+      <Kaart titel="Je telefoonnummer" kop="h2">
+        <p className={stijl.uitleg}>
+          Dit nummer zie je alleen zelf. Alleen als jij eindverantwoordelijke bent van een activiteit, zien de
+          leden die de activiteit zien je nummer erbij, zodat ze je kunnen bellen.
+        </p>
+        <Telefoonformulier nummer={prive?.telefoon ?? ''} />
       </Kaart>
       {gebruiker.isBeheerder && (
         <Kaart lijst>
