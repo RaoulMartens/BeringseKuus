@@ -589,6 +589,8 @@ reset role;
 -- (Datamodel-fase-3.md 3.3); een eigen test in fase3_afmelden_ruilen.test.sql bewijst dat.
 -- activiteiten_bulk_aanmaken (UC-006) staat er bewust bij en hoeft geen versie te verhogen: het maakt alleen nieuwe activiteiten
 -- aan, die op versie 1 beginnen; een bestaande activiteit raakt het nooit (bulk_aanmaken.test.sql).
+-- bak_zetten (BA-8) staat er bewust bij en verhoogt de versie zelf (bak.test.sql): het wordt alleen aangeroepen door
+-- activiteit_opslaan_met_bak, na activiteit_opslaan, in dezelfde transactie.
 -- Zoekt op schrijven: een schrijfopdracht die een van de twee tabellen noemt (insert into, update, delete from, merge into,
 -- truncate), of een functie die een van de twee tabellen noemt en dynamische SQL gebruikt (execute). Een functie die de
 -- tabellen alleen leest (meld_af, beschikbare_vervangers) valt er dus buiten, merge, truncate en execute format(...) niet (R3-03).
@@ -600,8 +602,8 @@ select is(
       and p.prosrc ~* '(rol_slots|activiteit_groep)'
       and (p.prosrc ~* '(insert\s+into|update|delete\s+from|merge\s+into|truncate)\s+(only\s+)?(public\.)?(rol_slots|activiteit_groep)'
            or p.prosrc ~* '\mexecute\M')),
-  array['activiteit_opslaan', 'activiteiten_bulk_aanmaken', 'ruil_dienst'],
-  'alleen activiteit_opslaan, activiteiten_bulk_aanmaken en ruil_dienst schrijven in rol_slots en activiteit_groep');
+  array['activiteit_opslaan', 'activiteiten_bulk_aanmaken', 'bak_zetten', 'ruil_dienst'],
+  'alleen activiteit_opslaan, activiteiten_bulk_aanmaken, bak_zetten en ruil_dienst schrijven in rol_slots en activiteit_groep');
 
 select * from finish();
 rollback;
