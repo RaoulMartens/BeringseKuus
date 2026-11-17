@@ -692,6 +692,27 @@
             font-weight: 600;
             color: #555;
         }
+        /* De tijdlijn van het kaartje staat altijd onder elkaar, ook op desktop (17-11-2026). */
+        .wf-kaartje-stops {
+            flex-direction: column;
+        }
+        .wf-kaartje-stop {
+            padding: 0 0 14px 28px;
+        }
+        .wf-kaartje-stop:last-child {
+            padding-bottom: 0;
+        }
+        .wf-kaartje-dot {
+            top: 6px;
+        }
+        .wf-kaartje-stop:not(:last-child)::after {
+            top: 22px;
+            bottom: -6px;
+            left: 5px;
+            right: auto;
+            border-top: none;
+            border-left: 2px dashed #ccc;
+        }
         .wf-badge {
             display: inline-block;
             padding: 3px 10px;
