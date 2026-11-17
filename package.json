@@ -31,7 +31,8 @@
     "env:lokaal": "node scripts/schrijf-env-lokaal.ts",
     "types:db": "node scripts/controleer-dbtypen.ts --schrijf",
     "lid:lokaal": "node scripts/maak-lid-lokaal.ts",
-    "leden:zet": "node scripts/zet-leden.ts"
+    "leden:zet": "node scripts/zet-leden.ts",
+    "leden:uitnodigen": "node scripts/nodig-leden-uit.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.16",
