@@ -21,6 +21,7 @@ import {
   leesEigenGroepen,
   leesGroepen,
   leesKandidaten,
+  leesRaadsleden,
   leesRollen,
 } from '../gegevens';
 
@@ -67,13 +68,15 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
   const gepubliceerd = activiteit.status === 'gepubliceerd';
 
   const gebruiker = await huidigeGebruiker();
-  const [{ groepen, aantalLeden }, kandidaten, rollen, afgemeld, eigenGroepen] = await Promise.all([
-    leesGroepen(supabase),
-    leesKandidaten(supabase),
-    leesRollen(supabase),
-    leesAfgemeld(supabase, activiteit.id),
-    gebruiker ? leesEigenGroepen(supabase, gebruiker.lidId) : Promise.resolve([]),
-  ]);
+  const [{ groepen, aantalLeden }, kandidaten, rollen, afgemeld, eigenGroepen, raadsleden] =
+    await Promise.all([
+      leesGroepen(supabase),
+      leesKandidaten(supabase),
+      leesRollen(supabase),
+      leesAfgemeld(supabase, activiteit.id),
+      gebruiker ? leesEigenGroepen(supabase, gebruiker.lidId) : Promise.resolve([]),
+      leesRaadsleden(supabase),
+    ]);
   // Bij een gepubliceerde activiteit voor een groep waar de beheerder zelf niet in zit, bestaat "Zo zien leden het" voor hem
   // niet (het ledenscherm is er dicht): de pagina zegt waarom, in plaats van een link naar niet gevonden.
   const zelfNiet = gepubliceerd
@@ -162,6 +165,8 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
         kandidaten={kandidaten}
         rollen={rollen}
         afgemeld={afgemeld}
+        bak={activiteit.bak}
+        raadsleden={raadsleden}
         gepubliceerd={gepubliceerd}
       />
       <div className={stijl.verwijderMobiel}>

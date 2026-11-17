@@ -1,0 +1,88 @@
+/* De kaart Bak op het activiteitscherm: de schakelaar, en per kopje de plekken met een keuzelijst. Dezelfde tokens als de rest. */
+.bak {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.schakelaar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+  cursor: pointer;
+}
+
+.schakelaar input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--thema-primair);
+}
+
+.uitleg {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.fout {
+  margin: 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--status-fout-tekst);
+}
+
+.groep {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kop {
+  margin: 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.rij {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.label {
+  flex: 0 0 96px;
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.select {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+  /* Een eigen chevron op dezelfde afstand van de rand als de tekst links, zoals bij de andere keuzelijsten. */
+  appearance: none;
+  padding-right: calc(var(--padding-control-x) + 16px + 12px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='%235e5753'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--padding-control-x) center;
+  background-size: 16px 16px;
+}
+
+@media (max-width: 700px) {
+  .rij {
+    flex-wrap: wrap;
+  }
+
+  .label {
+    flex: 1 1 100%;
+  }
+}
