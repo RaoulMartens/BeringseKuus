@@ -261,6 +261,27 @@ describe('jouw status', () => {
       tekst: 'Je bent afgemeld.',
     });
   });
+
+  it('zegt dat je in de bak zit, als je alleen daar staat (BA-8)', () => {
+    expect(statusZin(maakJouwstatus('Bonte Avond', groepeerRollen([], 'm'), false, true))).toEqual({
+      soort: 'aanwezig',
+      tekst: 'Je zit in de bak.',
+    });
+  });
+
+  it('noemt de bak niet als je ook een dienst hebt, en afgemeld gaat voor', () => {
+    expect(statusZin(maakJouwstatus('Bonte Avond', groepen, false, true)).tekst).toBe(
+      'Je staat op aanwezig als drankhaler.',
+    );
+    expect(statusZin(maakJouwstatus('Bonte Avond', groepeerRollen([], 'm'), true, true)).tekst).toBe(
+      'Je bent afgemeld.',
+    );
+  });
+
+  it('zet "bak" bij je rollen, zodat je geen knop Afmelden krijgt maar het nummer van de eindverantwoordelijke', () => {
+    const status = maakJouwstatus('Bonte Avond', groepeerRollen([], 'm'), false, true);
+    expect(status.rollen).toEqual(['bak']);
+  });
 });
 
 describe('telefoonBijEindverantwoordelijke (CR-09)', () => {

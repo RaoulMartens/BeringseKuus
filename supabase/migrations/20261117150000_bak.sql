@@ -35,11 +35,13 @@ declare
   v_volgorde int := 100;
   v_dubbel uuid[];
   v_aantal int;
+  v_gewijzigd boolean;
+  v_oud_actief boolean;
 begin
   if not intern.is_beheerder() then
     perform intern.fout('geen_admin');
   end if;
-  perform 1 from public.activiteiten where id = p_activiteit for update;
+  select bak_actief into v_oud_actief from public.activiteiten where id = p_activiteit for update;
   if not found then
     perform intern.fout('activiteit_onbekend');
   end if;
@@ -112,6 +114,7 @@ begin
   delete from public.rol_slots
    where activiteit_id = p_activiteit and rol_type = 'bak' and id <> all (v_behouden);
   get diagnostics v_aantal = row_count;
+  v_gewijzigd := v_aantal > 0;
 
   v_nr := -1;
   for v_plek in select * from jsonb_array_elements(v_plekken) loop
@@ -120,14 +123,28 @@ begin
     v_bezetter := case when jsonb_typeof(v_plek -> 'bezetter_id') = 'string' then (v_plek ->> 'bezetter_id')::uuid end;
     v_volgorde := v_volgorde + 1;
     if v_plek ? 'slot_id' and jsonb_typeof(v_plek -> 'slot_id') = 'string' then
+      select * into v_slot from public.rol_slots where id = (v_plek ->> 'slot_id')::uuid;
+      -- Alleen een andere bezetter of een ander label telt als wijziging; de volgorde volgt het scherm en is geen nieuws.
+      if v_slot.bezetter_id is distinct from v_bezetter or v_slot.plek_label is distinct from v_label then
+        v_gewijzigd := true;
+      end if;
       update public.rol_slots
          set bezetter_id = v_bezetter, plek_label = v_label, volgorde = v_volgorde
-       where id = (v_plek ->> 'slot_id')::uuid;
+       where id = v_slot.id;
     else
       insert into public.rol_slots (activiteit_id, rol_type, bezetter_id, plek_label, volgorde)
       values (p_activiteit, 'bak', v_bezetter, v_label, v_volgorde);
+      v_gewijzigd := true;
     end if;
   end loop;
+
+  -- Er is niets veranderd (het scherm stuurt de bak bij elke opslag mee): dan ook geen versie die oploopt en geen regel in het log.
+  if v_actief is distinct from v_oud_actief then
+    v_gewijzigd := true;
+  end if;
+  if not v_gewijzigd then
+    return;
+  end if;
 
   -- Leden zien de bak: de activiteit telt als gewijzigd, en de versie loopt op (beheerder tegen beheerder, zoals bij elke wijziging).
   perform set_config('bk.zichtbaar', p_activiteit::text, true);

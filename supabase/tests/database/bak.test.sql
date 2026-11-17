@@ -3,7 +3,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(34);
 
 -- ===== Hulpen (alleen in deze transactie) =====
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
@@ -236,6 +236,22 @@ select lives_ok(
     current_setting('test.t_k_avond'), (select versie::text from public.activiteiten where naam = 'T K Avond')),
   'zonder bak in de aanroep werkt het als gewoon opslaan');
 reset role;
+
+-- ===== Een bak zonder verschil verandert niets: de versie loopt niet extra op en er komt niets in het log =====
+-- Het scherm stuurt de bak bij elke opslag mee. Gewoon opslaan verhoogt de versie met 1; de bak voegt daar niets aan toe.
+select set_config('test.v_voor', (select versie::text from public.activiteiten where naam = 'T K Avond'), true);
+select set_config('test.log_voor', (select count(*)::text from public.wijzigingen_log where actie = 'bak_gewijzigd'), true);
+select pg_temp.als('t_mark', 'aal2');
+set local role authenticated;
+select lives_ok(
+  format($f$ select public.activiteit_opslaan_met_bak(%L::uuid, '{"locatie": "Hal 2"}'::jsonb, '[]'::jsonb, false, %s, '{"actief": false}'::jsonb) $f$,
+    current_setting('test.t_k_avond'), current_setting('test.v_voor')),
+  'opslaan met een bak die uit blijft staan');
+reset role;
+select is((select versie from public.activiteiten where naam = 'T K Avond') - current_setting('test.v_voor')::int, 1,
+  'een bak zonder verschil verhoogt de versie niet extra');
+select is((select count(*)::int from public.wijzigingen_log where actie = 'bak_gewijzigd'), current_setting('test.log_voor')::int,
+  'en schrijft niets in het log');
 
 -- ===== Wat een lid ziet, en wat een lid niet kan =====
 select pg_temp.als('t_mark', 'aal2');
