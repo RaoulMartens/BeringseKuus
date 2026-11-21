@@ -14,3 +14,4 @@ Besluit 30-10-2026: een open set in plaats van de Central-iconen (die niet in ee
   dat elk bestand wordt gebruikt en elk gebruikt icoon zijn bestand heeft.
 
 Rol-iconen erbij (zelfde commit): `beer-stein` (tapper), `person-simple-walk` (drankhaler: iemand die gaat halen), `fork-knife` (buffet), `call-bell` (ober), `ticket` (bonnenkassa). Een kraan of tap bestaat niet in deze set.
+Snelkeuze (UC-012, zelfde commit): `lightning` (bliksem).

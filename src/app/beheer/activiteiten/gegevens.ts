@@ -7,6 +7,9 @@ import type { ActiviteitStatus } from '@/lib/programma';
 import { isActiviteitStatus } from '@/lib/programma';
 import { zelfNietZichtbaarTekst } from '@/lib/publiceren';
 import type { maakSupabase } from '@/lib/supabase/server';
+import { telDiensten } from '@/lib/verdeling';
+
+import { leesDiensten, leesHuidigSeizoen } from '../verdeling/gegevens';
 
 import type { Groep } from './activiteitformulier';
 import type { BestaandePlek, Eindverantwoordelijke, Rolkeuze } from './plekken';
@@ -217,6 +220,10 @@ export async function leesActiviteit(supabase: Supabase, id: string): Promise<Ac
 export interface Kandidaat {
   id: string;
   naam: string;
+  voornaam: string;
+  achternaam: string;
+  /** Hoeveel diensten dit lid dit seizoen heeft (UC-012, wie is aan de beurt); leeg bij een externe helper, die er niet in telt. */
+  diensten: number | null;
   /** Een externe helper; die kan geen eindverantwoordelijke zijn (R17). */
   extern: boolean;
   /** Is aangemerkt als geschikt voor BOB of eindverantwoordelijke: een hulp bij het kiezen, geen slot (R19). */
@@ -227,7 +234,7 @@ export interface Kandidaat {
 
 /** De actieve leden en externe helpers, op voornaam, zonder beheeraccounts. Alleen een beheerder met een code leest dit (rechten van de database). */
 export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
-  const [leden, prive] = await Promise.all([
+  const [leden, prive, seizoen] = await Promise.all([
     supabase
       .from('leden')
       .select('id, voornaam, achternaam, type')
@@ -236,7 +243,9 @@ export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
       .order('voornaam')
       .order('achternaam'),
     supabase.from('leden_prive').select('lid_id, mag_bob, mag_eindverantw, telefoon'),
+    leesHuidigSeizoen(supabase),
   ]);
+  const telling = telDiensten(await leesDiensten(supabase, seizoen));
   if (leden.error) throw new Error(`leden niet te lezen: ${leden.error.code ?? leden.error.message}`);
   if (prive.error) throw new Error(`ledengegevens niet te lezen: ${prive.error.code ?? prive.error.message}`);
   const gegevens = new Map(prive.data.map((regel) => [regel.lid_id, regel]));
@@ -245,6 +254,9 @@ export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
     return {
       id: lid.id,
       naam: `${lid.voornaam} ${lid.achternaam}`,
+      voornaam: lid.voornaam,
+      achternaam: lid.achternaam,
+      diensten: lid.type === 'extern' ? null : (telling.get(lid.id) ?? 0),
       extern: lid.type === 'extern',
       magBob: regel?.mag_bob ?? false,
       magEindverantwoordelijke: regel?.mag_eindverantw ?? false,

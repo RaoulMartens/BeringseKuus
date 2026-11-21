@@ -82,3 +82,22 @@ export function kleineTussenvoegsels(achternaam: string): string {
   });
   return naamGevonden ? uit.join(' ') : achternaam;
 }
+
+/** Een lid zoals de snelkeuze het nodig heeft: voornaam en achternaam. */
+export interface KorteNaamLid {
+  voornaam: string;
+  achternaam: string;
+}
+
+/**
+ * De naam voor een pil in de snelkeuze (UC-012): de voornaam. Delen twee mensen in dezelfde rij een voornaam, dan komt de beginletter van de
+ * achternaam erbij ("Jan P."), en is die ook gelijk, dan de hele naam. De volledige naam staat altijd in de tekst voor schermlezers.
+ */
+export function kortNaam(lid: KorteNaamLid, rij: readonly KorteNaamLid[]): string {
+  const gelijk = rij.filter((ander) => ander.voornaam === lid.voornaam);
+  if (gelijk.length < 2) return lid.voornaam;
+  const letter = (naam: string): string => Array.from(hoofdwoord(naam))[0]?.toLocaleUpperCase('nl-NL') ?? '';
+  const kort = `${lid.voornaam} ${letter(lid.achternaam)}.`;
+  const botst = gelijk.filter((ander) => letter(ander.achternaam) === letter(lid.achternaam));
+  return botst.length < 2 ? kort : `${lid.voornaam} ${lid.achternaam}`;
+}
