@@ -18,6 +18,7 @@ Scope: **MVP-pilot**, leden en beheer. Desktop-first (1200px), met een mobiele w
 | UC-007 | Mijn diensten bekijken: al je diensten in één overzicht (lid) |
 | UC-008 | Activiteiten in je agenda zetten en up-to-date houden (lid) |
 | UC-009 | Beheerders beheren: beheerder maken, toegang bevestigen, rechten intrekken (admin) |
+| UC-012 | Wie is aan de beurt? Welke leden dit seizoen nog geen dienst hebben en hoe iedereen ervoor staat (admin) |
 
 UC-006 is toegevoegd op 02-10-2026 na feedback van de opdrachtgever (gemak bij de start van een seizoen).
 UC-007, UC-008, de groepen (BA-7) en de bak (BA-8) zijn toegevoegd op 15-10-2026 na een vergadering van de opdrachtgever met het bestuur. Ze staan voorlopig in het prototype; wat daarbij nog bij de opdrachtgever ligt staat onder "update van de opdrachtgever van 15-10-2026" in `UX-FLOWS.md`.
@@ -694,6 +695,7 @@ UC-001 AF-6 (sinds 29-10-2026 beantwoord door `storing.html` en `fout.html`). Zi
 | 85 | Beheer — beheerders, toegang bevestigd | `admin-beheerders-bevestigd.html` | UC-009 stap 7 | Melding |
 | 86 | Beheer — beheerrechten intrekken bevestigen | `admin-beheerder-intrekken.html` | UC-009 AF-1 | Bevestigen |
 | 87 | Beheer — beheerders, rechten ingetrokken | `admin-beheerders-ingetrokken.html` | UC-009 AF-1 | Melding |
+| 88 | Beheer — wie is aan de beurt? (alle leden) | `admin-verdeling.html` | UC-012 stap 3 | Overzicht |
 
 ## Besloten punten (11-09-2026)
 
@@ -740,3 +742,18 @@ het FO moet dezelfde punten krijgen zodat beide documenten hetzelfde zeggen.
 **Fout:** een nummer dat niet klopt geeft een melding bij het veld ("Dit nummer klopt niet. Een nummer dat met 0 of + begint, bijvoorbeeld 06 12 34 56 78. Spaties en streepjes mogen.") en bewaart niets.
 
 **Status:** gebouwd en online op 17-11-2026 (`zet_eigen_telefoon`). Staat in `mijn-account.html` (bijgewerkt 17-11-2026).
+
+## UC-012: Wie is aan de beurt? (admin)
+
+**Actor:** beheerder. **Aanleiding (de opdrachtgever, 21-11-2026):** een overzicht voor de beheerders van wie er nog niet aan de beurt is geweest, zodat ze die kunnen invullen. FO 9.2 en bouwgids 8.2 (fase 6) beschrijven het als "overzichten voor eerlijke verdeling"; dit is de eerste uitwerking, bewust klein en op de plekken waar de beheerder het nodig heeft: geen eigen scherm.
+
+**Hoofdpad:**
+1. Op het activiteitscherm (nieuw of bewerken, UC-004 en UC-005) staat bovenin de Rolbezetting een strook "Nog niet aan de beurt · N": de namen van de leden die dit seizoen nog geen dienst hebben, met "Alle leden bekijken ›". Kies je op dit scherm iemand voor een plek, dan wordt die naam in de strook doorgestreept, ook als je nog niet hebt opgeslagen: de strook toont wie er na jouw keuzes nog overblijft.
+2. Bij een plek staat in de keuzelijst onder elke naam "nog geen dienst dit seizoen" of "N diensten dit seizoen", de minste bovenaan: de keuze valt zo op iemand die aan de beurt is. De strook is wat je ziet, de keuzelijst is waar je klikt.
+3. "Alle leden bekijken" → `admin-verdeling.html`: alle leden als raster, naar het voorbeeld van "Wie komt er?" op Start, de minste diensten eerst. Op elk bolletje het aantal diensten, de naam bij hover.
+
+**Regels:**
+- **R28** Wat telt: elke plek van een lid bij een concept of gepubliceerde activiteit van het seizoen, behalve de bak (geen dienst, R23). Een geannuleerde activiteit telt niet mee. Oud papier telt mee. Alleen aantallen, geen weging naar zwaarte (FO 9.2). Het seizoen begint op nul (1 september, BG 6.2). Een externe helper en een beheeraccount staan er niet in (BG 9).
+- **R29** Het systeem telt en signaleert, het bestuur beslist (FO 9.2): geen automatische indeling, geen waarschuwing die iets blokkeert.
+
+**Niet in deze uitwerking:** een signaal bij onder- of oververtegenwoordiging, een filter op groep (Alle · Bestuur · Raad van Elf · Dames · Overige leden boven het raster, als blijkt dat het nodig is), de diensten per rol ("wie is nog nooit tapper geweest"), het terugkijken naar eerdere seizoenen, en staven met de verdeling, een derde teller en een zijkaart op het overzicht (bewust vervallen, zie `UX-FLOWS.md` ronde 21).

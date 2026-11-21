@@ -840,7 +840,7 @@
         /* tellers die tegelijk filter zijn (beheeroverzicht) */
         .wf-tegels {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
         }
         .wf-tegel {
@@ -1152,6 +1152,11 @@
                         <span class="wf-label">Busvertrek</span>
                         <div class="wf-input">leeg &mdash; geen bus</div>
                     </div>
+                    <div class="wf-veld">
+                        <span class="wf-label">Voor wie</span>
+                        <a href="admin-activiteit-voor-wie-concept.html" class="wf-link"><div class="wf-input wf-kiesveld" style="color:#333">Iedereen<span class="wf-pijl">&#9662;</span></div></a>
+                        <div class="wf-subtitle">Kies een of meer groepen (bijvoorbeeld Bestuur en Raad van Elf) en alleen die leden zien de activiteit.</div>
+                    </div>
                 </div>
                 <div class="wf-card">
                     <span class="wf-title">Belangrijk om te weten</span>
@@ -1163,6 +1168,18 @@
                     <span class="wf-title">Rolbezetting</span>
                     <div class="wf-subtitle">Klik op een plek om iemand te kiezen.</div>
                     <div class="wf-spacer"></div>
+                    <div style="border:1px dashed #bbb;border-radius:4px;padding:10px 12px;margin-bottom:14px;background:#fafafa"><!--aan-de-beurt-->
+                        <div class="wf-subtitle" style="margin:0 0 8px">Nog niet aan de beurt &middot; 6</div>
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Hub Simons</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Karin Peeters</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Math Reijnders</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Wiel Hendrikx</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Thijs Meijers</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Marij Hoeben</span>
+                            <a href="admin-verdeling.html" class="wf-link"><span class="wf-subtitle" style="margin-left:4px">Alle leden bekijken &rsaquo;</span></a>
+                        </div>
+                    </div>
                     <div class="wf-rolgroep">
                         <div class="wf-rolgroep-kop">
                             <span class="wf-label">Werker</span>
@@ -1204,6 +1221,72 @@
                             <a href="admin-activiteit-kiezen-eindverantwoordelijke.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld wf-leeg-veld">Kies iemand&hellip;</div></a>
                         </div>
                     </div>
+                </div>
+                <div class="wf-card">
+                    <div class="wf-kaartkop" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><span class="wf-title">Bak</span><div class="wf-schakelaar" data-bak="uit" aria-label="Bak bijhouden bij deze activiteit"><span class="wf-vink">&#9744;</span><span class="wf-schakelaar-tekst">Uit</span></div></div>
+                    <div class="wf-subtitle wf-bak-uit">Voor activiteiten waar mensen in de bak zitten, zoals de Bonte Avond.</div>
+                    <div class="wf-bak-body" style="display:none">
+                    <div class="wf-subtitle">Vooraf gevuld met de Raad van Elf, de prins, de adjudant en de vorst.
+                    Klik op een naam om iemand te vervangen, bijvoorbeeld bij ziekte.</div>
+                    <div class="wf-spacer"></div>
+                    <div class="wf-rolgroep">
+                        <div class="wf-rolgroep-kop">
+                            <span class="wf-label">Prins en adjudant</span>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Prins Bram I</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Adjudant Koen</div></a>
+                        </div>
+                    </div>
+                    <div class="wf-rolgroep">
+                        <div class="wf-rolgroep-kop">
+                            <span class="wf-label">Vorst</span>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Frank Moonen</div></a>
+                        </div>
+                    </div>
+                    <div class="wf-rolgroep">
+                        <div class="wf-rolgroep-kop">
+                            <span class="wf-label">Raad van Elf</span>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld wf-gewijzigd">Karin Peeters</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Ton Gubbels</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Math Reijnders</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Bert Claessens</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Theo Verstraten</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Rob Lemmens</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Pieter Jacobs</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Huub Verhaegh</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Leon Schreurs</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Chris Nijssen</div></a>
+                        </div>
+                        <div class="wf-role-row">
+                            <a href="admin-activiteit-kiezen-bak.html" class="wf-link" style="flex:1;display:flex"><div class="wf-input wf-kiesveld">Wiel Hendrikx</div></a>
+                        </div>
+                    </div>
+                </div>
                 </div>
                 <div class="wf-card">
                     <span class="wf-title">Afmelden</span>

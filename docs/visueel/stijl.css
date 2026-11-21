@@ -949,6 +949,35 @@ a.wf-link:hover > .wf-icoonrij .wf-icoontegel { background: var(--neutraal-kaart
 .wf-lid-klein { width: 12px; height: 12px; }
 .wf-lid-af.wf-lid-klein { border-width: 1px; }
 
+/* Wie is aan de beurt? (UC-012, 21-11-2026). Het raster is het bolletje van "Wie komt er?" met het aantal diensten als klein getal erop: gestippeld = nog geen
+   dienst, licht groen = 1 of 2, donker groen = 3 of meer. De strook bovenin de Rolbezetting laat de namen zien van wie nog geen dienst heeft, als chips met
+   dezelfde gestippelde rand; wie je op dit scherm al hebt gekozen is doorgestreept (`.wf-weg`, gedrag van de app). */
+.wf-lid-hoog { background: var(--status-succes); color: #FFFFFF; }
+.wf-lid-teller {
+    position: absolute; top: -5px; right: -5px;
+    box-sizing: border-box; min-width: 16px; height: 16px; padding: 0 3px; border-radius: var(--radius-full);
+    background: var(--neutraal-kaart); border: 1px solid var(--neutraal-lijn-sterk); color: var(--neutraal-tekst);
+    font: 700 0.625rem/14px var(--font-tekst); letter-spacing: 0; text-align: center;
+}
+.wf-plek-kolom { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.wf-plek-kolom:has(.wf-beurt) > a > .wf-input { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.wf-beurt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0; padding: 8px 12px; background: var(--neutraal-vlak); border: 1px solid var(--neutraal-lijn-sterk); border-top: 0; border-radius: 0 0 var(--radius-control) var(--radius-control); }
+.wf-beurt-kop { width: 20px; height: 20px; flex: none; color: var(--neutraal-tekst-zacht); }
+.wf-beurt-lijst { display: contents; list-style: none; margin: 0; padding: 0; }
+.wf-beurt-lijst li { display: contents; }
+.wf-beurt-keuze {
+    padding: 4px 12px; border-radius: var(--radius-full); border: 1px solid var(--neutraal-lijn-sterk); background: var(--neutraal-kaart);
+    font: 600 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst); cursor: pointer;
+}
+.wf-beurt-keuze { display: inline-flex; align-items: center; gap: 4px; }
+.wf-beurt-keuze { padding-left: 8px; }
+.wf-beurt-keuze .ic { width: 14px; height: 14px; margin: 0; }
+.wf-beurt-keuze:hover { border-color: var(--neutraal-tekst); }
+.wf-beurt-keuze:focus-visible { outline: 2px solid var(--neutraal-tekst); outline-offset: 2px; }
+.wf-beurt-meer { display: inline-flex; align-items: center; gap: 2px; font: 600 0.875rem/1.4286 var(--font-tekst); color: var(--neutraal-tekst-zacht); text-decoration: none; }
+a.wf-link.wf-beurt-meer { display: inline-flex; margin-left: auto; }
+.wf-beurt-meer .ic { width: 14px; height: 14px; }
+
 /* ---- 15. Mobiel (assumptie: breekpunt 700px, nog niet vastgesteld) ------- */
 @media (max-width: 700px) {
     .wf-topnav { height: 56px; padding: 0 8px; gap: 0; }
