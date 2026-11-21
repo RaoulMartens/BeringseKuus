@@ -808,3 +808,27 @@ is de visuele versie (`docs/visueel/INDEX.md`, punt 76 en 77); de techniek staat
 - **Rol-iconen:** elke soort werk heeft een eigen icoon (tapper bierpul, drankhaler lopend persoon, ober serveerbel, buffet bestek, bonnenkassa kaartje); de keuze kwam uit een voorbeeldpagina met de opties. Keuzelijsten en aankruisvakjes volgen de velden: dezelfde randkleur, een chevron op dezelfde afstand van de rand als de tekst, een vakje met een hoek van 6 px.
 - **De uitnodiging aan de leden:** een gewone mail met uitleg (tekst- en HTML-versie, zonder afbeeldingen en volglinks), met de eerlijke zin dat er nog geen mail uitgaat bij indelen. Het platform stuurt zelf geen uitnodiging; de bouwer verstuurt hem met een script.
 - **Nog open (ontwerp):** berichten per mail bij indelen en wijzigen (O-1), het bericht aan een lid bij een gewijzigde activiteit, en "Bekijk als lid".
+
+## Ronde 21: Wie is aan de beurt? (21-11-2026)
+
+De opdrachtgever vroeg om een overzicht voor de beheerders: wie is nog niet aan de beurt geweest, zodat ze die kunnen invullen. Dat is de verdeling uit FO 9.2 en bouwgids 8.2 (fase 6, tot nu toe buiten de pilot). UC-012, R28 en R29, script `ronde21_verdeling.py` (met de strook en de aantallen in `rolbezetting.py`).
+
+**Vier varianten, en wat er van overbleef.** (1) Een eigen scherm met een kaart "Verdeling" in de zijkolom van het overzicht: vervallen, want een eigen scherm is een stop die je moet onthouden. (2) Een derde teller als filter, een zijkaart met bolletjes en staven, een filterscherm met namen en een raster: vervallen, want dezelfde zes leden stonden op vijf plekken (de bouwer: "we hebben nu te veel; we moeten de beste opties behouden en kijken waar het het handigst staat"). (3) Een zijkaart met namen op het overzicht en het raster erachter: vervallen op vraag van de bouwer "waarom niet bij het aanmaken van een activiteit, zodat je niet hoeft te onthouden wie het zijn?". Het overzicht is waar je kijkt, het activiteitscherm is waar je beslist; wie de informatie op het overzicht zet, vraagt de beheerder haar te onthouden tot hij een activiteit opent. (4) De informatie staat waar de beslissing valt:
+
+| Onderdeel | Taak | Waar |
+|---|---|---|
+| Strook "Nog niet aan de beurt · N" | *Wie is er nog niet aan de beurt geweest?* | Bovenin de Rolbezetting, vóór de plekken |
+| Aantallen in de keuzelijst bij een plek | *Wie kies ik nu?* | Op het moment van klikken, bij elke naam |
+| Het raster (`admin-verdeling`) | *Hoe staat iedereen ervoor?* | Eén klik achter de strook ("Alle leden bekijken ›") |
+
+**De strook beweegt mee.** Kies je op dit scherm iemand voor een plek, dan wordt die naam in de strook doorgestreept, ook als je nog niet hebt opgeslagen: de strook toont wie er na jouw keuzes nog overblijft. Dat kan het overzicht niet, want daar weet het systeem nog niet wat je gaat kiezen. De strook is wat je ziet, de keuzelijst is waar je klikt, in dezelfde volgorde.
+
+**Het raster is de verdieping.** Naar het voorbeeld van "Wie komt er?" op Start: een bolletje met initialen per lid, gestippeld als iemand nog geen dienst heeft, lichtgrijs voor 1 of 2, donker voor 3 of meer, het aantal als klein getal erop en de naam bij hover. Het is er voor wie ook wil zien wie veel heeft gedaan, niet voor het indelen zelf (een bolletje met "HS" zegt niet wie het is; de naam is wat de beheerder nodig heeft).
+
+**Schaalbaarheid.** De strook toont alle namen zonder dienst; bij een groot ledental kan dat veel zijn, vooral vroeg in het seizoen. De ontwerpafspraak is hooguit 8 namen en daarna "+ N meer ›" naar het raster; bij 42 leden is dat nog niet nodig, daarom staat het niet in de wireframe.
+
+**Vervallen:** de derde teller, het filterscherm met namen, de zijkaart op het overzicht en de vier staven (niemand vroeg erom en ze dupliceerden het raster).
+
+**Wat het niet doet:** geen weging naar zwaarte (FO 9.2: puur aantallen), geen oordeel of iemand "te veel" heeft, geen automatische indeling. Het systeem telt, het bestuur beslist.
+
+**Open (voor de opdrachtgever en de bouwer):** (1) het raster toont alleen het huidige seizoen; is terugkijken nodig? (2) een raadslid dat alleen in de bak zit, staat onder "geen dienst" (de bak is geen dienst); een label "Raad van Elf" achter de naam kan helpen. (3) Op een telefoon is er geen hover: daar toont een tik op een bolletje de naam (te ontwerpen in de visuele versie). (4) De strook past op het activiteitscherm van de beheerder; bij "Meerdere aanmaken" en bij een reeks bewerken (waar je een eindverantwoordelijke kiest, geen plekken) is hij niet nodig. Niet getoetst met de opdrachtgever of leden.
