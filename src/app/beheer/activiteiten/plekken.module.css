@@ -177,3 +177,100 @@ select.keuze {
 .toevoegen .toevoegRij > * {
   align-self: stretch;
 }
+
+/* De snelkeuze onder de eerste lege plek van een rol (UC-012; docs/visueel/stijl.css, `.wf-beurt`): één compacte regel in het vlak van het
+   veld: een bliksem, de voornamen als pillen met een plus, en "Alle" rechts. Veld en regel lezen als één blok; eindigt het veld voor een
+   kruisje, dan eindigt de regel daar ook. */
+.snel {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  /* het veld erboven staat 8px hoger (de ruimte tussen de regels van een plek): de regel plakt eraan */
+  margin-top: -8px;
+  padding: 8px 12px;
+  background: var(--neutraal-vlak);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
+}
+
+.plek:has(> .weg) > .snel {
+  flex: 0 0 calc(100% - var(--control-compact) - 8px);
+}
+
+/* Het veld erboven heeft recht onder, zodat veld en regel één blok zijn. */
+.plek:has(> .snel) > .keuze {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.snelIcoon {
+  flex: none;
+  display: inline-flex;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.snelIcoon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.snelLijst {
+  display: contents;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.snelLijst > li {
+  display: contents;
+}
+
+.snelKnop {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px 4px 8px;
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-full);
+  background: var(--neutraal-kaart);
+  color: var(--neutraal-tekst);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  cursor: pointer;
+}
+
+.snelKnop:hover {
+  border-color: var(--neutraal-tekst);
+}
+
+.snelKnop:focus-visible,
+.snelAlle:focus-visible {
+  outline: 2px solid var(--neutraal-tekst);
+  outline-offset: 2px;
+}
+
+.snelKnop svg {
+  width: 14px;
+  height: 14px;
+}
+
+.snelAlle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  color: var(--neutraal-tekst-zacht);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  text-decoration: none;
+}
+
+.snelAlle:hover {
+  color: var(--neutraal-tekst);
+}
+
+.snelAlle svg {
+  width: 14px;
+  height: 14px;
+}

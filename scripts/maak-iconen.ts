@@ -51,6 +51,8 @@ export const ICONEN: Record<string, { phosphor: string; gewichten: readonly Gewi
   'rol-eindverantwoordelijke': { phosphor: 'shield', gewichten: ['regular'] },
   groep: { phosphor: 'users-three', gewichten: ['regular'] },
   link: { phosphor: 'link', gewichten: ['regular'] },
+  // De snelkeuze bij een lege plek (UC-012): wie nog niet aan de beurt is geweest, met één tik in te vullen.
+  bliksem: { phosphor: 'lightning', gewichten: ['regular'] },
   concept: { phosphor: 'circle-dashed', gewichten: ['regular'] },
   info: { phosphor: 'info', gewichten: ['regular'] },
   waarschuwing: { phosphor: 'warning', gewichten: ['regular'] },
