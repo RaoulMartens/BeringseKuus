@@ -840,7 +840,7 @@
         /* tellers die tegelijk filter zijn (beheeroverzicht) */
         .wf-tegels {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
         }
         .wf-tegel {
@@ -1166,6 +1166,18 @@
                     <span class="wf-title">Rolbezetting</span>
                     <div class="wf-subtitle">Klik op een plek om iemand te kiezen.</div>
                     <div class="wf-spacer"></div>
+                    <div style="border:1px dashed #bbb;border-radius:4px;padding:10px 12px;margin-bottom:14px;background:#fafafa"><!--aan-de-beurt-->
+                        <div class="wf-subtitle" style="margin:0 0 8px">Nog niet aan de beurt &middot; 6</div>
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Hub Simons</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Karin Peeters</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Math Reijnders</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Wiel Hendrikx</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Thijs Meijers</span>
+                            <span style="padding:3px 10px;border:1px dashed #aaa;border-radius:999px;font-size:13px;background:#fff">Marij Hoeben</span>
+                            <a href="admin-verdeling.html" class="wf-link"><span class="wf-subtitle" style="margin-left:4px">Alle leden bekijken &rsaquo;</span></a>
+                        </div>
+                    </div>
                     <div class="wf-rolgroep">
                         <div class="wf-rolgroep-kop">
                             <span class="wf-label">Werker</span>
@@ -1184,17 +1196,17 @@
                             <div class="wf-input">Typ een naam&hellip;</div>
                             <a href="admin-activiteit-onvolledig.html" class="wf-link">
                                 <div class="wf-list-item">
-                                    <span style="flex:1">Karin Peeters</span>
+                                    <span style="flex:1">Karin Peeters<br><span class="wf-subtitle">nog geen dienst dit seizoen</span></span>
                                 </div>
                             </a>
                             <a href="admin-activiteit-onvolledig.html" class="wf-link">
                                 <div class="wf-list-item">
-                                    <span style="flex:1">Hub Simons</span>
+                                    <span style="flex:1">Hub Simons<br><span class="wf-subtitle">nog geen dienst dit seizoen</span></span>
                                 </div>
                             </a>
                             <a href="admin-activiteit-onvolledig.html" class="wf-link">
                                 <div class="wf-list-item">
-                                    <span style="flex:1">Jo Kessels</span>
+                                    <span style="flex:1">Jo Kessels<br><span class="wf-subtitle">1 dienst dit seizoen</span></span>
                                 </div>
                             </a>
                             <a href="admin-activiteit-onvolledig.html" class="wf-link">
