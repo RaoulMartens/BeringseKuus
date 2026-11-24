@@ -187,7 +187,8 @@ describe('Bovenbalk', () => {
   });
 
   it('geeft het rondje met de gebruiker een naam voor schermlezers', () => {
-    expect(html(balk)).toContain('aria-label="Mijn account (Sam)"');
+    // De naam komt uit de tekst van de link ("Mijn account (Sam)"), niet uit een aria-label: axe vindt anders de zichtbare naam niet in de naam.
+    expect(html(balk).replace(/<[^>]+>/g, '')).toContain('Mijn account (Sam)');
   });
 
   it('werkt ook zonder gebruiker', () => {
