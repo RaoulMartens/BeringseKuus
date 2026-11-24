@@ -41,9 +41,12 @@
   }
 }
 
-/* "← Terug naar …": een gewone link bovenaan de inhoud, onderstreept zoals elke link in het ontwerp */
+/* "← Terug naar …": een eigen balk over de volle breedte tussen de bovenbalk en het kopvlak (docs/visueel/stijl.css, `.wf-nav`
+   en `.wf-back`), met de link onderstreept zoals elke link in het ontwerp. */
 .terug {
   margin: 0;
+  padding: 12px var(--marge);
+  background: var(--neutraal-vlak);
   font: 600 0.875rem/1.4286 var(--font-tekst);
 }
 
