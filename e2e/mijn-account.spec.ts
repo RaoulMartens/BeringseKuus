@@ -55,7 +55,7 @@ test('een beheeraccount (alleen beheer) heet op Mijn account gewoon Beheerder', 
   await expect(page.getByText('Je bent').locator('xpath=following-sibling::dd')).toHaveText('Beheerder');
 });
 
-test('een lid zet zijn eigen telefoonnummer op Mijn account', async ({ page }) => {
+test('een lid zet zijn eigen telefoonnummer op Mijn account en kan het daarna wijzigen', async ({ page }) => {
   const email = nieuwAdres();
   const uid = await maakLidMetRol(email);
   aangemaakt.push(uid);
@@ -64,27 +64,53 @@ test('een lid zet zijn eigen telefoonnummer op Mijn account', async ({ page }) =
   await expect(page).toHaveURL(/\/mijn$/);
 
   const lid = lidIdVan(uid);
+  const bewaard = () =>
+    psql(`select coalesce(telefoon, '') from public.leden_prive where lid_id = '${lid}';`).trim();
   const veld = page.getByLabel('Telefoonnummer');
   await expect(veld).toHaveValue('');
+  // Zonder nummer staat het veld meteen open, en er is niets om naar terug te gaan.
+  await expect(page.getByRole('button', { name: 'Annuleren' })).toHaveCount(0);
 
   // Een nummer dat niet klopt: een melding bij het veld, niets bewaard.
   await veld.fill('abc');
   await page.getByRole('button', { name: 'Opslaan' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Dit nummer klopt niet' })).toBeVisible();
-  expect(psql(`select coalesce(telefoon, '') from public.leden_prive where lid_id = '${lid}';`).trim()).toBe(
-    '',
-  );
+  expect(bewaard()).toBe('');
 
-  // Een geldig nummer: bewaard in de vorm van de lijst, en het scherm meldt het.
+  // Een geldig nummer: bewaard in de vorm van de lijst, en je ziet het nummer als tekst met de melding dat het gelukt is.
   await veld.fill('0612345678');
   await page.getByRole('button', { name: 'Opslaan' }).click();
   await expect(page.getByText('Je nummer is opgeslagen.')).toBeVisible();
-  await expect(veld).toHaveValue('06 12 34 56 78');
-  expect(psql(`select telefoon from public.leden_prive where lid_id = '${lid}';`).trim()).toBe(
-    '06 12 34 56 78',
-  );
+  await expect(page.getByText('06 12 34 56 78', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Telefoonnummer')).toHaveCount(0);
+  expect(bewaard()).toBe('06 12 34 56 78');
 
-  // Na een nieuwe aanvraag staat het nummer er nog.
-  await page.reload();
+  // Wijzigen: het veld opent met het huidige nummer; Annuleren laat alles zoals het was.
+  await page.getByRole('button', { name: 'Wijzig telefoonnummer' }).click();
   await expect(page.getByLabel('Telefoonnummer')).toHaveValue('06 12 34 56 78');
+  await page.getByRole('button', { name: 'Annuleren' }).click();
+  await expect(page.getByText('06 12 34 56 78', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Telefoonnummer')).toHaveCount(0);
+
+  // Een fout bij het wijzigen houdt het veld open met wat je typte; annuleren brengt je terug bij het opgeslagen nummer.
+  await page.getByRole('button', { name: 'Wijzig telefoonnummer' }).click();
+  await page.getByLabel('Telefoonnummer').fill('abc');
+  await page.getByRole('button', { name: 'Opslaan' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Dit nummer klopt niet' })).toBeVisible();
+  await expect(page.getByLabel('Telefoonnummer')).toHaveValue('abc');
+  await page.getByRole('button', { name: 'Annuleren' }).click();
+  await expect(page.getByText('06 12 34 56 78', { exact: true })).toBeVisible();
+  expect(bewaard()).toBe('06 12 34 56 78');
+
+  // Een nieuw nummer: bewaard, en weer als tekst.
+  await page.getByRole('button', { name: 'Wijzig telefoonnummer' }).click();
+  await page.getByLabel('Telefoonnummer').fill('0687654321');
+  await page.getByRole('button', { name: 'Opslaan' }).click();
+  await expect(page.getByText('06 87 65 43 21', { exact: true })).toBeVisible();
+  expect(bewaard()).toBe('06 87 65 43 21');
+
+  // Na een nieuwe aanvraag staat het nummer er nog, als tekst.
+  await page.reload();
+  await expect(page.getByText('06 87 65 43 21', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Telefoonnummer')).toHaveCount(0);
 });

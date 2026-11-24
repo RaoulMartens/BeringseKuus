@@ -1,6 +1,6 @@
 /* De gegevens van Mijn account als lijst met kopjes, zoals de tabel in het ontwerp (stijl.css, sectie 9: wf-table). */
 .gegevens {
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 .gegevens > div {
@@ -37,6 +37,69 @@
   flex-direction: column;
   gap: 16px;
   max-width: 28rem;
+}
+
+.knoppen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* De leesweergave van het nummer: het nummer vet met een knop Wijzig ernaast. */
+.lees {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.leesRij {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.leesTekst {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.leesLabel {
+  color: var(--neutraal-tekst-zacht);
+}
+
+.nummer {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* Alleen voor een schermlezer: "Wijzig telefoonnummer" in plaats van alleen "Wijzig". */
+.verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* De kleine link voor een beheerder met een kwijte telefoon: rustig en onderstreept, geen knop en geen kaart. */
+.kwijt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst-zacht);
+  text-underline-offset: 3px;
+}
+
+.kwijt svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Alleen op een telefoon: de kaart Beheer, want daar staat de knop niet in de bovenbalk. */
