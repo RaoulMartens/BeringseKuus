@@ -55,12 +55,13 @@ test('de bovenbalk past: elk onderdeel en het rondje zijn volledig zichtbaar', a
     'Start',
     'Programma',
     'Mijn diensten',
-    'Mijn account (Sam)',
+    /Mijn account \(\s*Sam\s*\)/,
     ...(venster > 700 ? ['Beheer'] : []),
   ];
   for (const naam of namen) {
     const vak = await page.getByRole('link', { name: naam }).first().boundingBox();
-    expect(vak, naam).not.toBeNull();
-    expect((vak?.x ?? 0) + (vak?.width ?? 0), `${naam} past binnen de breedte`).toBeLessThanOrEqual(venster);
+    const label = String(naam);
+    expect(vak, label).not.toBeNull();
+    expect((vak?.x ?? 0) + (vak?.width ?? 0), `${label} past binnen de breedte`).toBeLessThanOrEqual(venster);
   }
 });
