@@ -82,7 +82,9 @@ export function Bovenbalk({ merk, logo, onderdelen, beheer, gebruiker }: Eigensc
           className={stijl.account}
           aria-label={`Mijn account (${gebruiker.voornaam})`}
         >
-          <span className={stijl.gebruikersnaam}>{gebruiker.voornaam}</span>
+          <span className={stijl.gebruikersnaam} aria-hidden="true">
+            {gebruiker.voornaam}
+          </span>
           <span className={stijl.rondje} aria-hidden="true">
             {gebruiker.voornaam.slice(0, 1).toUpperCase()}
           </span>
