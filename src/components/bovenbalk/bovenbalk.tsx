@@ -77,14 +77,13 @@ export function Bovenbalk({ merk, logo, onderdelen, beheer, gebruiker }: Eigensc
         </Link>
       )}
       {gebruiker && (
-        <Link
-          href={gebruiker.href}
-          className={stijl.account}
-          aria-label={`Mijn account (${gebruiker.voornaam})`}
-        >
-          <span className={stijl.gebruikersnaam} aria-hidden="true">
-            {gebruiker.voornaam}
-          </span>
+        <Link href={gebruiker.href} className={stijl.account}>
+          {/* De naam van de link komt uit zijn tekst ("Mijn account (Sam)"), niet uit een aria-label: met een label naast de zichtbare
+              naam vindt axe de zichtbare tekst niet in de naam (label-content-name-mismatch, WCAG 2.5.3). Op een telefoon is de naam
+              alleen visueel weg, zodat hij in de naam blijft. */}
+          <span className={stijl.verborgen}>Mijn account (</span>
+          <span className={stijl.gebruikersnaam}>{gebruiker.voornaam}</span>
+          <span className={stijl.verborgen}>)</span>
           <span className={stijl.rondje} aria-hidden="true">
             {gebruiker.voornaam.slice(0, 1).toUpperCase()}
           </span>
