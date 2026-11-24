@@ -71,7 +71,7 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
   const [{ groepen, aantalLeden }, kandidaten, rollen, afgemeld, eigenGroepen, raadsleden] =
     await Promise.all([
       leesGroepen(supabase),
-      leesKandidaten(supabase),
+      leesKandidaten(supabase, activiteit.id),
       leesRollen(supabase),
       leesAfgemeld(supabase, activiteit.id),
       gebruiker ? leesEigenGroepen(supabase, gebruiker.lidId) : Promise.resolve([]),
