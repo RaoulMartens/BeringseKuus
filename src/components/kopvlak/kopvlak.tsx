@@ -2,12 +2,12 @@
 // elke pagina heeft er precies één. De kleuren en het verloop komen uit het thema; titel en datum staan links, een actie
 // (bijvoorbeeld "Terug") rechts.
 //
-// Afwijking van het ontwerp (Design-overdracht.md 4): de confetti is nu simpele CSS-stippen. De WebGL-versie (één gedeelde
-// canvas) komt later; zonder WebGL is dit precies wat het ontwerp als terugval noemt. Het is versiering en voor
-// schermlezers verborgen.
+// De confetti is de WebGL-versie van het ontwerp (Kopconfetti, een canvas achter de tekst); zonder WebGL blijft de simpele
+// CSS-confetti staan, precies wat het ontwerp als terugval noemt. Het is versiering en voor schermlezers verborgen.
 
 import type { ReactNode } from 'react';
 
+import { Kopconfetti } from './kopconfetti';
 import stijl from './kopvlak.module.css';
 
 interface Eigenschappen {
@@ -23,6 +23,7 @@ interface Eigenschappen {
 export function Kopvlak({ titel, datum, groot, children }: Eigenschappen) {
   return (
     <div className={stijl.kop}>
+      <Kopconfetti />
       <div className={stijl.tekst}>
         {datum && <p className={stijl.datum}>{datum}</p>}
         <h1 className={groot ? stijl.titelGroot : stijl.titel}>{titel}</h1>
