@@ -162,13 +162,17 @@ test('een externe helper kan tapper en BOB zijn maar geen eindverantwoordelijke;
   await begin(page, naam, '2099-04-07');
   await voegPlekToe(page, 'tapper');
   await voegPlekToe(page, 'bob');
+  // Een externe helper is eenmalig: een eerdere helper staat niet in de keuzelijst, je zet hem erop met zijn naam.
   await expect(
-    plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: `${extern.naam} (extern)` }),
+    plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: new RegExp(extern.naam) }),
+  ).toHaveCount(0);
+  await expect(
+    plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: 'Iemand van buiten de vereniging…' }),
   ).toHaveCount(1);
   // BOB mag ook iemand van buiten de vereniging zijn (09-11-2026); de eindverantwoordelijke niet.
   await expect(
     plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: new RegExp(extern.naam) }),
-  ).toHaveCount(1);
+  ).toHaveCount(0);
   await expect(
     plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: 'Iemand van buiten de vereniging…' }),
   ).toHaveCount(1);
@@ -183,7 +187,10 @@ test('een externe helper kan tapper en BOB zijn maar geen eindverantwoordelijke;
   const hint = `${gewoon.naam} — nog niet aangemerkt als BOB`;
   await expect(plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: hint })).toHaveCount(1);
   await plek(page, 'Nieuwe plek 1 van BOB').selectOption({ label: hint });
-  await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: `${extern.naam} (extern)` });
+  await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: 'Iemand van buiten de vereniging…' });
+  await page
+    .getByLabel('Naam van iemand van buiten de vereniging, nieuwe plek 1 van tapper', { exact: true })
+    .fill(extern.naam);
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
   const id = activiteitId(naam);
@@ -305,10 +312,15 @@ test('de rollen komen uit de lijst; iemand van buiten de vereniging zet je erop 
     ).trim(),
   ).toBe('extern 0');
 
-  // De volgende keer staat hij gewoon in de keuzelijst.
+  // Een externe helper is eenmalig: op zijn eigen activiteit staat hij op zijn plek, en hij staat niet in de keuzelijst van een volgende
+  // activiteit.
+  await page.getByRole('link', { name: new RegExp(naam) }).click();
+  await expect(
+    plek(page, 'Bonnenkassa 1').getByRole('option', { name: `Henk ${kenmerk} (extern)` }),
+  ).toHaveCount(1);
   await page.goto('/beheer/activiteiten/nieuw');
   await voegPlekToe(page, 'tapper');
   await expect(
     plek(page, 'Nieuwe plek 1 van tapper').getByRole('option', { name: `Henk ${kenmerk} (extern)` }),
-  ).toHaveCount(1);
+  ).toHaveCount(0);
 });
