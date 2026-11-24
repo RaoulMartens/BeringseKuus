@@ -42,7 +42,8 @@
 }
 
 /* "← Terug naar …": een eigen balk over de volle breedte tussen de bovenbalk en het kopvlak (docs/visueel/stijl.css, `.wf-nav`
-   en `.wf-back`), met de link onderstreept zoals elke link in het ontwerp. */
+   en `.wf-back`). In het ontwerp is de link grijs (de zachte tekstkleur) en niet onderstreept: de regel `text-decoration: underline` van
+   `.wf-back` verliest daar van `a.wf-link`, dus zo is hij gemaakt en bedoeld. */
 .terug {
   margin: 0;
   padding: 12px var(--marge);
@@ -54,9 +55,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--neutraal-tekst);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: var(--neutraal-tekst-zacht);
+  text-decoration: none;
 }
 
 .terug svg {
