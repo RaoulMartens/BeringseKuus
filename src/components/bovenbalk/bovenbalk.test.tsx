@@ -50,8 +50,9 @@ describe('Bovenbalk: Beheer en je naam', () => {
     );
     const links = uit.match(/<a [^>]*href="\/mijn"[^>]*>.*?<\/a>/g) ?? [];
     expect(links).toHaveLength(1);
-    expect(links[0]).toContain('aria-label="Mijn account (Sam)"');
-    expect(links[0]).toContain('Sam');
+    // De naam van de link komt uit zijn tekst, niet uit een aria-label (axe: label-content-name-mismatch).
+    expect(links[0]).not.toContain('aria-label');
+    expect(links[0]).toMatch(/>Mijn account \(<\/span><span [^>]*>Sam<\/span><span [^>]*>\)<\/span>/);
     expect(links[0]).toContain('>S<');
   });
 });

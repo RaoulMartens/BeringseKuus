@@ -134,11 +134,33 @@
   text-decoration: none;
 }
 
+/* Alleen voor een schermlezer ("Mijn account (" en ")" om je naam). */
+.verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* een telefoon: compacte balk zonder merk en naam (ontwerpbesluit) */
 @media (max-width: 700px) {
-  .merk,
-  .gebruikersnaam {
+  .merk {
     display: none;
+  }
+
+  /* de naam is alleen visueel weg (niet display: none): hij blijft in de naam van de link */
+  .gebruikersnaam {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .ruimte {
