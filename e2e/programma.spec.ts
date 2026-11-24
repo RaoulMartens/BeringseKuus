@@ -8,6 +8,7 @@ import { logInAlsBeheerder } from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { nieuwAdres } from './inloggen-hulp.ts';
 import { bevestigAdresVoor, maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
+import { gaNaarBeheer } from './menu-hulp.ts';
 import { WCAG, wachtTotStil } from './normen.ts';
 
 const lopende = crypto.randomUUID().slice(0, 8);
@@ -79,13 +80,11 @@ test('een lid ziet gepubliceerde activiteiten, geen concept en niets voor een an
   expect((await rij.boundingBox())?.width ?? Infinity).toBeLessThanOrEqual(680);
   await expect(page.getByRole('heading', { level: 2, name: 'Geweest dit seizoen' })).toBeVisible();
 
-  // De bovenbalk: het menu van een lid heeft geen Beheer, en het rondje noemt de naam.
+  // De bovenbalk: het menu van een lid heeft geen knop Beheer, en het rondje noemt de naam.
   await expect(
     page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Programma' }),
   ).toHaveAttribute('aria-current', 'page');
-  await expect(
-    page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('banner').getByRole('link', { name: 'Beheer' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /^Mijn account \(/ })).toBeVisible();
 });
 
@@ -132,14 +131,11 @@ test('een beheerder met een code ziet ook het concept en de activiteit voor het 
     'href',
     /^\/programma\/[0-9a-f-]{36}$/,
   );
-  await expect(
-    page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }),
-  ).toBeVisible();
 
   // Het programma met een conceptlabel, en Beheer zelf (review F1-16): geen toegankelijkheidsfouten, niets opzij.
   await wachtTotStil(page);
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
-  await page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Beheer' }).click();
+  await gaNaarBeheer(page);
   await expect(page.getByRole('heading', { level: 1, name: 'Activiteiten' })).toBeVisible();
   await wachtTotStil(page);
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);

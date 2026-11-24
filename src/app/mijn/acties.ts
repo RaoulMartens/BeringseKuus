@@ -11,6 +11,8 @@ import { normaliseerTelefoon, TELEFOON_HULP } from '@/lib/telefoon';
 export interface TelefoonStaat {
   /** Wat in het veld staat: het getypte nummer, of het opgeslagen nummer. */
   nummer: string;
+  /** Het nummer dat nu is opgeslagen (leeg als er nog geen is): dat zie je in de leesweergave, ook na een fout bij het wijzigen. */
+  bewaard: string;
   fout: string | null;
   opgeslagen: boolean;
 }
@@ -29,13 +31,18 @@ export async function logUit(): Promise<void> {
 }
 
 /** Een lid zet zijn eigen telefoonnummer. De database zet alleen het nummer van het aanroepende lid en controleert hetzelfde. */
-export async function zetTelefoon(_vorige: TelefoonStaat, formulier: FormData): Promise<TelefoonStaat> {
+export async function zetTelefoon(vorige: TelefoonStaat, formulier: FormData): Promise<TelefoonStaat> {
   if (!(await huidigeAuthGebruiker())) redirect('/inloggen');
   const invoer = formulier.get('telefoon');
   const getypt = typeof invoer === 'string' ? invoer : '';
   const nummer = normaliseerTelefoon(getypt);
   if (nummer === null)
-    return { nummer: getypt, fout: `Dit nummer klopt niet. ${TELEFOON_HULP}`, opgeslagen: false };
+    return {
+      nummer: getypt,
+      bewaard: vorige.bewaard,
+      fout: `Dit nummer klopt niet. ${TELEFOON_HULP}`,
+      opgeslagen: false,
+    };
 
   const supabase = await maakSupabase();
   const { error } = await supabase.rpc('zet_eigen_telefoon', { p_telefoon: nummer });
@@ -47,6 +54,7 @@ export async function zetTelefoon(_vorige: TelefoonStaat, formulier: FormData): 
     const ongeldig = error.code === 'BK001' && error.message === 'telefoon_ongeldig';
     return {
       nummer: getypt,
+      bewaard: vorige.bewaard,
       fout: ongeldig
         ? `Dit nummer klopt niet. ${TELEFOON_HULP}`
         : 'Het opslaan lukte niet. Probeer het nog eens; blijft het misgaan, laat het het bestuur weten.',
@@ -54,5 +62,5 @@ export async function zetTelefoon(_vorige: TelefoonStaat, formulier: FormData): 
     };
   }
   revalidatePath('/mijn');
-  return { nummer, fout: null, opgeslagen: true };
+  return { nummer, bewaard: nummer, fout: null, opgeslagen: true };
 }

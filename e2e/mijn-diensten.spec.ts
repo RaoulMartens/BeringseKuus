@@ -1,5 +1,5 @@
 // Mijn diensten met echte gegevens (UC-007, fase 3 stap E): de eigen plekken op datum, het blok Afgemeld, wat al geweest is, de lege staat,
-// de wisselaar in het programma en de twee ingangen op Start ("Al je diensten" op je eigen rij, of de kaart "Mijn diensten"). Wat een
+// en de ingang in de bovenbalk (Mijn diensten staat achter Programma; de knop op Start, de kaart en de wisselaar zijn vervallen). Wat een
 // lid mag zien beslist de database (de view mijn_diensten; pgTAP); deze tests bewijzen dat het scherm het overneemt, en dat elke pagina
 // toegankelijk is en op 375 px niet opzij schuift.
 import AxeBuilder from '@axe-core/playwright';
@@ -108,11 +108,14 @@ test('Mijn diensten: komende diensten op datum, afgemeld, en wat al geweest is',
   const e = maakActiviteit(anders, leden, { dag: `${VANDAAG} + 7` });
   zetPlek(e, 'werker', truus.id);
 
-  // Van Start: "Al je diensten" op je eigen rij in de rolbezetting.
+  // Via het menu: Mijn diensten staat in de bovenbalk, achter Programma.
   await page.goto('/');
-  await page.getByRole('link', { name: 'Al je diensten' }).first().click();
+  const menu = page.getByRole('navigation', { name: 'Hoofdmenu' });
+  await expect(menu.getByRole('link')).toHaveText(['Start', 'Programma', 'Mijn diensten']);
+  await menu.getByRole('link', { name: 'Mijn diensten' }).click();
   await expect(page).toHaveURL(/\/programma\/mijn$/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Vastelaovend');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mijn diensten');
+  await expect(menu.getByRole('link', { name: 'Mijn diensten' })).toHaveAttribute('aria-current', 'page');
 
   // Komende diensten: alleen de eigen plekken, op datum, met de rol.
   const komend = blok(page, 'Komende diensten');
@@ -133,30 +136,27 @@ test('Mijn diensten: komende diensten op datum, afgemeld, en wat al geweest is',
 
   // Geweest dit seizoen: grijs onderaan.
   await expect(page.getByRole('heading', { level: 2, name: 'Geweest dit seizoen' })).toBeVisible();
-  await expect(page.getByText(geweest)).toBeVisible();
+  // De regel in de lijst (een link); de naam staat ook in Je seizoen, dus niet zoeken op tekst alleen.
+  await expect(page.getByRole('link', { name: new RegExp(geweest) })).toBeVisible();
+
+  // Je seizoen (alleen op een groot scherm): alle vier de regels op datum, met hun staat; op een telefoon is de kaart er niet.
+  if ((page.viewportSize()?.width ?? 0) > 700) {
+    const lijn = blok(page, 'Je seizoen').getByRole('listitem');
+    await expect(lijn).toHaveCount(4);
+    await expect(lijn.nth(0)).toContainText(geweest);
+    await expect(lijn.nth(0)).toContainText('gedaan');
+    await expect(lijn.nth(1)).toContainText(vandaag);
+    await expect(lijn.nth(1)).toContainText('komt nog');
+    await expect(lijn.nth(2)).toContainText(afgemeld);
+    await expect(lijn.nth(2)).toContainText('afgemeld');
+    await expect(lijn.nth(3)).toContainText(later);
+    await expect(lijn.nth(3)).toContainText('drankhaler');
+  } else {
+    await expect(page.getByRole('heading', { name: 'Je seizoen' })).toBeHidden();
+  }
   await isNetjes(page);
 
-  // De wisselaar: de tegel "komende diensten" is gekozen; nog een keer klikken gaat terug naar alles.
-  const tegel = page.getByRole('navigation', { name: 'Wat toont het programma' });
-  await expect(tegel.getByRole('link', { name: '2 komende diensten' })).toHaveAttribute(
-    'aria-current',
-    'true',
-  );
-  await tegel.getByRole('link', { name: '2 komende diensten' }).click();
-  await expect(page).toHaveURL(/\/programma$/);
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Wat toont het programma' })
-      .getByRole('link', { name: /komende activiteiten/ }),
-  ).toHaveAttribute('aria-current', 'true');
-  await isNetjes(page);
-
-  // Terug naar Mijn diensten en een regel openen: de activiteit zelf.
-  await page
-    .getByRole('navigation', { name: 'Wat toont het programma' })
-    .getByRole('link', { name: '2 komende diensten' })
-    .click();
-  await expect(page).toHaveURL(/\/programma\/mijn$/);
+  // Een regel openen: de activiteit zelf.
   await page.getByRole('link', { name: new RegExp(later) }).click();
   await expect(page).toHaveURL(new RegExp(`/programma/${a}$`));
 
@@ -171,44 +171,22 @@ test('Mijn diensten: komende diensten op datum, afgemeld, en wat al geweest is',
   await expect(page.getByRole('heading', { name: 'Afgemeld' })).toHaveCount(0);
 });
 
-test('Mijn diensten zonder diensten: de lege staat, en geen kaart op Start', async ({ page }) => {
+test('Mijn diensten zonder diensten: de lege staat', async ({ page }) => {
   const { lidId } = await logInAlsLid(page);
   const naam = maakNaam('zonder dienst');
   maakActiviteit(naam, [lidId]);
 
-  // Op Start staat geen eigen rij en ook geen kaart "Mijn diensten": zonder komende diensten zegt die niets. Mijn diensten blijft
-  // bereikbaar via het programma.
+  // Op Start is geen eigen rij en geen ingang meer voor Mijn diensten: die staat in de bovenbalk.
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 2, name: naam })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Al je diensten' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /^Mijn diensten/ })).toHaveCount(0);
+  await expect(
+    page.getByRole('main').getByRole('link', { name: /Al je diensten|^Mijn diensten/ }),
+  ).toHaveCount(0);
   await page.goto('/programma/mijn');
 
   await expect(page.getByText('Je staat nog nergens als dienst ingedeeld.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Afgemeld' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Geweest dit seizoen' })).toHaveCount(0);
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Wat toont het programma' })
-      .getByRole('link', { name: '0 komende diensten' }),
-  ).toBeVisible();
-  await isNetjes(page);
-});
-
-test('Mijn diensten: de kaart op Start telt de komende diensten, ook als je bent afgemeld', async ({
-  page,
-}) => {
-  const { lidId } = await logInAlsLid(page);
-  const naam = maakNaam('afgemeld op start');
-  const later = maakNaam('later op start');
-  const id = maakActiviteit(naam, [lidId]);
-  psql(`insert into public.afmeldingen (activiteit_id, lid_id) values ('${id}', '${lidId}');`);
-  const b = maakActiviteit(later, [lidId], { dag: `${VANDAAG} + 20` });
-  zetPlek(b, 'werker', lidId);
-
-  await page.goto('/');
-  await expect(page.getByRole('link', { name: 'Al je diensten' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: /^Mijn diensten/ }).first()).toContainText('1 komende');
   await isNetjes(page);
 });
 

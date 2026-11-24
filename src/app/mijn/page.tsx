@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Icoon } from '@/components/icoon/icoon';
 import { Kaart } from '@/components/kaart/kaart';
 import { Knop } from '@/components/knop/knop';
-import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
+import { haalBeheerstatus, heeftBeheerknop } from '@/lib/beheer';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { jeBent } from '@/lib/jebent';
 import { huidigeAuthGebruiker } from '@/lib/sessie';
@@ -60,8 +62,30 @@ export default async function MijnAccount() {
     .maybeSingle();
   if (priveFout) throw new Error(`telefoonnummer niet te lezen: ${priveFout.code ?? priveFout.message}`);
 
+  // Op een telefoon staat de knop Beheer niet in de bovenbalk (te krap): een beheerder komt er via het rondje, op deze kaart.
+  const metBeheer = heeftBeheerknop(await haalBeheerstatus());
+
+  // Een beheerder die zijn telefoon kwijt is, leest hoe hij weer in Beheer komt: een kleine link in de kaart van het nummer, want dat komt
+  // zelden voor. Het systeem weet wie beheerder is, dus er staat geen "Beheer:" voor.
+  const kwijt = gebruiker.isBeheerder ? (
+    <Link href="/mfa/toestel-kwijt" className={stijl.kwijt}>
+      Telefoon kwijt of een nieuwe telefoon? Lees wat je dan doet
+      <Icoon naam="pijl-rechts" />
+    </Link>
+  ) : undefined;
+
   return (
     <Schermkader titel="Mijn account" terug={{ href: '/', tekst: 'Terug naar start' }}>
+      {metBeheer && (
+        <div className={stijl.alleenMobiel}>
+          <Kaart titel="Beheer" kop="h2">
+            <p className={stijl.uitleg}>Activiteiten aanmaken, mensen indelen en publiceren.</p>
+            <Knop href="/beheer" soort="secundair" vol>
+              Naar Beheer
+            </Knop>
+          </Kaart>
+        </div>
+      )}
       <Kaart>
         <dl className={stijl.gegevens}>
           <div>
@@ -79,28 +103,18 @@ export default async function MijnAccount() {
             <dd>{jeBent(groepen, gebruiker.isBeheerder, gebruiker.alleenBeheer)}</dd>
           </div>
         </dl>
-        <form action={logUit}>
-          <Knop type="submit" soort="secundair">
-            Uitloggen
-          </Knop>
-        </form>
       </Kaart>
       <Kaart titel="Je telefoonnummer" kop="h2">
         <p className={stijl.uitleg}>
-          Dit nummer zie je alleen zelf. Alleen als jij eindverantwoordelijke bent van een activiteit, zien de
-          leden die de activiteit zien je nummer erbij, zodat ze je kunnen bellen.
+          Leden zien dit alleen bij activiteiten waar jij eindverantwoordelijke bent.
         </p>
-        <Telefoonformulier nummer={prive?.telefoon ?? ''} />
+        <Telefoonformulier nummer={prive?.telefoon ?? ''} onderaan={kwijt} />
       </Kaart>
-      {gebruiker.isBeheerder && (
-        <Kaart lijst>
-          <Lijst zonderKop>
-            <Lijstrij href="/mfa/toestel-kwijt">
-              Beheer: nieuwe telefoon of telefoon kwijt? Lees wat je dan doet
-            </Lijstrij>
-          </Lijst>
-        </Kaart>
-      )}
+      <form action={logUit}>
+        <Knop type="submit" soort="secundair">
+          Uitloggen
+        </Knop>
+      </form>
     </Schermkader>
   );
 }

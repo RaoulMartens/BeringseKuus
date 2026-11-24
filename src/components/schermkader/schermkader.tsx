@@ -2,7 +2,8 @@
 // inhoud. De bovenbalk is de banner, de rest staat in <main> (landmarks, bouwgids 14.3).
 //
 // Twee soorten scherm:
-//  - voor wie is ingelogd: het menu (Start, Programma, en Beheer voor wie beheerder is of kan worden) en de naam;
+//  - voor wie is ingelogd: het menu (Start, Programma, Mijn diensten), voor wie beheerder is of kan worden de knop Beheer naast de
+//    naam (alleen op een groot scherm; op een telefoon staat Beheer op Mijn account), en de naam;
 //  - voor een gast (`gast`): alleen de naam van de vereniging, zonder menu. Dat zijn het inloggen, de pagina's achter de link
 //    in de mail en de foutpagina's. Een gastscherm vraagt niets aan de database: ook als die niet antwoordt, werkt het
 //    (de storingspagina mag niet van Supabase afhangen).
@@ -14,12 +15,12 @@
 import type { ReactNode } from 'react';
 
 import type { MenuOnderdeel } from '@/components/bovenbalk/bovenbalk';
-import { haalBeheerstatus } from '@/lib/beheer';
+import { haalBeheerstatus, heeftBeheerknop } from '@/lib/beheer';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 
 import { Kader } from './kader';
 
-export type Onderdeel = 'start' | 'programma' | 'beheer';
+export type Onderdeel = 'start' | 'programma' | 'mijndiensten' | 'beheer';
 
 interface Eigenschappen {
   /** In welk onderdeel van het menu je bent; leeg als het scherm in geen van de onderdelen valt (Mijn account). */
@@ -41,15 +42,16 @@ interface Eigenschappen {
 
 async function menuEnGebruiker(actief: Onderdeel | undefined) {
   const [gebruiker, beheerstatus] = await Promise.all([huidigeGebruiker(), haalBeheerstatus()]);
-  const metBeheer = beheerstatus !== null && beheerstatus !== 'geen_beheerder' && beheerstatus !== 'geen_lid';
+  const metBeheer = heeftBeheerknop(beheerstatus);
+  // Mijn diensten staat achter Programma: het is jouw deel van het programma (ontwerp 24-11-2026). Beheer is geen onderdeel meer
+  // maar een knop naast je naam, zodat de balk voor een beheerder niet langer is dan voor een lid.
   const onderdelen: MenuOnderdeel[] = [
     { href: '/', label: 'Start', stip: 1, actief: actief === 'start' },
     { href: '/programma', label: 'Programma', stip: 2, actief: actief === 'programma' },
-    ...(metBeheer
-      ? [{ href: '/beheer', label: 'Beheer', stip: 3 as const, actief: actief === 'beheer' }]
-      : []),
+    { href: '/programma/mijn', label: 'Mijn diensten', stip: 3, actief: actief === 'mijndiensten' },
   ];
-  return { onderdelen, gebruiker };
+  const beheer = metBeheer ? { href: '/beheer', actief: actief === 'beheer' } : undefined;
+  return { onderdelen, beheer, gebruiker };
 }
 
 export async function Schermkader({
@@ -62,13 +64,14 @@ export async function Schermkader({
   zijkolom,
   children,
 }: Eigenschappen) {
-  const { onderdelen, gebruiker } = gast
-    ? { onderdelen: [], gebruiker: null }
+  const { onderdelen, beheer, gebruiker } = gast
+    ? { onderdelen: [], beheer: undefined, gebruiker: null }
     : await menuEnGebruiker(actief);
 
   return (
     <Kader
       onderdelen={onderdelen}
+      beheer={beheer}
       gebruiker={gebruiker ? { voornaam: gebruiker.voornaam, href: '/mijn' } : undefined}
       titel={titel}
       groot={groot}

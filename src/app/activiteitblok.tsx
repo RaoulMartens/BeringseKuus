@@ -31,18 +31,9 @@ interface Eigenschappen {
   dag?: string;
   /** Toon de naam als kop in het kaartje; niet als de naam al de <h1> van de pagina is. */
   metNaam: boolean;
-  /** Waar "Al je diensten" op je eigen rij heen gaat (Mijn diensten); leeg op schermen zonder die ingang. */
-  alleDienstenHref?: string;
 }
 
-export function Activiteitblok({
-  activiteit,
-  indeling,
-  eigenLidId,
-  dag,
-  metNaam,
-  alleDienstenHref,
-}: Eigenschappen) {
+export function Activiteitblok({ activiteit, indeling, eigenLidId, dag, metNaam }: Eigenschappen) {
   const groepen = groepeerRollen(indeling.plekken, eigenLidId);
   const notitie = activiteit.notitie?.trim();
   // De bak (BA-8): onder de rolbezetting, alleen lezen, alleen kopjes waar iemand zit.
@@ -74,7 +65,6 @@ export function Activiteitblok({
         groepen={groepen}
         telefoon={indeling.telefoon}
         onderaan={isNogNietIngedeeld(groepen) ? 'De rest van de indeling volgt nog.' : undefined}
-        eigenLink={alleDienstenHref ? { href: alleDienstenHref, tekst: 'Al je diensten' } : undefined}
       />
       {bak.length > 0 && (
         <Rolbezetting activiteit={activiteit.naam} groepen={bak} telefoon={null} titel="Bak" zonderIcoon />

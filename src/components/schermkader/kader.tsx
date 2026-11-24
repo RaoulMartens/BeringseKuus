@@ -14,6 +14,8 @@ import stijl from './schermkader.module.css';
 
 interface Eigenschappen {
   onderdelen?: MenuOnderdeel[];
+  /** De knop Beheer naast de naam, voor wie beheerder is of kan worden. */
+  beheer?: { href: string; actief: boolean };
   /** De ingelogde persoon in de bovenbalk. */
   gebruiker?: { voornaam: string; href: string };
   titel: string;
@@ -26,6 +28,7 @@ interface Eigenschappen {
 
 export function Kader({
   onderdelen = [],
+  beheer,
   gebruiker,
   titel,
   groot,
@@ -36,7 +39,7 @@ export function Kader({
 }: Eigenschappen) {
   return (
     <>
-      <Bovenbalk merk={VERENIGING.naam} onderdelen={onderdelen} gebruiker={gebruiker} />
+      <Bovenbalk merk={VERENIGING.naam} onderdelen={onderdelen} beheer={beheer} gebruiker={gebruiker} />
       <main>
         {terug && (
           <nav className={stijl.terug} aria-label="Terug">

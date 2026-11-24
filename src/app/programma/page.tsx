@@ -16,16 +16,13 @@ import {
   type Maand,
   type ProgrammaActiviteit,
 } from '@/lib/programma';
-import { splitsDiensten } from '@/lib/mijndiensten';
 import { huidigeAuthGebruiker } from '@/lib/sessie';
 import { seizoenTitel } from '@/lib/vereniging';
 import { maakSupabase } from '@/lib/supabase/server';
 
-import { leesDiensten } from './mijn/gegevens';
 import stijl from './programma.module.css';
 import { Reeksrij } from './reeks';
 import { Rijstatus } from './rijstatus';
-import { Programmawisselaar } from './wisselaar';
 
 export const metadata: Metadata = { title: 'Programma – Ledenplatform' };
 
@@ -137,8 +134,6 @@ export default async function Programma() {
   const nu = new Date();
   const vandaag = vandaagInNederland(nu);
   const programma = maakProgramma(activiteiten, nu);
-  // De tegel "Mijn diensten" van de wisselaar: hoeveel diensten er komen (UC-007).
-  const aantalDiensten = splitsDiensten(await leesDiensten(supabase, seizoen), nu).komend.length;
   const titel = seizoenTitel(seizoen);
 
   return (
@@ -147,11 +142,6 @@ export default async function Programma() {
         <p>Er zijn nog geen activiteiten.</p>
       ) : (
         <>
-          <Programmawisselaar
-            aantalActiviteiten={programma.aantalKomende}
-            aantalDiensten={aantalDiensten}
-            actief="alles"
-          />
           {programma.komende.map((maand) => (
             <Maandkaart
               key={maand.sleutel}

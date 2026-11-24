@@ -23,6 +23,14 @@ export async function haalBeheerstatus(): Promise<Beheerstatus | null> {
   return status;
 }
 
+/**
+ * Ziet deze status de knop Beheer? Wie beheerder is of het kan worden (nog een app instellen of een bevestiging afwachten) wel;
+ * wie geen beheerder is niet. Of iemand er daadwerkelijk in mag, beslist de database (`eisBeheer`).
+ */
+export function heeftBeheerknop(status: Beheerstatus | null): boolean {
+  return status !== null && status !== 'geen_beheerder' && status !== 'geen_lid';
+}
+
 /** Laat alleen een beheerder door; iedereen anders gaat naar het scherm dat bij zijn situatie hoort. */
 export async function eisBeheer(): Promise<void> {
   const status = await haalBeheerstatus();

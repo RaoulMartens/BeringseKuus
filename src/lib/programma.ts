@@ -58,6 +58,7 @@ const WEEKDAG = new Intl.DateTimeFormat('nl-NL', { weekday: 'short', timeZone: '
 const WEEKDAG_LANG = new Intl.DateTimeFormat('nl-NL', { weekday: 'long', timeZone: 'UTC' });
 const DAG = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', timeZone: 'UTC' });
 const MAAND_LANG = new Intl.DateTimeFormat('nl-NL', { month: 'long', timeZone: 'UTC' });
+const MAAND_KORT = new Intl.DateTimeFormat('nl-NL', { month: 'short', timeZone: 'UTC' });
 const MAAND_EN_JAAR = new Intl.DateTimeFormat('nl-NL', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 /** De delen van een datum voor het datumblok en de regel: "vr", "22", "vr 22 januari". */
@@ -66,6 +67,12 @@ export function dagTekst(datum: string): { weekdag: string; dag: string; lang: s
   const weekdag = WEEKDAG.format(d).replace('.', '');
   const dag = DAG.format(d);
   return { weekdag, dag, lang: `${weekdag} ${dag} ${MAAND_LANG.format(d)}` };
+}
+
+/** Een korte datum zonder weekdag: "14 nov". */
+export function korteDatum(datum: string): string {
+  const d = alsDatum(datum);
+  return `${DAG.format(d)} ${MAAND_KORT.format(d).replace('.', '')}`;
 }
 
 /** De dag voluit, voor een kop: "zaterdag 6 februari". */

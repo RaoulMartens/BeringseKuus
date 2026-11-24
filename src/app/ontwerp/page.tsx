@@ -182,8 +182,9 @@ export default async function Ontwerp({
             onderdelen={[
               { href: '/ontwerp', label: 'Start', stip: 1, actief: true },
               { href: '/ontwerp', label: 'Programma', stip: 2 },
-              { href: '/ontwerp', label: 'Beheer', stip: 3 },
+              { href: '/ontwerp', label: 'Mijn diensten', stip: 3 },
             ]}
+            beheer={{ href: '/ontwerp', actief: false }}
             gebruiker={{ voornaam: 'Sam', href: '/ontwerp' }}
           />
           <Kopvlak titel="Programma">

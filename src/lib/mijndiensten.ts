@@ -59,6 +59,49 @@ export function splitsDiensten(rijen: DienstRij[], nu: Date): MijnDiensten {
   };
 }
 
+/** Waar een dienst van het seizoen staat: gedaan, komt nog, of afgemeld. */
+export type SeizoenStaat = 'gedaan' | 'komt' | 'afgemeld';
+
+/** Eén regel van "Je seizoen": een dienst of een afmelding, op datum. */
+export interface SeizoenStop {
+  activiteitId: string;
+  naam: string;
+  datum: string;
+  /** De rol, zoals de database hem kent; leeg bij een afmelding (je had geen dienst meer). */
+  rol: string | null;
+  staat: SeizoenStaat;
+}
+
+/**
+ * Je seizoen (ontwerp 24-11-2026): de diensten van het hele seizoen op één lijn, op datum: wat al gedaan is, wat nog komt en waarvoor je
+ * bent afgemeld. Een activiteit staat er één keer: waarvoor je bent afgemeld, is geen dienst meer (afmelden met een dienst kan niet
+ * zonder vervanger), dus komt hij uit de afmeldingen en niet uit de diensten.
+ */
+export function maakSeizoenslijn(diensten: MijnDiensten, afgemeld: AfgemeldRij[]): SeizoenStop[] {
+  const dienst = (rij: DienstRij, staat: SeizoenStaat): SeizoenStop => ({
+    activiteitId: rij.activiteitId,
+    naam: rij.naam,
+    datum: rij.datum,
+    rol: rij.rol,
+    staat,
+  });
+  const afmelding = (rij: AfgemeldRij): SeizoenStop => ({
+    activiteitId: rij.activiteitId,
+    naam: rij.naam,
+    datum: rij.datum,
+    rol: null,
+    staat: 'afgemeld',
+  });
+  const stops = [
+    ...diensten.geweest.map((rij) => dienst(rij, 'gedaan')),
+    ...diensten.komend.map((rij) => dienst(rij, 'komt')),
+    ...afgemeld.map(afmelding),
+  ];
+  return stops.sort(
+    (a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0) || a.naam.localeCompare(b.naam, 'nl'),
+  );
+}
+
 /** De afmeldingen op volgorde van datum. */
 export function sorteerAfgemeld(rijen: AfgemeldRij[]): AfgemeldRij[] {
   return [...rijen].sort(vergelijk);
@@ -68,9 +111,4 @@ export function sorteerAfgemeld(rijen: AfgemeldRij[]): AfgemeldRij[] {
 export function rolTekst(rollen: string[], label: (rol: string) => string | null): string {
   const namen = rollen.map((rol) => (label(rol) ?? rol).toLowerCase());
   return namen.join(' en ');
-}
-
-/** De tekst onder een teller of een kaart: "3 komende" of "nog geen diensten". */
-export function aantalKomende(aantal: number): string {
-  return aantal === 0 ? 'nog geen diensten' : `${aantal} komende`;
 }

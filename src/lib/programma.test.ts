@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   dagTekst,
+  korteDatum,
   groepeerReeksen,
   isActiviteitStatus,
   isGeweest,
@@ -50,6 +51,14 @@ describe('vandaagInNederland', () => {
   it('kent de zomertijd', () => {
     // 22:30 UTC op 15 juli is 00:30 op 16 juli (zomer, UTC+2)
     expect(vandaagInNederland(new Date('2027-07-15T22:30:00Z'))).toBe('2027-07-16');
+  });
+});
+
+describe('korteDatum', () => {
+  it('schrijft dag en maand kort, zonder punt', () => {
+    expect(korteDatum('2026-11-14')).toBe('14 nov');
+    expect(korteDatum('2027-01-22')).toBe('22 jan');
+    expect(korteDatum('2027-03-02')).toBe('2 mrt');
   });
 });
 
