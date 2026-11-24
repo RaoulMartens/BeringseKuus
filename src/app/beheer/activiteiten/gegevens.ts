@@ -3,6 +3,7 @@
 
 import { nogNodigOmTePubliceren, tijdstipVoorVeld, tijdVoorVeld } from '@/lib/activiteitformulier';
 import { isBakLabel, type BakPlek } from '@/lib/bak';
+import { staatInKeuzelijst } from '@/lib/externehelper';
 import type { ActiviteitStatus } from '@/lib/programma';
 import { isActiviteitStatus } from '@/lib/programma';
 import { zelfNietZichtbaarTekst } from '@/lib/publiceren';
@@ -232,9 +233,16 @@ export interface Kandidaat {
   telefoon: string | null;
 }
 
-/** De actieve leden en externe helpers, op voornaam, zonder beheeraccounts. Alleen een beheerder met een code leest dit (rechten van de database). */
-export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
-  const [leden, prive, seizoen] = await Promise.all([
+/**
+ * De actieve leden en de externe helpers die bij deze activiteit horen, op voornaam, zonder beheeraccounts. Alleen een
+ * beheerder met een code leest dit (rechten van de database).
+ *
+ * Een externe helper is eenmalig (de opdrachtgever, 23-11-2026): hij hoort bij de plek waar hij is ingevuld en staat daarna niet meer in
+ * de keuzelijst van andere activiteiten. Zonder `activiteitId` (nieuwe activiteit, reeks) staat er dus geen externe helper in.
+ * Wie van de plek wordt gehaald, valt na het opslaan ook uit de lijst van deze activiteit.
+ */
+export async function leesKandidaten(supabase: Supabase, activiteitId?: string): Promise<Kandidaat[]> {
+  const [leden, prive, seizoen, hier] = await Promise.all([
     supabase
       .from('leden')
       .select('id, voornaam, achternaam, type')
@@ -244,25 +252,32 @@ export async function leesKandidaten(supabase: Supabase): Promise<Kandidaat[]> {
       .order('achternaam'),
     supabase.from('leden_prive').select('lid_id, mag_bob, mag_eindverantw, telefoon'),
     leesHuidigSeizoen(supabase),
+    activiteitId === undefined
+      ? Promise.resolve({ data: [], error: null })
+      : supabase.from('rol_slots').select('bezetter_id').eq('activiteit_id', activiteitId),
   ]);
   const telling = telDiensten(await leesDiensten(supabase, seizoen));
   if (leden.error) throw new Error(`leden niet te lezen: ${leden.error.code ?? leden.error.message}`);
   if (prive.error) throw new Error(`ledengegevens niet te lezen: ${prive.error.code ?? prive.error.message}`);
+  if (hier.error) throw new Error(`plekken niet te lezen: ${hier.error.code ?? hier.error.message}`);
   const gegevens = new Map(prive.data.map((regel) => [regel.lid_id, regel]));
-  return leden.data.map((lid) => {
-    const regel = gegevens.get(lid.id);
-    return {
-      id: lid.id,
-      naam: `${lid.voornaam} ${lid.achternaam}`,
-      voornaam: lid.voornaam,
-      achternaam: lid.achternaam,
-      diensten: lid.type === 'extern' ? null : (telling.get(lid.id) ?? 0),
-      extern: lid.type === 'extern',
-      magBob: regel?.mag_bob ?? false,
-      magEindverantwoordelijke: regel?.mag_eindverantw ?? false,
-      telefoon: regel?.telefoon?.trim() || null,
-    };
-  });
+  const opDezeActiviteit = new Set(hier.data.map((slot) => slot.bezetter_id));
+  return leden.data
+    .filter((lid) => staatInKeuzelijst(lid, opDezeActiviteit))
+    .map((lid) => {
+      const regel = gegevens.get(lid.id);
+      return {
+        id: lid.id,
+        naam: `${lid.voornaam} ${lid.achternaam}`,
+        voornaam: lid.voornaam,
+        achternaam: lid.achternaam,
+        diensten: lid.type === 'extern' ? null : (telling.get(lid.id) ?? 0),
+        extern: lid.type === 'extern',
+        magBob: regel?.mag_bob ?? false,
+        magEindverantwoordelijke: regel?.mag_eindverantw ?? false,
+        telefoon: regel?.telefoon?.trim() || null,
+      };
+    });
 }
 
 /**
