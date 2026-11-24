@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { aantalKomende, rolTekst, sorteerAfgemeld, splitsDiensten, type DienstRij } from './mijndiensten';
+import { rolTekst, sorteerAfgemeld, splitsDiensten, type DienstRij } from './mijndiensten';
 
 const NU = new Date('2027-01-21T12:00:00Z');
 
@@ -86,17 +86,12 @@ describe('sorteerAfgemeld', () => {
   });
 });
 
-describe('rolTekst en aantalKomende', () => {
+describe('rolTekst', () => {
   const label = (rol: string): string | null => ({ werker: 'Werker', drankhaler: 'Drankhaler' })[rol] ?? null;
 
   it('schrijft de rol met een kleine letter, en een onbekende rol zoals hij is', () => {
     expect(rolTekst(['werker'], label)).toBe('werker');
     expect(rolTekst(['werker', 'drankhaler'], label)).toBe('werker en drankhaler');
     expect(rolTekst(['iets'], label)).toBe('iets');
-  });
-
-  it('zegt hoeveel diensten er komen', () => {
-    expect(aantalKomende(3)).toBe('3 komende');
-    expect(aantalKomende(0)).toBe('nog geen diensten');
   });
 });

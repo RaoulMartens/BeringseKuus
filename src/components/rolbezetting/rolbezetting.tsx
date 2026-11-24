@@ -2,7 +2,6 @@
 // eronder. Lege plekken zijn voor een lid onzichtbaar (R13), dus er staan alleen namen. Alleen de eindverantwoordelijke
 // heeft een telefoonnummer (R10). Jezelf herken je aan "(jij)" en een vetter lettertype, niet alleen aan kleur.
 
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { Icoon, type IcoonNaam } from '@/components/icoon/icoon';
@@ -35,8 +34,6 @@ interface Eigenschappen {
   activiteit: string;
   /** Zegt dat de indeling nog niet is gemaakt (UC-001 AF-7). */
   onderaan?: ReactNode;
-  /** Een link op je eigen rij, bijvoorbeeld "Al je diensten" naar Mijn diensten (UC-007). Alleen als je zelf in de lijst staat. */
-  eigenLink?: { href: string; tekst: string };
   /** De kop van de kaart; "Bak" voor de bak (BA-8), die dezelfde opmaak heeft maar geen diensten bevat. */
   titel?: string;
   /** Zonder icoon bij de kopjes: de kopjes van de bak (prins en adjudant, vorst, Raad van Elf) zijn geen diensten. */
@@ -48,7 +45,6 @@ export function Rolbezetting({
   telefoon,
   activiteit,
   onderaan,
-  eigenLink,
   titel = 'Rolbezetting',
   zonderIcoon = false,
 }: Eigenschappen) {
@@ -68,11 +64,6 @@ export function Rolbezetting({
                 {groep.namen.map((naam) => (
                   <li key={naam.lidId} className={stijl.naam}>
                     {naam.jij ? <strong>{naam.naam} (jij)</strong> : <span>{naam.naam}</span>}
-                    {naam.jij && eigenLink && (
-                      <Link href={eigenLink.href} className={stijl.eigenLink}>
-                        {eigenLink.tekst}
-                      </Link>
-                    )}
                     {groep.rol === 'eindverantwoordelijke' && telefoon && (
                       <span className={stijl.telefoon}>
                         <Icoon naam="telefoon" className={stijl.telefoonIcoon} />

@@ -11,11 +11,8 @@ import { rolLabel } from '@/lib/ledenactiviteit';
 import { rolTekst, sorteerAfgemeld, splitsDiensten } from '@/lib/mijndiensten';
 import { dagTekst, regelOnderNaam, vandaagInNederland } from '@/lib/programma';
 import { huidigeAuthGebruiker } from '@/lib/sessie';
-import { seizoenTitel } from '@/lib/vereniging';
 import { maakSupabase } from '@/lib/supabase/server';
 
-import { leesAantalKomende } from '../aantallen';
-import { Programmawisselaar } from '../wisselaar';
 import stijl from '../programma.module.css';
 
 import { leesAfmeldingen, leesDiensten } from './gegevens';
@@ -39,23 +36,16 @@ export default async function MijnDiensten() {
 
   const nu = new Date();
   const vandaag = vandaagInNederland(nu);
-  const [rijen, afgemeld, komendeActiviteiten] = await Promise.all([
+  const [rijen, afgemeld] = await Promise.all([
     leesDiensten(supabase, seizoen),
     leesAfmeldingen(supabase, gebruiker.lidId, nu, seizoen),
-    leesAantalKomende(supabase, seizoen, nu),
   ]);
   const diensten = splitsDiensten(rijen, nu);
   const afmeldingen = sorteerAfgemeld(afgemeld);
   const regel = (a: { starttijd: string | null; locatie: string | null }) => regelOnderNaam(a);
 
   return (
-    <Schermkader actief="programma" titel={seizoenTitel(seizoen)}>
-      <Programmawisselaar
-        aantalActiviteiten={komendeActiviteiten}
-        aantalDiensten={diensten.komend.length}
-        actief="mijn"
-      />
-
+    <Schermkader actief="mijndiensten" titel="Mijn diensten">
       {diensten.komend.length === 0 ? (
         <Kaart titel="Komende diensten">
           <p className={stijl.leeg}>Je staat nog nergens als dienst ingedeeld.</p>

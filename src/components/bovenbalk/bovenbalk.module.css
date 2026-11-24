@@ -33,6 +33,7 @@
 .onderdeel {
   position: relative;
   display: block;
+  white-space: nowrap; /* "Mijn diensten" breekt nooit over twee regels */
   padding: 10px 12px 10px 28px; /* links ruimte voor de stip (8 px), 12 px van de rand */
   font: 600 0.875rem/1.4286 var(--font-tekst);
   color: var(--thema-op-balk-zacht, var(--neutraal-tekst-zacht));
@@ -84,6 +85,42 @@
   color: var(--thema-op-balk, var(--neutraal-tekst));
 }
 
+/* Beheer: een kleine pil naast je naam, geen onderdeel van het menu (24-11-2026); gekozen = gevuld, zoals een gekozen filterlabel */
+.beheer {
+  display: inline-block;
+  white-space: nowrap;
+  margin-right: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-full);
+  font: 600 0.8125rem/1.4 var(--font-tekst);
+  color: var(--thema-op-balk, var(--neutraal-tekst));
+  text-decoration: none;
+}
+
+.beheer:hover:not(.beheerActief) {
+  background: var(--neutraal-hover);
+}
+
+.beheerActief {
+  background: var(--thema-op-balk, var(--neutraal-tekst));
+  border-color: transparent;
+  color: var(--neutraal-kaart);
+}
+
+.beheerActief:hover {
+  background: color-mix(in srgb, var(--thema-op-balk, var(--neutraal-tekst)) 80%, white);
+}
+
+/* naam en rondje zijn samen één link naar Mijn account */
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+}
+
 .rondje {
   width: 32px;
   height: 32px;
@@ -113,17 +150,59 @@
     gap: 4px;
   }
 
-  /* smaller onderdelen, zodat Start, Programma, Beheer en het rondje op 375 px naast elkaar passen */
+  /* smaller onderdelen, zodat Start, Programma, Mijn diensten en het rondje op 375 px naast elkaar passen; de vrije ruimte staat
+     verdeeld tussen de onderdelen en niet allemaal rechts (24-11-2026: "vrij krap") */
+  .navigatie {
+    flex: 1 1 auto;
+  }
+
   .menu {
     gap: 0;
+    justify-content: space-between;
+  }
+
+  /* op een telefoon staat Beheer niet in de balk (te krap): een beheerder komt erbij via het rondje, op Mijn account */
+  .beheer {
+    display: none;
   }
 
   .onderdeel {
-    padding: 10px 6px 10px 22px;
+    padding: 10px 8px 10px 24px;
   }
 
   .onderdeel::after {
     left: 8px;
+  }
+}
+
+/* smalle telefoons (tot 430 px): "Mijn diensten" is het langste onderdeel; minder opvulling geeft op 375 px ruim 70 px lucht tussen
+   Mijn diensten en het rondje (docs/visueel/stijl.css sectie 15b) */
+@media (max-width: 430px) {
+  .balk {
+    padding: 0 8px;
+  }
+
+  .onderdeel {
+    padding: 10px 6px 10px 18px;
+  }
+
+  .onderdeel::after {
+    left: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .balk {
+    padding: 0 4px;
+  }
+
+  .onderdeel {
+    padding: 10px 4px 10px 15px;
+    font-size: 0.8125rem;
+  }
+
+  .onderdeel::after {
+    left: 4px;
   }
 }
 

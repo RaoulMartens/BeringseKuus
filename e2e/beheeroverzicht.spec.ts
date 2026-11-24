@@ -73,8 +73,13 @@ test('het overzicht zegt per regel wat er te doen is, en verdeelt in aandacht en
   await page.goto('/beheer');
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Activiteiten');
-  const menu = page.getByRole('navigation', { name: 'Hoofdmenu' });
-  await expect(menu.getByRole('link', { name: 'Beheer' })).toHaveAttribute('aria-current', 'page');
+  // Op een groot scherm is de knop Beheer in de bovenbalk de gekozen; op een telefoon staat hij niet in de balk.
+  if ((page.viewportSize()?.width ?? 0) > 700) {
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Beheer' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  }
 
   const aandacht = kaart(page, 'Vraagt aandacht');
   const opOrde = kaart(page, 'Op orde');

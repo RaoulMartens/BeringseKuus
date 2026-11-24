@@ -69,8 +69,3 @@ export function rolTekst(rollen: string[], label: (rol: string) => string | null
   const namen = rollen.map((rol) => (label(rol) ?? rol).toLowerCase());
   return namen.join(' en ');
 }
-
-/** De tekst onder een teller of een kaart: "3 komende" of "nog geen diensten". */
-export function aantalKomende(aantal: number): string {
-  return aantal === 0 ? 'nog geen diensten' : `${aantal} komende`;
-}

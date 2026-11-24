@@ -38,3 +38,10 @@
   gap: 16px;
   max-width: 28rem;
 }
+
+/* Alleen op een telefoon: de kaart Beheer, want daar staat de knop niet in de bovenbalk. */
+@media (min-width: 701px) {
+  .alleenMobiel {
+    display: none;
+  }
+}

@@ -50,7 +50,15 @@ test('een uitgeschakelde knop is uitgeschakeld voor het toetsenbord en de scherm
 test('de bovenbalk past: elk onderdeel en het rondje zijn volledig zichtbaar', async ({ page }) => {
   await page.goto('/ontwerp');
   const venster = page.viewportSize()?.width ?? 0;
-  for (const naam of ['Start', 'Programma', 'Beheer', 'Mijn account (Sam)']) {
+  // Beheer is een knop naast je naam en staat op een telefoon niet in de balk (smaller dan 700 px).
+  const namen = [
+    'Start',
+    'Programma',
+    'Mijn diensten',
+    'Mijn account (Sam)',
+    ...(venster > 700 ? ['Beheer'] : []),
+  ];
+  for (const naam of namen) {
     const vak = await page.getByRole('link', { name: naam }).first().boundingBox();
     expect(vak, naam).not.toBeNull();
     expect((vak?.x ?? 0) + (vak?.width ?? 0), `${naam} past binnen de breedte`).toBeLessThanOrEqual(venster);
