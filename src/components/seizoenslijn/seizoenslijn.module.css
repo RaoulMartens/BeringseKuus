@@ -1,0 +1,110 @@
+/* Je seizoen: een lijn met bolletjes (docs/visueel/stijl.css, sectie 16, `.wf-seizoen`). Het bolletje heeft het teken van de staat erin. */
+.alleenGroot {
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .alleenGroot {
+    display: none;
+  }
+}
+
+.lijn {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 0 0 14px 38px;
+}
+
+.stop:last-child {
+  padding-bottom: 0;
+}
+
+/* de stippellijn tussen twee bolletjes */
+.stop:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 26px;
+  bottom: -4px;
+  left: 10px;
+  border-left: 2px dotted var(--neutraal-lijn-sterk);
+}
+
+.bol {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-full);
+  background: var(--neutraal-kaart);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bol svg {
+  width: 12px;
+  height: 12px;
+}
+
+.gedaan {
+  background: var(--status-succes);
+  border-color: var(--status-succes);
+  color: #ffffff;
+}
+
+.afgemeld {
+  background: var(--neutraal-lijn);
+  border-color: var(--neutraal-lijn);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.datum {
+  font: 700 1rem/1.5 var(--font-tekst);
+}
+
+.tekst {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.naam {
+  font: 700 1rem/1.5 var(--font-tekst);
+  overflow-wrap: anywhere;
+}
+
+.rol {
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.rolIcoon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+
+/* Alleen voor een schermlezer: de staat van de dienst, want het bolletje is kleur en teken. */
+.verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

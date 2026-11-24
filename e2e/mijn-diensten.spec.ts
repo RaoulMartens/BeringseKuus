@@ -137,6 +137,22 @@ test('Mijn diensten: komende diensten op datum, afgemeld, en wat al geweest is',
   // Geweest dit seizoen: grijs onderaan.
   await expect(page.getByRole('heading', { level: 2, name: 'Geweest dit seizoen' })).toBeVisible();
   await expect(page.getByText(geweest)).toBeVisible();
+
+  // Je seizoen (alleen op een groot scherm): alle vier de regels op datum, met hun staat; op een telefoon is de kaart er niet.
+  if ((page.viewportSize()?.width ?? 0) > 700) {
+    const lijn = blok(page, 'Je seizoen').getByRole('listitem');
+    await expect(lijn).toHaveCount(4);
+    await expect(lijn.nth(0)).toContainText(geweest);
+    await expect(lijn.nth(0)).toContainText('gedaan');
+    await expect(lijn.nth(1)).toContainText(vandaag);
+    await expect(lijn.nth(1)).toContainText('komt nog');
+    await expect(lijn.nth(2)).toContainText(afgemeld);
+    await expect(lijn.nth(2)).toContainText('afgemeld');
+    await expect(lijn.nth(3)).toContainText(later);
+    await expect(lijn.nth(3)).toContainText('drankhaler');
+  } else {
+    await expect(page.getByRole('heading', { name: 'Je seizoen' })).toBeHidden();
+  }
   await isNetjes(page);
 
   // Een regel openen: de activiteit zelf.

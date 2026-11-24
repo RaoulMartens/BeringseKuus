@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { rolTekst, sorteerAfgemeld, splitsDiensten, type DienstRij } from './mijndiensten';
+import { maakSeizoenslijn, rolTekst, sorteerAfgemeld, splitsDiensten, type DienstRij } from './mijndiensten';
 
 const NU = new Date('2027-01-21T12:00:00Z');
 
@@ -93,5 +93,61 @@ describe('rolTekst', () => {
     expect(rolTekst(['werker'], label)).toBe('werker');
     expect(rolTekst(['werker', 'drankhaler'], label)).toBe('werker en drankhaler');
     expect(rolTekst(['iets'], label)).toBe('iets');
+  });
+});
+
+describe('maakSeizoenslijn', () => {
+  const dienst = (activiteitId: string, naam: string, datum: string, rol: string): DienstRij => ({
+    activiteitId,
+    naam,
+    datum,
+    starttijd: null,
+    locatie: null,
+    rol,
+    eindigtOm: `${datum}T22:00:00Z`,
+  });
+  const afmelding = (activiteitId: string, naam: string, datum: string) => ({
+    activiteitId,
+    naam,
+    datum,
+    starttijd: null,
+    locatie: null,
+  });
+
+  it('zet gedaan, komend en afgemeld op één lijn, op datum', () => {
+    const lijn = maakSeizoenslijn(
+      {
+        komend: [
+          dienst('b', 'Bonte Avond', '2027-01-22', 'drankhaler'),
+          dienst('d', 'Oud papier', '2027-02-05', 'werker'),
+        ],
+        geweest: [dienst('a', 'Prins Onthulling', '2026-11-14', 'werker')],
+      },
+      [afmelding('c', 'Bonte Avond', '2027-01-23')],
+    );
+    expect(lijn.map((s) => [s.datum, s.staat, s.rol])).toEqual([
+      ['2026-11-14', 'gedaan', 'werker'],
+      ['2027-01-22', 'komt', 'drankhaler'],
+      ['2027-01-23', 'afgemeld', null],
+      ['2027-02-05', 'komt', 'werker'],
+    ]);
+  });
+
+  it('zet twee activiteiten op één dag op naam', () => {
+    const lijn = maakSeizoenslijn(
+      {
+        komend: [
+          dienst('b', 'Zaterdag', '2027-01-22', 'werker'),
+          dienst('a', 'Avond', '2027-01-22', 'werker'),
+        ],
+        geweest: [],
+      },
+      [],
+    );
+    expect(lijn.map((s) => s.naam)).toEqual(['Avond', 'Zaterdag']);
+  });
+
+  it('is leeg zonder diensten en afmeldingen', () => {
+    expect(maakSeizoenslijn({ komend: [], geweest: [] }, [])).toEqual([]);
   });
 });
