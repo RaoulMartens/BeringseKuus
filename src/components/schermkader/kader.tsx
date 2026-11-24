@@ -41,19 +41,17 @@ export function Kader({
     <>
       <Bovenbalk merk={VERENIGING.naam} onderdelen={onderdelen} beheer={beheer} gebruiker={gebruiker} />
       <main>
+        {terug && (
+          <nav className={stijl.terug} aria-label="Terug">
+            <Link href={terug.href}>
+              <Icoon naam="pijl-links" />
+              {terug.tekst}
+            </Link>
+          </nav>
+        )}
         <Kopvlak titel={titel} datum={datum} groot={groot} />
         <div className={stijl.inhoud}>
-          <div className={stijl.hoofd}>
-            {terug && (
-              <p className={stijl.terug}>
-                <Link href={terug.href}>
-                  <Icoon naam="pijl-links" />
-                  {terug.tekst}
-                </Link>
-              </p>
-            )}
-            {children}
-          </div>
+          <div className={stijl.hoofd}>{children}</div>
           {zijkolom && <div className={stijl.zij}>{zijkolom}</div>}
         </div>
       </main>
