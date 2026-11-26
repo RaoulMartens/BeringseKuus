@@ -1,0 +1,55 @@
+/* De kaarten naast de lijst met namen (docs/visueel: ruilen-kies-vervanger): de dienst die je overdraagt, met het icoon van de rol in een
+   grijs vlak, en onder "Geen vervanger gevonden?" een uitleg met het nummer van de eindverantwoordelijke. */
+.bestand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icoontegel {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neutraal-vlak);
+  border-radius: var(--radius-control);
+  color: var(--neutraal-tekst);
+  font-size: 1.5rem;
+}
+
+.bestandTekst {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bestandTekst strong {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.sub {
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.detail {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* het nummer: een telefoonnummer breekt niet af */
+.contact {
+  margin-top: 16px;
+}
+
+.contact strong {
+  white-space: nowrap;
+}
