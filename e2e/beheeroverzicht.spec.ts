@@ -90,7 +90,7 @@ test('het overzicht zegt per regel wat er te doen is, en verdeelt in aandacht en
   await expect(concept).toContainText(
     'Starttijd, eindtijd, locatie en eindverantwoordelijke invullen, 2 werkers indelen',
   );
-  await expect(concept).toContainText('Concept');
+  await expect(concept).toContainText('concept');
   const orde = opOrde.getByRole('listitem').filter({ hasText: naam('orde') });
   await expect(orde).toContainText(/\d+ aanwezig/);
   await expect(aandacht.getByText(naam('orde'))).toHaveCount(0);
@@ -132,7 +132,7 @@ test('een teller is ook een filter, en "Alles tonen" brengt je terug', async ({ 
   await expect(page.getByRole('listitem').filter({ hasText: naam('dienst') })).toHaveCount(0);
 
   // Nog een keer op het gekozen filter klikken haalt het weg.
-  await page.getByRole('link', { name: /concept(en)?$/ }).click();
+  await filter.getByRole('link', { name: /concept(en)?$/ }).click();
   await expect(page).toHaveURL(/\/beheer$/);
 
   // Een filter dat we niet kennen is gewoon "alles".

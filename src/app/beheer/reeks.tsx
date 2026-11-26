@@ -5,10 +5,11 @@
 
 import Link from 'next/link';
 
+import { Datumblok } from '@/components/datumblok/datumblok';
 import { Icoon } from '@/components/icoon/icoon';
 import { Statuslabel } from '@/components/statuslabel/statuslabel';
 import type { OverzichtRegel } from '@/lib/beheeroverzicht';
-import { periodeTekst } from '@/lib/programma';
+import { dagTekst, maandKort, periodeTekst } from '@/lib/programma';
 
 import beheer from './beheer.module.css';
 import stijl from './reeks.module.css';
@@ -22,25 +23,32 @@ export function Beheerreeks({ regels }: { regels: OverzichtRegel[] }) {
     <li className={stijl.reeks}>
       <details className={stijl.details}>
         <summary className={stijl.samenvatting}>
-          <span className={beheer.rijInhoud}>
-            <span className={beheer.tekst}>
-              <span className={beheer.dag}>{periodeTekst(eerste.datum, laatste.datum)}</span>
-              <strong className={beheer.naam}>
-                {eerste.naam}
-                {eerste.tijd && <span className={beheer.tijd}> — {eerste.tijd}</span>}
-              </strong>
-              {eerste.taak && <span className={beheer.taak}>{eerste.taak}</span>}
-              {!eerste.taak && eerste.aanwezigheid && (
-                <span className={beheer.aanwezig}>{eerste.aanwezigheid}</span>
+          <span className={beheer.metBlok}>
+            <Datumblok
+              weekdag={`${dagTekst(eerste.datum).weekdag}–${dagTekst(laatste.datum).weekdag}`}
+              dag={`${dagTekst(eerste.datum).dag}–${dagTekst(laatste.datum).dag}`}
+              maand={maandKort(eerste.datum)}
+              lang={periodeTekst(eerste.datum, laatste.datum)}
+            />
+            <span className={beheer.rijInhoud}>
+              <span className={beheer.tekst}>
+                <strong className={beheer.naam}>
+                  {eerste.naam}
+                  {eerste.tijd && <span className={beheer.tijd}> — {eerste.tijd}</span>}
+                </strong>
+                {eerste.taak && <span className={beheer.taak}>{eerste.taak}</span>}
+                {!eerste.taak && eerste.aanwezigheid && (
+                  <span className={beheer.aanwezig}>{eerste.aanwezigheid}</span>
+                )}
+              </span>
+              {eerste.status !== 'gepubliceerd' && (
+                <span className={beheer.label}>
+                  <Statuslabel status={eerste.status} compactOpTelefoon>
+                    {eerste.status === 'concept' ? 'concept' : 'geannuleerd'}
+                  </Statuslabel>
+                </span>
               )}
             </span>
-            {eerste.status !== 'gepubliceerd' && (
-              <span className={beheer.label}>
-                <Statuslabel status={eerste.status} compactOpTelefoon>
-                  {eerste.status === 'concept' ? 'Concept' : 'Geannuleerd'}
-                </Statuslabel>
-              </span>
-            )}
           </span>
           <Icoon naam="chevron-omlaag" className={stijl.chevron} />
         </summary>

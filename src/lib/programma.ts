@@ -75,6 +75,11 @@ export function korteDatum(datum: string): string {
   return `${DAG.format(d)} ${MAAND_KORT.format(d).replace('.', '')}`;
 }
 
+/** De maand kort, voor het datumblok in het beheeroverzicht (waar de maand niet in een kop staat): "feb". */
+export function maandKort(datum: string): string {
+  return MAAND_KORT.format(alsDatum(datum)).replace('.', '');
+}
+
 /** De dag voluit, voor een kop: "zaterdag 6 februari". */
 export function langeDag(datum: string): string {
   const d = alsDatum(datum);

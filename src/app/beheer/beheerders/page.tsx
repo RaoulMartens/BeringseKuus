@@ -65,9 +65,10 @@ export default async function Beheerders({
       zijkolom={
         <Kaart
           titel="Nieuwe beheerder"
+          label
           ondertitel="Kies een lid. Die stelt zelf een app in; jij bevestigt daarna."
         >
-          <Knop href="/beheer/beheerders/toevoegen" icoon="plus" icoonGewicht="bold" vol>
+          <Knop href="/beheer/beheerders/toevoegen" icoon="plus" icoonGewicht="bold">
             Beheerder toevoegen
           </Knop>
         </Kaart>
@@ -79,7 +80,7 @@ export default async function Beheerders({
         </Melding>
       )}
       {overzicht.aandacht.length > 0 && (
-        <Kaart titel="Vraagt aandacht" lijst>
+        <Kaart titel="Vraagt aandacht" label lijst>
           <Lijst>
             {overzicht.aandacht.map((b) => (
               <Lijstrij key={b.lidId} href={`/beheer/beheerders/${b.lidId}/bevestigen`}>
@@ -89,7 +90,7 @@ export default async function Beheerders({
           </Lijst>
         </Kaart>
       )}
-      <Kaart titel="Beheerders" lijst>
+      <Kaart titel="Beheerders" label lijst>
         <Lijst>
           {overzicht.beheerders.map((b) => (
             <Lijstrij key={b.lidId}>
@@ -97,7 +98,7 @@ export default async function Beheerders({
                 <Naamregel beheerder={b} />
                 {b.status === 'wacht_op_app' && <Statuslabel status="neutraal">wacht op app</Statuslabel>}
                 {!b.isIk && (
-                  <Knop href={`/beheer/beheerders/${b.lidId}/intrekken`} soort="tekst-gevaar">
+                  <Knop href={`/beheer/beheerders/${b.lidId}/intrekken`} soort="link">
                     Rechten intrekken
                   </Knop>
                 )}
