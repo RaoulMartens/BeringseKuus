@@ -75,12 +75,25 @@
 
 /* De gegevens van het lid: wat je niet wijzigt (het e-mailadres is waarmee het lid inlogt). */
 .gegevens {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 8px 24px;
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.4286;
+}
+
+/* een regel per gegeven, met een lijn tussen de regels (zoals in het ontwerp); de namen staan in een vaste kolom onder elkaar */
+.gegevens > div {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 24px;
+  padding: 12px 0;
+}
+
+.gegevens > div:first-child {
+  padding-top: 0;
+}
+
+.gegevens > div + div {
+  border-top: 1px solid var(--neutraal-lijn);
 }
 
 .gegevens dt {
@@ -90,6 +103,14 @@
 .gegevens dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+/* een lege kaart (geen komende diensten): de tekst staat binnen de opvulling van de kaart */
+.leeg {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
 }
 
 .hulp {

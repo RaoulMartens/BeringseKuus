@@ -55,7 +55,7 @@ export default async function Leden({
       terug={{ href: '/beheer', tekst: 'Terug naar activiteiten' }}
       zijkolom={
         <>
-          <Kaart titel="Tonen">
+          <Kaart titel="Tonen" label>
             <Tellers
               klein
               naam="Leden tonen"
@@ -70,7 +70,7 @@ export default async function Leden({
               ]}
             />
           </Kaart>
-          <Kaart titel="Nieuw lid">
+          <Kaart titel="Nieuw lid" label>
             <p className={stijl.hulp}>Nieuwe leden voegt de bouwer nog toe. Dat kan binnenkort ook hier.</p>
           </Kaart>
         </>
@@ -82,7 +82,7 @@ export default async function Leden({
         </Melding>
       )}
       {overzicht.aandacht.length > 0 && (
-        <Kaart titel="Vraagt aandacht" lijst>
+        <Kaart titel="Vraagt aandacht" label lijst>
           <Lijst>
             {overzicht.aandacht.map((lid) => (
               <Lijstrij key={lid.lidId} href={`/beheer/leden/${lid.lidId}`}>

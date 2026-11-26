@@ -17,19 +17,29 @@ interface Eigenschappen {
   actie?: ReactNode;
   /** De kaart bestaat uit een Lijst: de rijen lopen over de volle breedte. */
   lijst?: boolean;
+  /**
+   * De titel als klein grijs label in plaats van de grote titel in themakleur (`.wf-label` in het ontwerp). Per scherm valt één
+   * ding op: de kaart waar de actie zit houdt de grote titel, de overige kaarten zijn labels.
+   */
+  label?: boolean;
   children: ReactNode;
 }
 
-export function Kaart({ titel, kop: Kop = 'h2', ondertitel, actie, lijst, children }: Eigenschappen) {
+export function Kaart({ titel, kop: Kop = 'h2', ondertitel, actie, lijst, label, children }: Eigenschappen) {
+  const titelKlasse = label ? stijl.label : stijl.titel;
   const kop = titel ? (
-    <div className={lijst ? stijl.lijstKop : stijl.kop}>
+    <div
+      className={[lijst ? stijl.lijstKop : stijl.kop, label ? stijl.labelKop : undefined]
+        .filter(Boolean)
+        .join(' ')}
+    >
       {actie ? (
         <div className={stijl.titelrij}>
-          <Kop className={stijl.titel}>{titel}</Kop>
+          <Kop className={titelKlasse}>{titel}</Kop>
           {actie}
         </div>
       ) : (
-        <Kop className={stijl.titel}>{titel}</Kop>
+        <Kop className={titelKlasse}>{titel}</Kop>
       )}
       {ondertitel && <p className={stijl.ondertitel}>{ondertitel}</p>}
     </div>

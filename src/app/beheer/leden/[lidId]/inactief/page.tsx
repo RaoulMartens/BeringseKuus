@@ -48,7 +48,11 @@ export default async function LidInactiefZetten({ params }: { params: Promise<{ 
           {lid.voornaam} deed, blijft staan: afmeldingen en eerdere diensten.
         </p>
       </Kaart>
-      <Kaart titel={`Deze plekken vallen open (${lid.diensten.length})`} lijst={lid.diensten.length > 0}>
+      <Kaart
+        titel={`Deze plekken vallen open (${lid.diensten.length})`}
+        label
+        lijst={lid.diensten.length > 0}
+      >
         {lid.diensten.length === 0 ? (
           <p className={stijl.hulp}>{lid.voornaam} heeft geen komende plekken.</p>
         ) : (

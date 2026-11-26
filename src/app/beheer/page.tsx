@@ -101,7 +101,7 @@ function Aanmaken() {
 /** De ingang naar Beheerders, met de taak als regel (zoals "Vraagt aandacht" voor activiteiten): wie je nog moet bevestigen. */
 function Beheerderskaart({ aantal }: { aantal: number }) {
   return (
-    <Kaart titel="Beheerders" lijst>
+    <Kaart titel="Beheerders" label lijst>
       <Lijst>
         <Lijstrij href="/beheer/beheerders">{ingangTekst(aantal)}</Lijstrij>
       </Lijst>
@@ -112,7 +112,7 @@ function Beheerderskaart({ aantal }: { aantal: number }) {
 /** De ingang naar Leden, met de taak als regel: wie nog niet is ingelogd. */
 function Ledenkaart({ nogNietIngelogd }: { nogNietIngelogd: number }) {
   return (
-    <Kaart titel="Leden" lijst>
+    <Kaart titel="Leden" label lijst>
       <Lijst>
         <Lijstrij href="/beheer/leden">{ledenIngangTekst(nogNietIngelogd)}</Lijstrij>
       </Lijst>
@@ -308,12 +308,12 @@ export default async function Beheer({
       ) : (
         <>
           {overzicht.aandacht.length > 0 && (
-            <Kaart titel="Vraagt aandacht" lijst>
+            <Kaart titel="Vraagt aandacht" label lijst>
               <Regels regels={overzicht.aandacht} />
             </Kaart>
           )}
           {overzicht.opOrde.length > 0 && (
-            <Kaart titel="Op orde" lijst>
+            <Kaart titel="Op orde" label lijst>
               <Regels regels={overzicht.opOrde} />
             </Kaart>
           )}
