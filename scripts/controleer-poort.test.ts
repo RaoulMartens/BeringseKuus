@@ -131,6 +131,29 @@ describe('package.json', () => {
     assert.deepEqual(controleerHook(undefined), ['.githooks/pre-push ontbreekt']);
   });
 
+  it('faalt als de twee helften van de poort samen iets minder doen dan check:basis (ci-parallel)', () => {
+    assert.deepEqual(controleerScripts(met({})), []);
+    const browser = pakket.scripts['check:browser'] ?? '';
+    const snel = pakket.scripts['check:snel'] ?? '';
+    // een stap uit een helft halen, of een helft verkorten
+    assert.notDeepEqual(
+      controleerScripts(met({ 'check:browser': browser.replace(' && npm run test:e2e', '') })),
+      [],
+    );
+    assert.notDeepEqual(
+      controleerScripts(met({ 'check:snel': snel.replace(' && npm run test:db', '') })),
+      [],
+    );
+    // de controle van de rapporten mag niet stilletjes een van de twee groepen overslaan
+    assert.notDeepEqual(
+      controleerScripts(
+        met({ 'controle:overgeslagen:browser': 'node scripts/controleer-overgeslagen.ts --alleen unit' }),
+      ),
+      [],
+    );
+    assert.notDeepEqual(controleerScripts(met({ 'check:snel': `${snel} || true` })), []);
+  });
+
   it('faalt als build:worker niet de OpenNext-build is', () => {
     assert.notDeepEqual(controleerScripts(met({ 'build:worker': 'next build' })), []);
     assert.notDeepEqual(controleerScripts(met({ 'build:worker': 'true' })), []);
@@ -175,6 +198,22 @@ describe('workflow', () => {
   it('faalt als de audit van uitrol/ verdwijnt of de naam verandert', () => {
     assert.notDeepEqual(controleerWorkflow(workflow.replace('--prefix uitrol', '')), []);
     assert.notDeepEqual(controleerWorkflow(workflow.replace('name: check\n', 'name: poort\n')), []);
+  });
+
+  it('faalt als de job check niet op beide helften wacht of ze niet streng beoordeelt (ci-parallel)', () => {
+    assert.deepEqual(controleerWorkflow(workflow), []);
+    // wacht maar op één helft
+    assert.notDeepEqual(controleerWorkflow(workflow.replace('needs: [snel, browser]', 'needs: [snel]')), []);
+    // een overgeslagen of mislukte helft moet de job rood maken: zonder always() wordt hij overgeslagen (en geldt dat als groen)
+    assert.notDeepEqual(controleerWorkflow(workflow.replace('    if: always()\n', '')), []);
+    // een helft telt niet mee in de beoordeling
+    assert.notDeepEqual(
+      controleerWorkflow(workflow.replaceAll('needs.browser.result', 'needs.snel.result')),
+      [],
+    );
+    // een helft van de poort verdwijnt uit de workflow
+    assert.notDeepEqual(controleerWorkflow(workflow.replaceAll('npm run check:browser', 'echo browser')), []);
+    assert.notDeepEqual(controleerWorkflow(workflow.replaceAll('npm run check:snel', 'echo snel')), []);
   });
 
   it('faalt als controle:repo het script uit de pull request draait (review F0-21)', () => {

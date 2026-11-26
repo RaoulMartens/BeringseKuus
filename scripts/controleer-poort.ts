@@ -110,7 +110,28 @@ export function controleerScripts(pakket: unknown): string[] {
     build: 'next build',
     'build:worker': 'opennextjs-cloudflare build',
     'preview:worker': 'opennextjs-cloudflare preview',
+    // De twee helften van de poort, die in GitHub naast elkaar draaien (PR ci-parallel, 26-11-2026). Samen dekken ze check:basis
+    // (zie hieronder); de rapporten van de tests worden per helft gecontroleerd. db:schoon geeft de browsertests dezelfde schone
+    // database als test:db hun gaf.
+    'db:schoon': 'npm run supabase:start && supabase db reset --local',
+    'controle:overgeslagen:unit': 'node scripts/controleer-overgeslagen.ts --alleen unit',
+    'controle:overgeslagen:browser': 'node scripts/controleer-overgeslagen.ts --alleen browser',
+    'check:snel':
+      'npm run typecheck && npm run lint && npm run format:check && npm run controle:poort && npm run controle:omwegen && npm run test && npm run test:db && npm run controle:dbtypen && npm run controle:overgeslagen:unit',
+    'check:browser':
+      'npm run db:schoon && npm run build:worker && npm run test:e2e && npm run controle:overgeslagen:browser',
   };
+  // Samen moeten check:snel en check:browser elke verplichte stap van check:basis bevatten (de controle van de rapporten als
+  // :unit en :browser): de poort is door het splitsen niet kleiner geworden.
+  const gesplitst = [...tekst('check:snel').split('&&'), ...tekst('check:browser').split('&&')]
+    .map((s) =>
+      s.trim().replace(/^npm run controle:overgeslagen:(unit|browser)$/, 'npm run controle:overgeslagen'),
+    )
+    .filter((s) => s.length > 0);
+  for (const stap of VERPLICHTE_STAPPEN) {
+    if (!gesplitst.includes(stap))
+      problemen.push(`package.json: check:snel en check:browser missen samen "${stap}"`);
+  }
   for (const [naam, inhoud] of Object.entries(precies)) {
     if (tekst(naam).trim() !== inhoud) problemen.push(`package.json: ${naam} moet "${inhoud}" zijn`);
   }
@@ -143,7 +164,9 @@ export function controleerWorkflow(tekst: string): string[] {
   // controle:repo draait het script uit main, vóór alle code uit de pull request (review F0-21, PR14-01).
   const repoStap = 'node "$RUNNER_TEMP/basis/controleer-repo.ts" --root .';
   for (const nodig of [
-    'npm run check:basis',
+    // De poort draait in twee jobs naast elkaar (snel en browser); samen zijn ze check:basis (controleerScripts).
+    'npm run check:snel',
+    'npm run check:browser',
     // Met of zonder token in een -c-optie ervoor (een privé repository, 09-11-2026).
     'fetch --no-tags --depth=1 origin main',
     'git show FETCH_HEAD:scripts/controleer-repo.ts',
@@ -163,6 +186,17 @@ export function controleerWorkflow(tekst: string): string[] {
   }
   if (!/^name: check$/m.test(tekst))
     problemen.push('workflow check.yml: de naam moet "check" zijn (de uitrol wacht op die naam)');
+  // De vereiste controle van main heet "check": die moet pas groen zijn als snel én browser groen zijn. De job "check" wacht
+  // daarop en faalt zelf als een van beide niet "success" is (ook bij mislukt, geannuleerd of overgeslagen).
+  if (!/^ {2}check:\n {4}name: check\n(?: {4}.*\n)*? {4}needs: \[snel, browser\]$/m.test(tekst))
+    problemen.push('workflow check.yml: de job "check" moet wachten op [snel, browser]');
+  for (const nodig of ['needs.snel.result', 'needs.browser.result']) {
+    if (!code.includes(nodig)) problemen.push(`workflow check.yml: de job "check" controleert ${nodig} niet`);
+  }
+  if (!/^ {4}if: always\(\)$/m.test(tekst))
+    problemen.push(
+      'workflow check.yml: de job "check" moet altijd draaien (if: always()) om een mislukte helft te melden',
+    );
   if (/continue-on-error/.test(tekst))
     problemen.push('workflow check.yml: continue-on-error is niet toegestaan');
   if (/vars\.VERBODEN_WOORDEN/.test(tekst))

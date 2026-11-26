@@ -105,18 +105,27 @@ export function beoordeel(naam: string, u: Uitkomst): string[] {
 }
 
 const RAPPORTEN = [
-  { bestand: 'node.tap', naam: 'node --test (scripts/)', lees: (t: string) => leesNodeTap(t) },
+  { bestand: 'node.tap', groep: 'unit', naam: 'node --test (scripts/)', lees: (t: string) => leesNodeTap(t) },
   {
     bestand: 'vitest.json',
+    groep: 'unit',
     naam: 'Vitest (src/)',
     lees: (t: string) => leesVitest(JSON.parse(t) as unknown),
   },
   {
     bestand: 'e2e.json',
+    groep: 'browser',
     naam: 'Playwright (e2e/)',
     lees: (t: string) => leesPlaywright(JSON.parse(t) as unknown),
   },
 ] as const;
+
+/**
+ * De workflow draait de tests in twee jobs naast elkaar (snel: node en Vitest; browser: Playwright). Elke job controleert zijn
+ * eigen rapporten met `--alleen unit` of `--alleen browser`; zonder die optie (lokaal, check:basis) komen alle drie aan bod.
+ * Een rapport dat in geen van beide jobs wordt gecontroleerd, kan niet: de poort (controleer-poort.ts) eist beide.
+ */
+export type Groep = 'unit' | 'browser';
 
 /** Alle bestanden onder `begin` die aan het patroon voldoen, als pad ten opzichte van `basis` met /. */
 function vindBestanden(begin: string, basis: string, patroon: RegExp): string[] {
@@ -141,7 +150,7 @@ function vindBestanden(begin: string, basis: string, patroon: RegExp): string[] 
  * laat bestanden verdwijnen zonder dat iets als overgeslagen wordt gemeld; ook een instelling die we niet voorzien. Daarom het
  * bewijs achteraf: elk testbestand op schijf staat in het rapport van de runner (FX-07).
  */
-export function controleerBestanden(map: string, root: string): string[] {
+export function controleerBestanden(map: string, root: string, groep?: Groep): string[] {
   const problemen: string[] = [];
   const lees = (bestand: string): unknown => {
     const pad = path.join(map, bestand);
@@ -149,7 +158,7 @@ export function controleerBestanden(map: string, root: string): string[] {
   };
 
   const vitest = lees('vitest.json') as { testResults?: { name?: unknown }[] } | undefined;
-  if (vitest) {
+  if (vitest && groep !== 'browser') {
     const gedraaid = new Set(
       (vitest.testResults ?? []).flatMap((r) =>
         typeof r.name === 'string' ? [path.relative(root, r.name).split(path.sep).join('/')] : [],
@@ -161,7 +170,7 @@ export function controleerBestanden(map: string, root: string): string[] {
   }
 
   const playwright = lees('e2e.json') as { suites?: PlaywrightSuite[] } | undefined;
-  if (playwright) {
+  if (playwright && groep !== 'unit') {
     // Het bestand staat in het rapport ten opzichte van de testmap (e2e/); een bestand dat in geen enkel project draait, ontbreekt.
     const gedraaid = new Set<string>();
     const verzamel = (suites: PlaywrightSuite[]): void => {
@@ -179,9 +188,9 @@ export function controleerBestanden(map: string, root: string): string[] {
 }
 
 /** Controleert alle rapporten in de map; met `root` ook dat elk testbestand van Vitest en Playwright is gedraaid. */
-export function controleerUitkomsten(map: string, root?: string): string[] {
+export function controleerUitkomsten(map: string, root?: string, groep?: Groep): string[] {
   const problemen: string[] = [];
-  for (const r of RAPPORTEN) {
+  for (const r of RAPPORTEN.filter((x) => groep === undefined || x.groep === groep)) {
     const pad = path.join(map, r.bestand);
     if (!existsSync(pad)) {
       problemen.push(
@@ -197,7 +206,7 @@ export function controleerUitkomsten(map: string, root?: string): string[] {
   }
   if (root !== undefined && problemen.length === 0) {
     try {
-      problemen.push(...controleerBestanden(map, root));
+      problemen.push(...controleerBestanden(map, root, groep));
     } catch {
       problemen.push('de rapporten zijn niet te vergelijken met de testbestanden op schijf');
     }
@@ -210,7 +219,14 @@ function uitvoeren(): number {
   const i = argumenten.indexOf('--map');
   const map = path.resolve((i >= 0 ? argumenten[i + 1] : undefined) ?? 'testuitkomsten');
   // De testbestanden staan naast de map met uitkomsten (de wortel van de repository).
-  const problemen = controleerUitkomsten(map, path.dirname(map));
+  const j = argumenten.indexOf('--alleen');
+  const waarde = j >= 0 ? argumenten[j + 1] : undefined;
+  const gekozen: Groep | undefined = waarde === 'unit' || waarde === 'browser' ? waarde : undefined;
+  if (j >= 0 && gekozen === undefined) {
+    console.error('controleer-overgeslagen: --alleen moet "unit" of "browser" zijn');
+    return 1;
+  }
+  const problemen = controleerUitkomsten(map, path.dirname(map), gekozen);
   if (problemen.length === 0) {
     console.log('controleer-overgeslagen: 0 problemen');
     return 0;

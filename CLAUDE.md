@@ -71,7 +71,9 @@ eerst de sleutel intrekken, dan pas opruimen.
 
 ```bash
 npm run check                  # alles: check:basis en controle:repo (lokaal met .verboden-woorden)
-npm run check:basis            # de poort zonder namenlijst; zo draait hij in GitHub
+npm run check:basis            # de poort zonder namenlijst, alles achter elkaar (lokaal)
+npm run check:snel             # eerste helft van de poort: typen, lint, unit- en databasetests (job "snel" in GitHub)
+npm run check:browser          # tweede helft: build en browsertests (job "browser"); samen zijn ze check:basis
 npm run typecheck              # next typegen + tsc, strict; alle code is TypeScript
 npm run lint                   # ESLint met typebewuste regels, 0 waarschuwingen; uitzetten met commentaar kan niet
 npm run format:check           # Prettier (npm run format zet het goed)
