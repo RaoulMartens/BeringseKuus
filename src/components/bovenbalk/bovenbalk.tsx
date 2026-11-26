@@ -8,8 +8,8 @@
 // Op een telefoon (smaller dan 700 px) vervalt de naam van de vereniging en van de gebruiker (ontwerpbesluit) en ook de knop
 // Beheer (te krap; Beheer staat dan op Mijn account): alleen het menu en het rondje blijven.
 
+import Image from 'next/image';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 
 import stijl from './bovenbalk.module.css';
 
@@ -25,8 +25,8 @@ export interface MenuOnderdeel {
 interface Eigenschappen {
   /** De naam van de vereniging, uit het thema. */
   merk: string;
-  /** Het logo van de vereniging (een afbeelding met alt-tekst leeg: de naam staat ernaast). */
-  logo?: ReactNode;
+  /** Het logo van de vereniging: versiering naast de naam (alt-tekst leeg). Breedte en hoogte zijn die van het bestand, voor de verhouding. */
+  logo?: { src: string; breedte: number; hoogte: number };
   onderdelen: MenuOnderdeel[];
   /** De knop Beheer naast de naam; leeg voor wie geen beheerder is. */
   beheer?: { href: string; actief: boolean };
@@ -40,7 +40,18 @@ export function Bovenbalk({ merk, logo, onderdelen, beheer, gebruiker }: Eigensc
   return (
     <header className={stijl.balk}>
       <div className={stijl.merk}>
-        {logo}
+        {logo && (
+          // een svg: niets te optimaliseren (next/image zou hem anders door de beeldverwerking halen)
+          <Image
+            className={stijl.logo}
+            src={logo.src}
+            alt=""
+            width={logo.breedte}
+            height={logo.hoogte}
+            unoptimized
+            priority
+          />
+        )}
         <span className={stijl.naam}>{merk}</span>
       </div>
       {onderdelen.length > 0 && (

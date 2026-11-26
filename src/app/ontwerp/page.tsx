@@ -179,6 +179,7 @@ export default async function Ontwerp({
         <div className={stijl.kader}>
           <Bovenbalk
             merk="De Beringse Kuus"
+            logo={{ src: '/logo.svg', breedte: 470, hoogte: 750 }}
             onderdelen={[
               { href: '/ontwerp', label: 'Start', stip: 1, actief: true },
               { href: '/ontwerp', label: 'Programma', stip: 2 },
