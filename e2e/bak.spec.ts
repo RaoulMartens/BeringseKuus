@@ -63,12 +63,13 @@ test('de beheerder zet de bak aan, vooraf gevuld met de Raad van Elf, kiest wie 
 
   await page.goto(`/beheer/activiteiten/${id}`);
   await expect(page.getByRole('heading', { level: 2, name: 'Bak' })).toBeVisible();
-  const schakelaar = page.getByLabel('Bak bijhouden bij deze activiteit');
-  await expect(schakelaar).not.toBeChecked();
+  const schakelaar = page.getByRole('switch', { name: 'Bak bijhouden bij deze activiteit' });
+  await expect(schakelaar).toHaveAttribute('aria-checked', 'false');
   // Uit: alleen de schakelaar, geen plekken.
   await expect(page.getByLabel('Prins', { exact: true })).toHaveCount(0);
 
-  await schakelaar.check();
+  await schakelaar.click();
+  await expect(schakelaar).toHaveAttribute('aria-checked', 'true');
   // Vooraf gevuld: prins, adjudant en vorst leeg, en de leden van de Raad van Elf (onze twee staan erbij).
   await expect(page.getByLabel('Prins', { exact: true })).toHaveValue('');
   await expect(page.getByLabel('Adjudant')).toHaveValue('');
@@ -98,11 +99,14 @@ test('de beheerder zet de bak aan, vooraf gevuld met de Raad van Elf, kiest wie 
 
   // Terug op het scherm: de schakelaar staat aan en de keuze is er nog.
   await page.goto(`/beheer/activiteiten/${id}`);
-  await expect(page.getByLabel('Bak bijhouden bij deze activiteit')).toBeChecked();
+  await expect(page.getByRole('switch', { name: 'Bak bijhouden bij deze activiteit' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
   await expect(page.getByLabel('Prins', { exact: true })).toHaveValue(prins.id);
 
   // Weer uit: de plekken gaan weg.
-  await page.getByLabel('Bak bijhouden bij deze activiteit').uncheck();
+  await page.getByRole('switch', { name: 'Bak bijhouden bij deze activiteit' }).click();
   await page.getByRole('button', { name: 'Wijzigingen opslaan' }).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
   expect(

@@ -11,6 +11,7 @@ import { useState } from 'react';
 
 import { Kaart } from '@/components/kaart/kaart';
 import { Knop } from '@/components/knop/knop';
+import { Schakelaar } from '@/components/schakelaar/schakelaar';
 import { BAK_GROEPEN, BAK_PLEKNAAM, bakNaarTekst, beginBak, plekkenVan, type BakPlek } from '@/lib/bak';
 
 import stijl from './bak.module.css';
@@ -65,13 +66,10 @@ export function Bak({ begin, raadsleden, leden, fout }: Eigenschappen) {
     <Kaart
       titel="Bak"
       ondertitel="Voor activiteiten waar mensen in de bak zitten, zoals de Bonte Avond. Alleen jij wijzigt de bak; leden zien wie erin zit."
+      actie={<Schakelaar naam="Bak bijhouden bij deze activiteit" aan={actief} onWissel={zetAan} />}
     >
       <input type="hidden" name="bak" value={bakNaarTekst(actief, plekken)} />
       <div className={stijl.bak}>
-        <label className={stijl.schakelaar}>
-          <input type="checkbox" checked={actief} onChange={(e) => zetAan(e.target.checked)} />
-          <span>Bak bijhouden bij deze activiteit</span>
-        </label>
         {fout && (
           <p role="alert" className={stijl.fout}>
             {fout}

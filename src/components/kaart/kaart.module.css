@@ -25,6 +25,14 @@
   padding: var(--padding-card) var(--padding-card) 12px;
 }
 
+/* titel links, een actie (bijvoorbeeld een schakelaar) rechts */
+.titelrij {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .titel {
   margin: 0;
   font: 700 1.25rem/1.4 var(--font-titel);
