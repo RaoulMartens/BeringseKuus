@@ -21,7 +21,7 @@ const STAAT: Record<SeizoenStaat, { klasse: string | undefined; tekst: string }>
 export function Seizoenslijn({ stops }: { stops: SeizoenStop[] }) {
   return (
     <div className={stijl.alleenGroot}>
-      <Kaart titel="Je seizoen">
+      <Kaart titel="Je seizoen" label>
         <ol className={stijl.lijn}>
           {stops.map((stop) => (
             <li key={stop.activiteitId} className={stijl.stop}>

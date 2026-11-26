@@ -83,8 +83,11 @@ test('Publiceren vraagt eerst een bevestiging; Annuleren laat het concept staan,
   await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
   await expect(page.getByRole('heading', { level: 1, name: `${naam} publiceren?` })).toBeVisible();
-  await expect(page.getByText(/Zichtbaar voor: Alle \d+ actieve leden/)).toBeVisible();
-  await expect(page.getByText(/Eindverantwoordelijke: Ger\d+ .*, 06 12 34 56 78/)).toBeVisible();
+  // De samenvatting is een tabel: de naam van het gegeven links, de waarde ernaast.
+  await expect(page.getByText('Zichtbaar voor', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Alle \d+ actieve leden$/)).toBeVisible();
+  await expect(page.getByText('Eindverantwoordelijke', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Ger\d+ .*, 06 12 34 56 78$/)).toBeVisible();
   await expect(page.getByText('Terugzetten naar concept kan hierna niet meer.')).toBeVisible();
   // Zonder doelgroep ziet iedereen de activiteit, de beheerder ook: dan geen waarschuwing.
   await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);

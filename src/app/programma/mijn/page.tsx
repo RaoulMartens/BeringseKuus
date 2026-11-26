@@ -54,11 +54,11 @@ export default async function MijnDiensten() {
       zijkolom={seizoenslijn.length > 0 ? <Seizoenslijn stops={seizoenslijn} /> : undefined}
     >
       {diensten.komend.length === 0 ? (
-        <Kaart titel="Komende diensten">
+        <Kaart titel="Komende diensten" label>
           <p className={stijl.leeg}>Je staat nog nergens als dienst ingedeeld.</p>
         </Kaart>
       ) : (
-        <Kaart titel="Komende diensten" lijst>
+        <Kaart titel="Komende diensten" label lijst>
           <Lijst>
             {diensten.komend.map((dienst) => (
               <Lijstrij key={dienst.activiteitId} href={`/programma/${dienst.activiteitId}`}>
@@ -81,7 +81,7 @@ export default async function MijnDiensten() {
       )}
 
       {afmeldingen.length > 0 && (
-        <Kaart titel="Afgemeld" lijst>
+        <Kaart titel="Afgemeld" label lijst>
           <Lijst>
             {afmeldingen.map((activiteit) => (
               <Lijstrij key={activiteit.activiteitId} href={`/programma/${activiteit.activiteitId}`}>

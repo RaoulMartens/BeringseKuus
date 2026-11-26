@@ -24,6 +24,12 @@ export const metadata: Metadata = { title: 'Publiceren – Ledenplatform' };
  * De bevestiging voor het publiceren (UC-004 stap 10): publiceren raakt anderen en kan niet terug, dus eerst een eigen
  * pagina met wat er gebeurt (ontwerpregel "Bevestigen"). Deze pagina wijzigt niets; de knop roept publiceerActiviteit aan.
  */
+/** De dag met een hoofdletter, klein boven de naam: "Zaterdag 6 februari". */
+function dagMetHoofdletter(datum: string): string {
+  const dag = langeDag(datum);
+  return dag.charAt(0).toUpperCase() + dag.slice(1);
+}
+
 export default async function Publiceren({ params }: { params: Promise<{ id: string }> }) {
   await eisBeheer();
   const id = z.uuid().safeParse((await params).id);
@@ -71,29 +77,32 @@ export default async function Publiceren({ params }: { params: Promise<{ id: str
 
       {zelfNiet && <Melding soort="info">{zelfNiet}</Melding>}
 
-      <Kaart titel={`${activiteit.naam} — ${langeDag(activiteit.datum)}`} lijst>
+      <Kaart lijst>
+        <div className={stijl.kop}>
+          <p className={stijl.dag}>{dagMetHoofdletter(activiteit.datum)}</p>
+          <h2 className={stijl.naam}>{activiteit.naam}</h2>
+        </div>
         <Lijst>
           <Lijstrij>
-            <span>
-              <strong>Zichtbaar voor:</strong>{' '}
-              {zichtbaarVoorTekst(activiteit.gekozenGroepen, groepen, aantalLeden)}
-            </span>
+            <span className={stijl.sleutel}>Zichtbaar voor</span>
+            <span>{zichtbaarVoorTekst(activiteit.gekozenGroepen, groepen, aantalLeden)}</span>
           </Lijstrij>
           <Lijstrij>
+            <span className={stijl.sleutel}>Ingedeeld</span>
             <span>
-              <strong>Ingedeeld:</strong> {aantalIngedeeld(activiteit.plekken, ev.bezetterId)}{' '}
+              {aantalIngedeeld(activiteit.plekken, ev.bezetterId)}{' '}
               {aantalIngedeeld(activiteit.plekken, ev.bezetterId) === 1 ? 'persoon' : 'mensen'}
             </span>
           </Lijstrij>
           <Lijstrij>
-            <span>
-              <strong>Nog leeg:</strong> {nogLeeg ?? 'niets, alle plekken zijn ingedeeld'}
-            </span>
+            <span className={stijl.sleutel}>Nog leeg</span>
+            <span>{nogLeeg ?? 'niets, alle plekken zijn ingedeeld'}</span>
           </Lijstrij>
           {ev.naam && (
             <Lijstrij>
+              <span className={stijl.sleutel}>Eindverantwoordelijke</span>
               <span>
-                <strong>Eindverantwoordelijke:</strong> {ev.naam}
+                {ev.naam}
                 {ev.telefoon ? `, ${ev.telefoon}` : ''}
               </span>
             </Lijstrij>
@@ -103,7 +112,7 @@ export default async function Publiceren({ params }: { params: Promise<{ id: str
 
       {kanPubliceren ? (
         <>
-          <p>Terugzetten naar concept kan hierna niet meer.</p>
+          <Melding soort="let-op">Terugzetten naar concept kan hierna niet meer.</Melding>
           <Publiceerformulier activiteitId={activiteit.id} versie={activiteit.versie} terugHref={terugHref} />
         </>
       ) : (

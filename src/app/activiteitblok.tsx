@@ -21,6 +21,8 @@ import {
 import { trekAfmeldingIn } from './afmelden/acties';
 import type { Indeling } from './ledenactiviteit';
 
+import type { ReactNode } from 'react';
+
 import stijl from './activiteitblok.module.css';
 
 interface Eigenschappen {
@@ -31,9 +33,11 @@ interface Eigenschappen {
   dag?: string;
   /** Toon de naam als kop in het kaartje; niet als de naam al de <h1> van de pagina is. */
   metNaam: boolean;
+  /** Iets dat direct onder het kaartje komt, voor de rest van het blok: op een telefoon de status (ontwerp 16-10-2026). */
+  naKaartje?: ReactNode;
 }
 
-export function Activiteitblok({ activiteit, indeling, eigenLidId, dag, metNaam }: Eigenschappen) {
+export function Activiteitblok({ activiteit, indeling, eigenLidId, dag, metNaam, naKaartje }: Eigenschappen) {
   const groepen = groepeerRollen(indeling.plekken, eigenLidId);
   const notitie = activiteit.notitie?.trim();
   // De bak (BA-8): onder de rolbezetting, alleen lezen, alleen kopjes waar iemand zit.
@@ -51,6 +55,7 @@ export function Activiteitblok({ activiteit, indeling, eigenLidId, dag, metNaam 
         kop={metNaam ? 'h2' : undefined}
         stops={maakTijdlijn(activiteit)}
       />
+      {naKaartje}
       {notitie && (
         <section className={stijl.belangrijk}>
           <h2 className={stijl.belangrijkKop}>

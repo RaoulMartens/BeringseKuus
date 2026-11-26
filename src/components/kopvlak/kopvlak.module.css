@@ -87,3 +87,23 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* telefoon: een titel kan tot aan de rechterrand lopen, dus een kleinere titel, een lager vlak en een verloop dat later begint en lichter
+   blijft (docs/visueel/stijl.css, `.wf-header` in de regel voor schermen tot 700 px) */
+@media (max-width: 700px) {
+  .kop {
+    min-height: calc(var(--kop-ruimte) * 2 + 32px);
+    background: linear-gradient(90deg, var(--thema-kop) 75%, var(--thema-kop-eind) 135%);
+    background: linear-gradient(in oklch 90deg, var(--thema-kop) 75%, var(--thema-kop-eind) 135%);
+  }
+
+  .titel {
+    font-size: 1.5rem;
+    line-height: 1.3333;
+  }
+
+  .titelGroot {
+    font-size: 2rem;
+    line-height: 1;
+  }
+}
