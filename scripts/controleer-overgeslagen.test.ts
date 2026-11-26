@@ -167,6 +167,21 @@ describe('controleerUitkomsten', () => {
     );
     assert.deepEqual(controleerUitkomsten(map), []);
   });
+
+  it('beoordeelt per helft alleen de eigen rapporten (de twee jobs van de workflow)', () => {
+    const map = nieuweMap();
+    // alleen het rapport van de browsertests, en dat is overgeslagen: de unit-helft ziet dat niet, de browser-helft wel
+    writeFileSync(
+      path.join(map, 'e2e.json'),
+      JSON.stringify({ stats: { expected: 10, skipped: 1, unexpected: 0, flaky: 0 } }),
+    );
+    assert.equal(controleerUitkomsten(map, undefined, 'unit').length, 2); // node.tap en vitest.json ontbreken
+    assert.deepEqual(controleerUitkomsten(map, undefined, 'browser'), [
+      'Playwright (e2e/): 1 test(s) overgeslagen',
+    ]);
+    // een ontbrekend rapport van de eigen groep blijft een fout
+    assert.equal(controleerUitkomsten(nieuweMap(), undefined, 'browser').length, 1);
+  });
 });
 
 describe('elk testbestand is gedraaid (FX-07)', () => {
@@ -228,6 +243,22 @@ describe('elk testbestand is gedraaid (FX-07)', () => {
   it('faalt als een Playwright-bestand in geen enkel project draait, ook in een submap', () => {
     const { root, map } = maakRoot({ ...ALLES, playwright: ['x.spec.ts'] });
     assert.deepEqual(controleerUitkomsten(map, root), ['Playwright (e2e/): sub/y.spec.ts is niet gedraaid']);
+  });
+
+  it('beoordeelt per helft alleen de eigen testbestanden (een oud rapport van de andere helft telt niet)', () => {
+    const { root, map } = maakRoot({
+      vitest: ['src/a.test.ts', 'src/map/b.test.tsx'],
+      playwright: ['x.spec.ts'],
+    });
+    assert.deepEqual(controleerUitkomsten(map, root, 'unit'), []);
+    assert.deepEqual(controleerUitkomsten(map, root, 'browser'), [
+      'Playwright (e2e/): sub/y.spec.ts is niet gedraaid',
+    ]);
+    const half = maakRoot({ vitest: ['src/a.test.ts'], playwright: ['x.spec.ts', 'sub/y.spec.ts'] });
+    assert.deepEqual(controleerUitkomsten(half.map, half.root, 'browser'), []);
+    assert.deepEqual(controleerUitkomsten(half.map, half.root, 'unit'), [
+      'Vitest (src/): src/map/b.test.tsx is niet gedraaid',
+    ]);
   });
 
   it('kijkt zonder wortel alleen naar de tellingen, zoals voorheen', () => {

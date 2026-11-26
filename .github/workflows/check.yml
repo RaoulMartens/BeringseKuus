@@ -14,9 +14,13 @@ concurrency:
   group: check-${{ github.ref }}
   cancel-in-progress: true
 
+# Drie jobs (PR ci-parallel, 26-11-2026): "snel" (typen, lint, unit- en databasetests, de namenlijst en de audits) en
+# "browser" (build en browsertests) draaien naast elkaar; samen doen ze precies wat check:basis doet (controleer-poort.ts
+# bewaakt dat). "check" wacht op beide en is de enige naam die de beschermde main en de uitrol kennen: pas groen als
+# beide helften groen zijn. Zo blijft er één verplichte controle, maar duurt hij zo lang als de langste helft.
 jobs:
-  check:
-    name: check
+  snel:
+    name: snel
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -65,11 +69,8 @@ jobs:
       - name: Afhankelijkheden
         run: npm ci
 
-      - name: Browser voor de browsertests
-        run: npx playwright install --with-deps chromium
-
       # De lokale Supabase vooraf starten, met maximaal drie pogingen. Het ophalen van de images faalt soms op een
-      # limiet van de registry ("toomanyrequests", 29-10-2026); dat zegt niets over de code. check:basis start hem
+      # limiet van de registry ("toomanyrequests", 29-10-2026); dat zegt niets over de code. check:snel start hem
       # daarna opnieuw (doet dan niets) en zet de database schoon op.
       - name: Lokale Supabase starten (herhaalt bij een limiet)
         run: |
@@ -81,8 +82,8 @@ jobs:
           done
 
       # Deze stap krijgt de namenlijst niet.
-      - name: De poort (npm run check:basis)
-        run: npm run check:basis
+      - name: De poort, eerste helft (npm run check:snel)
+        run: npm run check:snel
 
       - name: Bekende lekken in afhankelijkheden (hoog of kritiek blokkeert)
         run: npm audit --audit-level=high
@@ -90,3 +91,61 @@ jobs:
       # De uitrolstap heeft een eigen, kleine lockfile met alleen wrangler (uitrol/).
       - name: Bekende lekken in de afhankelijkheden van de uitrol
         run: npm audit --audit-level=high --prefix uitrol
+
+  # De tweede helft van de poort: de productiebuild (Worker) en de browsertests. Geen namenlijst, geen geheimen.
+  browser:
+    name: browser
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Afhankelijkheden
+        run: npm ci
+
+      # De gedownloade Chromium bewaren (sleutel = de lockfile, dus een nieuwe Playwright haalt een nieuwe op). `install`
+      # slaat het downloaden over als hij er al staat; de systeempakketten (--with-deps) worden wel steeds gecontroleerd.
+      - name: Chromium uit de cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Browser voor de browsertests
+        run: npx playwright install --with-deps chromium
+
+      - name: Lokale Supabase starten (herhaalt bij een limiet)
+        run: |
+          for poging in 1 2 3; do
+            npm run supabase:start && exit 0
+            [ "$poging" = 3 ] && exit 1
+            echo "Poging $poging mislukt; over 60 seconden opnieuw."
+            sleep 60
+          done
+
+      - name: De poort, tweede helft (npm run check:browser)
+        run: npm run check:browser
+
+  # De naam "check" is wat de beschermde main en de uitrol verwachten. Hij is alleen groen als snel én browser groen zijn;
+  # if: always() zorgt dat hij ook rood wordt (in plaats van overgeslagen) als een helft mislukt of wordt geannuleerd.
+  check:
+    name: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: [snel, browser]
+    if: always()
+    steps:
+      - name: Beide helften moeten groen zijn
+        env:
+          SNEL: ${{ needs.snel.result }}
+          BROWSER: ${{ needs.browser.result }}
+        run: |
+          echo "snel: $SNEL, browser: $BROWSER"
+          [ "$SNEL" = success ] && [ "$BROWSER" = success ]
