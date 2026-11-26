@@ -1,7 +1,7 @@
 // Tellers die ook filter zijn (docs/visueel/stijl.css, sectie 11): een getal met wat het telt, en een klik laat alleen die
-// activiteiten zien. Het gekozen filter heeft een ring en `aria-current`; nog een keer klikken (of "Alles tonen") haalt het
-// weg. Een teller op nul is zachter. Op een telefoon zijn het afgeronde labels naast elkaar, zodat ze niet op de knoppen
-// lijken (ontwerpbesluit); op een groot scherm tegels, want daar zijn de getallen de inhoud.
+// activiteiten zien. Het gekozen filter heeft een gevuld grijs vlak en `aria-current`; nog een keer klikken (of "Alles tonen")
+// haalt het weg. Een teller op nul is zachter. Op elk scherm zijn het afgeronde labels naast elkaar, zodat ze niet op de knoppen
+// lijken en niet zwaarder wegen dan de lijst waar ze bij horen (ontwerpbesluit 16-10-2026).
 
 import Link from 'next/link';
 
@@ -16,11 +16,11 @@ export interface Teller {
   actief: boolean;
 }
 
-export function Tellers({ tellers, naam, klein }: { tellers: Teller[]; naam: string; klein?: boolean }) {
+export function Tellers({ tellers, naam, inKaart }: { tellers: Teller[]; naam: string; inKaart?: boolean }) {
   return (
     <nav
       aria-label={naam}
-      className={[stijl.tellers, klein ? stijl.klein : undefined].filter(Boolean).join(' ')}
+      className={[stijl.tellers, inKaart ? stijl.inKaart : undefined].filter(Boolean).join(' ')}
     >
       {tellers.map((teller) => (
         <Link

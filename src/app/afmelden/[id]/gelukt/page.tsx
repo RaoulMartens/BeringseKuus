@@ -76,7 +76,9 @@ export default async function Afgemeld({ params }: { params: Promise<{ id: strin
         </Kaart>
       )}
       <div className={stijl.knoppen}>
-        <Knop href="/">Terug naar start</Knop>
+        <Knop href="/" soort="positief">
+          Terug naar start
+        </Knop>
       </div>
     </Schermkader>
   );

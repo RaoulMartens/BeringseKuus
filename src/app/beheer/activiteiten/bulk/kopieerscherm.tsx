@@ -174,7 +174,9 @@ export function Kopieren({ seizoenen, groepen }: { seizoenen: Seizoen[]; groepen
           />
         </Kaart>
         <div>
-          <Knop type="submit">Controleren</Knop>
+          <Knop type="submit" soort="positief">
+            Controleren
+          </Knop>
         </div>
       </form>
     );

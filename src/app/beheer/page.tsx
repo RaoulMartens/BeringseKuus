@@ -86,7 +86,7 @@ function Aanmaken() {
     <div className={stijl.nietOpMobiel}>
       <Kaart titel="Nieuwe activiteit" ondertitel="Begint als concept. Leden zien hem pas als je publiceert.">
         <div className={stijl.knoppen}>
-          <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold" vol>
+          <Knop href="/beheer/activiteiten/nieuw" soort="positief" icoon="plus" icoonGewicht="bold" vol>
             Activiteit aanmaken
           </Knop>
           <Knop href="/beheer/activiteiten/bulk" soort="secundair" vol>
@@ -237,7 +237,7 @@ export default async function Beheer({
       }
     >
       <div className={stijl.alleenMobiel}>
-        <Knop href="/beheer/activiteiten/nieuw" icoon="plus" icoonGewicht="bold">
+        <Knop href="/beheer/activiteiten/nieuw" soort="positief" icoon="plus" icoonGewicht="bold">
           Activiteit aanmaken
         </Knop>
         <Knop href="/beheer/activiteiten/bulk" soort="secundair">

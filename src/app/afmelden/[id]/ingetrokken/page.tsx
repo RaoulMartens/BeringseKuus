@@ -57,7 +57,9 @@ export default async function Ingetrokken({ params }: { params: Promise<{ id: st
         </dl>
       </Kaart>
       <div className={stijl.knoppen}>
-        <Knop href="/">Terug naar start</Knop>
+        <Knop href="/" soort="positief">
+          Terug naar start
+        </Knop>
         <Knop href="/programma" soort="tekst">
           Naar het programma
         </Knop>

@@ -98,7 +98,9 @@ export default async function OverdrachtNietGelukt({
         </dl>
       </Kaart>
       <div className={stijl.knoppen}>
-        <Knop href={ruilHref(activiteit.id, taak)}>Iemand anders kiezen</Knop>
+        <Knop href={ruilHref(activiteit.id, taak)} soort="positief">
+          Iemand anders kiezen
+        </Knop>
         <Knop href="/" soort="tekst">
           Terug naar start
         </Knop>

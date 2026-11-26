@@ -92,7 +92,9 @@ export default async function Afmelden({
           </p>
         </Kaart>
         <div className={stijl.knoppen}>
-          <Knop href={ruilHref(activiteit.id, 'afmelden')}>Beginnen met stap 1</Knop>
+          <Knop href={ruilHref(activiteit.id, 'afmelden')} soort="positief">
+            Beginnen met stap 1
+          </Knop>
           <Knop href={terug.href} soort="tekst">
             Annuleren
           </Knop>
