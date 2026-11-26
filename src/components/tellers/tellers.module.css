@@ -58,3 +58,25 @@
     letter-spacing: 0;
   }
 }
+
+/* De labels, ook op een groot scherm: voor een overzicht waar de getallen niet de inhoud zijn maar een filter (ledenbeheer: er valt één ding op,
+   wat actie vraagt, en dat is niet het aantal leden). Op een telefoon zijn alle tellers zo. */
+.klein {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.klein .teller {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+}
+
+.klein .aantal {
+  display: inline;
+  font: 700 1rem/1.5 var(--font-tekst);
+  letter-spacing: 0;
+}

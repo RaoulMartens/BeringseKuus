@@ -25,34 +25,53 @@ interface Eigenschappen {
   opties: Optie[];
   /** De waarden die nu zijn aangekruist; leeg betekent "alles". */
   gekozen: string[];
-  /** De keuze "alles": het label en de toelichting ("Iedereen", "42 leden"). */
-  alles: { label: string; toelichting?: string };
+  /** De keuze "alles": het label en de toelichting ("Iedereen", "42 leden"). Zonder is het een gewone groep vakjes. */
+  alles?: { label: string; toelichting?: string };
+  /** Geen kader om de lijst: de vakjes staan als rijen in de kaart (een vast onderdeel van een formulier, geen uitklapmenu). */
+  vast?: boolean;
+  /** Wordt aangeroepen met de nieuwe keuze, voor wie het aantal wijzigingen bijhoudt. */
+  onWijzig?: (gekozen: string[]) => void;
   fout?: string;
 }
 
-export function Aankruislijst({ naam, legenda, uitleg, opties, gekozen, alles, fout }: Eigenschappen) {
+export function Aankruislijst({
+  naam,
+  legenda,
+  uitleg,
+  opties,
+  gekozen,
+  alles,
+  vast,
+  onWijzig,
+  fout,
+}: Eigenschappen) {
   const [gekozenNu, zetGekozen] = useState<string[]>(gekozen);
   const foutId = fout ? `${naam}-fout` : undefined;
   const uitlegId = uitleg ? `${naam}-uitleg` : undefined;
   const beschrijving = [foutId, uitlegId].filter(Boolean).join(' ') || undefined;
 
+  function kies(nieuw: string[]) {
+    zetGekozen(nieuw);
+    onWijzig?.(nieuw);
+  }
+
   function wissel(waarde: string) {
-    zetGekozen((vorige) =>
-      vorige.includes(waarde) ? vorige.filter((w) => w !== waarde) : [...vorige, waarde],
-    );
+    kies(gekozenNu.includes(waarde) ? gekozenNu.filter((w) => w !== waarde) : [...gekozenNu, waarde]);
   }
 
   return (
     <fieldset className={stijl.groep} aria-describedby={beschrijving}>
       <legend className={stijl.legenda}>{legenda}</legend>
-      <ul className={stijl.lijst}>
-        <li>
-          <label className={stijl.optie}>
-            <input type="checkbox" checked={gekozenNu.length === 0} onChange={() => zetGekozen([])} />
-            <span className={stijl.label}>{alles.label}</span>
-            {alles.toelichting && <span className={stijl.toelichting}>{alles.toelichting}</span>}
-          </label>
-        </li>
+      <ul className={[stijl.lijst, vast ? stijl.vast : undefined].filter(Boolean).join(' ')}>
+        {alles && (
+          <li>
+            <label className={stijl.optie}>
+              <input type="checkbox" checked={gekozenNu.length === 0} onChange={() => kies([])} />
+              <span className={stijl.label}>{alles.label}</span>
+              {alles.toelichting && <span className={stijl.toelichting}>{alles.toelichting}</span>}
+            </label>
+          </li>
+        )}
         {opties.map((optie) => (
           <li key={optie.waarde}>
             <label className={stijl.optie}>

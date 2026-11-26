@@ -901,6 +901,33 @@ export type Database = {
         }[];
       };
       huidig_seizoen: { Args: Record<PropertyKey, never>; Returns: number };
+      leden_beheer_lijst: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          account_sinds: string;
+          achternaam: string;
+          actief: boolean;
+          groepen: string[];
+          inactief_sinds: string;
+          is_beheerder: boolean;
+          lid_id: string;
+          ooit_ingelogd: boolean;
+          voornaam: string;
+        }[];
+      };
+      lid_actief_zetten: { Args: { p_lid_id: string }; Returns: Json };
+      lid_beheer_lezen: { Args: { p_lid_id: string }; Returns: Json };
+      lid_inactief_zetten: { Args: { p_lid_id: string }; Returns: Json };
+      lid_opslaan: {
+        Args: {
+          p_groepen: string[];
+          p_lid_id: string;
+          p_mag_bob: boolean;
+          p_mag_eindverantw: boolean;
+          p_telefoon: string;
+        };
+        Returns: Json;
+      };
       meld_af: { Args: { p_activiteit_id: string; p_toelichting?: string }; Returns: Json };
       ruil_dienst: { Args: { p_rol_slot_id: string; p_vervanger_id: string }; Returns: Json };
       trek_afmelding_in: { Args: { p_activiteit_id: string }; Returns: Json };

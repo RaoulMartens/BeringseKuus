@@ -16,9 +16,12 @@ export interface Teller {
   actief: boolean;
 }
 
-export function Tellers({ tellers, naam }: { tellers: Teller[]; naam: string }) {
+export function Tellers({ tellers, naam, klein }: { tellers: Teller[]; naam: string; klein?: boolean }) {
   return (
-    <nav aria-label={naam} className={stijl.tellers}>
+    <nav
+      aria-label={naam}
+      className={[stijl.tellers, klein ? stijl.klein : undefined].filter(Boolean).join(' ')}
+    >
       {tellers.map((teller) => (
         <Link
           key={teller.label}

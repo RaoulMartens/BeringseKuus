@@ -20,6 +20,7 @@ import {
   type OverzichtRij,
 } from '@/lib/beheeroverzicht';
 import { aantalTeBevestigen, ingangTekst } from '@/lib/beheerders';
+import { ledenIngangTekst, maakLedenoverzicht } from '@/lib/leden';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { vandaagInNederland } from '@/lib/programma';
 import { naamUitLog } from '@/lib/verwijderen';
@@ -27,6 +28,7 @@ import { maakSupabase } from '@/lib/supabase/server';
 
 import { leesZelfNietZichtbaar } from './activiteiten/gegevens';
 import { leesBeheerderslijst } from './beheerders/gegevens';
+import { leesLedenlijst } from './leden/gegevens';
 import stijl from './beheer.module.css';
 import { Beheerreeks } from './reeks';
 
@@ -107,6 +109,17 @@ function Beheerderskaart({ aantal }: { aantal: number }) {
   );
 }
 
+/** De ingang naar Leden, met de taak als regel: wie nog niet is ingelogd. */
+function Ledenkaart({ nogNietIngelogd }: { nogNietIngelogd: number }) {
+  return (
+    <Kaart titel="Leden" lijst>
+      <Lijst>
+        <Lijstrij href="/beheer/leden">{ledenIngangTekst(nogNietIngelogd)}</Lijstrij>
+      </Lijst>
+    </Kaart>
+  );
+}
+
 export default async function Beheer({
   searchParams,
 }: {
@@ -134,6 +147,7 @@ export default async function Beheer({
   const reekspubliceerd = z.coerce.number().int().min(1).max(50).safeParse(parameters.reekspubliceerd);
   const supabase = await maakSupabase();
   const teBevestigen = aantalTeBevestigen(await leesBeheerderslijst(supabase));
+  const nogNietIngelogd = maakLedenoverzicht(await leesLedenlijst(supabase)).aandacht.length;
 
   // De rijen komen uit de database (public.beheeroverzicht(), alleen voor een beheerder met een code); de tijd van de
   // activiteit komt uit activiteiten. Wat een regel wil zeggen, maakt src/lib/beheeroverzicht.ts.
@@ -217,6 +231,7 @@ export default async function Beheer({
       zijkolom={
         <>
           <Aanmaken />
+          <Ledenkaart nogNietIngelogd={nogNietIngelogd} />
           <Beheerderskaart aantal={teBevestigen} />
         </>
       }
