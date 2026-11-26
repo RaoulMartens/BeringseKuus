@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { Icoon } from '@/components/icoon/icoon';
 import { Kaart } from '@/components/kaart/kaart';
 import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Schermkader } from '@/components/schermkader/schermkader';
@@ -31,6 +32,9 @@ export default async function MeerdereAanmaken() {
         <Lijst zonderKop>
           {laatste && (
             <Lijstrij href="/beheer/activiteiten/bulk/kopieren">
+              <span className={stijl.icoonvlak}>
+                <Icoon naam="kalender-herhalen" />
+              </span>
               <span className={stijl.keuze}>
                 <strong className={stijl.keuzetitel}>Vorig seizoen kopiëren</strong>
                 <span className={stijl.keuzehulp}>
@@ -43,6 +47,9 @@ export default async function MeerdereAanmaken() {
             </Lijstrij>
           )}
           <Lijstrij href="/beheer/activiteiten/bulk/importeren">
+            <span className={stijl.icoonvlak}>
+              <Icoon naam="xlsx" />
+            </span>
             <span className={stijl.keuze}>
               <strong className={stijl.keuzetitel}>Excel-bestand importeren</strong>
               <span className={stijl.keuzehulp}>Met het sjabloon van de vereniging</span>

@@ -65,7 +65,9 @@ export function Telefoonformulier({ nummer, onderaan }: { nummer: string; ondera
         {...(toonFout && staat.fout ? { fout: staat.fout } : {})}
       />
       <div className={stijl.knoppen}>
-        <Verzendknop bezigTekst="Bezig met opslaan…">Opslaan</Verzendknop>
+        <Verzendknop soort="positief" icoon="opslaan" bezigTekst="Bezig met opslaan…">
+          Opslaan
+        </Verzendknop>
         {heeftBewaard && (
           <Knop
             type="button"

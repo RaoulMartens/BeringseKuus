@@ -183,9 +183,9 @@ test('een afgemeld lid ziet dat; een activiteit zonder indeling, bus en notitie 
   psql(`insert into public.afmeldingen (activiteit_id, lid_id) values ('${id}', '${lidId}');`);
 
   await page.goto(`/programma/${id}`);
-  await expect(
-    page.getByRole('heading', { level: 1, name: new RegExp(`^${naam} — [a-z]+ \\d+ [a-z]+$`) }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: naam })).toBeVisible();
+  // De dag staat klein boven de naam in het kopvlak.
+  await expect(page.getByText(/^[A-Z][a-z]+ \d+ [a-z]+$/).first()).toBeVisible();
   await expect(page.getByRole('link', { name: 'Terug naar het programma' })).toHaveAttribute(
     'href',
     '/programma',

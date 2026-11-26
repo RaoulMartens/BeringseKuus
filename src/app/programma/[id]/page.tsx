@@ -17,6 +17,12 @@ import stijl from '../../ledenscherm.module.css';
 
 export const metadata: Metadata = { title: 'Activiteit – Ledenplatform' };
 
+/** De dag klein boven de naam in het kopvlak, met een hoofdletter: "Zondag 7 februari". */
+function dagTitel(datum: string): string {
+  const dag = langeDag(datum);
+  return dag.charAt(0).toUpperCase() + dag.slice(1);
+}
+
 /**
  * Een activiteit uit het programma (UC-001, ingang 2): dezelfde opbouw als het welkomscherm, met de naam en de dag als kop.
  * Welke activiteit een lid mag zien, beslist de database (R15, R22): een concept, of een activiteit voor een groep waar het lid
@@ -44,7 +50,8 @@ export default async function ActiviteitVoorLid({ params }: { params: Promise<{ 
   return (
     <Schermkader
       actief="programma"
-      titel={`${activiteit.naam} — ${langeDag(activiteit.datum)}`}
+      titel={activiteit.naam}
+      datum={dagTitel(activiteit.datum)}
       terug={{ href: '/programma', tekst: 'Terug naar het programma' }}
       zijkolom={
         <div className={stijl.nietOpMobiel}>
@@ -56,14 +63,17 @@ export default async function ActiviteitVoorLid({ params }: { params: Promise<{ 
       {activiteit.status === 'geannuleerd' && (
         <Melding soort="afgemeld">Deze activiteit is geannuleerd.</Melding>
       )}
-      <div className={stijl.alleenMobiel}>
-        <Jouwstatus regels={regels} />
-      </div>
       <Activiteitblok
         activiteit={activiteit}
         indeling={indeling}
         eigenLidId={gebruiker.lidId}
         metNaam={false}
+        // op een telefoon staat de status direct onder het kaartje (ontwerp 16-10-2026)
+        naKaartje={
+          <div className={stijl.alleenMobiel}>
+            <Jouwstatus regels={regels} />
+          </div>
+        }
       />
       <div className={stijl.alleenMobiel}>{wieKomter}</div>
     </Schermkader>

@@ -93,10 +93,7 @@ export default async function Startpagina() {
         </div>
       }
     >
-      <div className={stijl.alleenMobiel}>
-        <Jouwstatus regels={regels} />
-      </div>
-      {activiteiten.map((activiteit) => {
+      {activiteiten.map((activiteit, i) => {
         const indeling = indelingen.get(activiteit.id);
         return indeling ? (
           <Activiteitblok
@@ -106,6 +103,14 @@ export default async function Startpagina() {
             eigenLidId={gebruiker.lidId}
             dag={dagLabel(activiteit.datum, vandaag)}
             metNaam
+            // op een telefoon staat de status direct onder het eerste kaartje (ontwerp 16-10-2026)
+            naKaartje={
+              i === 0 ? (
+                <div className={stijl.alleenMobiel}>
+                  <Jouwstatus regels={regels} />
+                </div>
+              ) : undefined
+            }
           />
         ) : null;
       })}
