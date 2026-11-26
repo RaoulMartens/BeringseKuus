@@ -26,6 +26,15 @@
   color: var(--neutraal-tekst);
 }
 
+/* focus (ook bij klikken, want in een veld typ je): de donkere rand van 1 px met een zachte ring erbuiten, zoals het ontwerp
+   (stijl.css sectie 7, "geopend veld"). De globale focusrand (2 px primair, 4 px afstand) is voor een veld te zwaar en loopt over
+   het label erboven. De rand wordt donker, dus het verschil met een veld zonder focus blijft ruim boven 3:1 (WCAG 1.4.11). */
+.input:focus-visible {
+  outline: none;
+  border-color: var(--neutraal-tekst);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--neutraal-tekst) 10%, transparent);
+}
+
 /* een rode rand van 1 px zoals elk veld, met een rode vulling; de melding eronder maakt de fout duidelijk */
 .fout {
   border-color: var(--status-fout);
