@@ -13,15 +13,24 @@ interface Eigenschappen {
   kop?: 'h2' | 'h3';
   /** Een zachte regel onder de titel. */
   ondertitel?: string;
+  /** Iets dat rechts van de titel staat, bijvoorbeeld een schakelaar. */
+  actie?: ReactNode;
   /** De kaart bestaat uit een Lijst: de rijen lopen over de volle breedte. */
   lijst?: boolean;
   children: ReactNode;
 }
 
-export function Kaart({ titel, kop: Kop = 'h2', ondertitel, lijst, children }: Eigenschappen) {
+export function Kaart({ titel, kop: Kop = 'h2', ondertitel, actie, lijst, children }: Eigenschappen) {
   const kop = titel ? (
     <div className={lijst ? stijl.lijstKop : stijl.kop}>
-      <Kop className={stijl.titel}>{titel}</Kop>
+      {actie ? (
+        <div className={stijl.titelrij}>
+          <Kop className={stijl.titel}>{titel}</Kop>
+          {actie}
+        </div>
+      ) : (
+        <Kop className={stijl.titel}>{titel}</Kop>
+      )}
       {ondertitel && <p className={stijl.ondertitel}>{ondertitel}</p>}
     </div>
   ) : null;

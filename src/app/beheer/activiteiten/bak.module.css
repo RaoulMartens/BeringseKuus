@@ -5,21 +5,6 @@
   gap: 20px;
 }
 
-.schakelaar {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-inline);
-  font: 600 0.875rem/1.4286 var(--font-tekst);
-  color: var(--neutraal-tekst);
-  cursor: pointer;
-}
-
-.schakelaar input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--thema-primair);
-}
-
 .uitleg {
   margin: 0;
   font-size: 0.875rem;
