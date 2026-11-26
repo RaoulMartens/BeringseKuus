@@ -12,6 +12,25 @@ const onderdelen = [
   { href: '/programma/mijn', label: 'Mijn diensten', stip: 3 as const, actief: true },
 ];
 
+describe('Bovenbalk: het logo', () => {
+  it('toont het logo als versiering vóór de naam, met lege alt-tekst', () => {
+    const uit = html(
+      <Bovenbalk
+        merk="De Vereniging"
+        logo={{ src: '/logo.svg', breedte: 470, hoogte: 750 }}
+        onderdelen={onderdelen}
+      />,
+    );
+    expect(uit).toMatch(/<img [^>]*alt=""/);
+    expect(uit).toContain('/logo.svg');
+    expect(uit.indexOf('<img')).toBeLessThan(uit.indexOf('De Vereniging'));
+  });
+
+  it('heeft zonder logo geen afbeelding', () => {
+    expect(html(<Bovenbalk merk="X" onderdelen={onderdelen} />)).not.toContain('<img');
+  });
+});
+
 describe('Bovenbalk: Beheer en je naam', () => {
   it('zet de knop Beheer buiten het menu, vóór je naam', () => {
     const uit = html(

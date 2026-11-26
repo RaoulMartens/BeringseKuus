@@ -4,6 +4,8 @@
 
 export const VERENIGING = {
   naam: 'De Beringse Kuus',
+  /** Het logo in de bovenbalk (public/logo.svg; bron en toestemming: docs/licenties.md). Maat in pixels, voor de verhouding. */
+  logo: { src: '/logo.svg', breedte: 470, hoogte: 750 },
   /** Het woord voor het seizoen: "Vastelaovend 2026/2027". */
   seizoensnaam: 'Vastelaovend',
   /** De groet op het welkomscherm: "Alaaf, Mark". */

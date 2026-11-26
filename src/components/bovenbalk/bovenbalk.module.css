@@ -16,6 +16,12 @@
   white-space: nowrap; /* de naam breekt nooit over meer regels */
 }
 
+.logo {
+  display: block;
+  height: 44px;
+  width: auto;
+}
+
 .naam {
   font: 700 1.125rem/1 var(--font-titel);
   letter-spacing: -0.01em;
@@ -146,10 +152,23 @@
   white-space: nowrap;
 }
 
-/* een telefoon: compacte balk zonder merk en naam (ontwerpbesluit) */
+/* een telefoon: compacte balk; het logo blijft, de naam is alleen visueel weg (hij blijft voor een schermlezer) */
 @media (max-width: 700px) {
   .merk {
-    display: none;
+    flex: 0 0 auto;
+  }
+
+  .logo {
+    height: 40px;
+  }
+
+  .naam {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 
   /* de naam is alleen visueel weg (niet display: none): hij blijft in de naam van de link */

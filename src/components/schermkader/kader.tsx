@@ -39,7 +39,13 @@ export function Kader({
 }: Eigenschappen) {
   return (
     <>
-      <Bovenbalk merk={VERENIGING.naam} onderdelen={onderdelen} beheer={beheer} gebruiker={gebruiker} />
+      <Bovenbalk
+        merk={VERENIGING.naam}
+        logo={VERENIGING.logo}
+        onderdelen={onderdelen}
+        beheer={beheer}
+        gebruiker={gebruiker}
+      />
       <main>
         {terug && (
           <nav className={stijl.terug} aria-label="Terug">

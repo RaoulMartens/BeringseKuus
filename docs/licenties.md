@@ -17,6 +17,8 @@ spreadsheets of csv.
 | `src/iconen/phosphor/regular/*.svg` | iconen | github.com/phosphor-icons/core, map `assets`, commit `2b75f3a` | MIT (`src/iconen/phosphor/LICENSE.txt`) | Phosphor Icons | n.v.t. (open licentie) |
 | `public/activiteiten-sjabloon.xlsx` | spreadsheet (sjabloon voor de import van activiteiten) | eigen werk van de bouwer (gebouwd met `docs/ux-flows/tools/sjabloon.py` in de ontwerpmap), alleen voorbeeldregels met verzonnen gegevens | n.v.t. (eigen werk) | de bouwer | n.v.t. (eigen werk) |
 | `src/iconen/phosphor/bold/*.svg` | iconen | github.com/phosphor-icons/core, map `assets`, commit `2b75f3a` | MIT (`src/iconen/phosphor/LICENSE.txt`) | Phosphor Icons | n.v.t. (open licentie) |
+| `public/logo.svg` | logo van de vereniging (bovenbalk) | vectorversie van het logo van C.V. De Beringse Kuus (www.beringsekuus.nl), door de bouwer overgetekend als svg | Auteursrecht van de vereniging; gebruikt met toestemming, alleen voor dit platform | C.V. De Beringse Kuus | het bestuur, via de opdrachtgever (26-11-2026) |
+| `src/app/icon.svg` | favicon (tabblad van de browser) | zelfde logo, bijgesneden tot een vierkant | Auteursrecht van de vereniging; gebruikt met toestemming, alleen voor dit platform | C.V. De Beringse Kuus | het bestuur, via de opdrachtgever (26-11-2026) |
 
 Niet in deze repository, bewust: de Central-iconen (licentie Iconists, vervangen door Phosphor, besluit 30-10-2026), foto's van de website van de
 vereniging, en elk Excel-bestand met echte gegevens. Het Excel-sjabloon met verzonnen voorbeeldregels staat er wel (eigen werk, zie de lijst hierboven).
