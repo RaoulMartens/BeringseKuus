@@ -98,23 +98,40 @@ function Aanmaken() {
   );
 }
 
-/** De ingang naar Beheerders, met de taak als regel (zoals "Vraagt aandacht" voor activiteiten): wie je nog moet bevestigen. */
-function Beheerderskaart({ aantal }: { aantal: number }) {
+/**
+ * De ingangen naar Leden en Beheerders in één kaart (wireframe admin-activiteiten, "Ledenbeheer"): de naam vet, daaronder de taak
+ * in woorden (wie nog niet is ingelogd, welke toegang nog bevestigd moet worden). Is er niets te doen, dan staat er dat.
+ */
+function Ledenbeheerkaart({
+  nogNietIngelogd,
+  teBevestigen,
+}: {
+  nogNietIngelogd: number;
+  teBevestigen: number;
+}) {
+  const rijen = [
+    {
+      href: '/beheer/leden',
+      naam: 'Leden',
+      taak: nogNietIngelogd === 0 ? null : ledenIngangTekst(nogNietIngelogd),
+    },
+    {
+      href: '/beheer/beheerders',
+      naam: 'Beheerders',
+      taak: teBevestigen === 0 ? null : ingangTekst(teBevestigen),
+    },
+  ];
   return (
-    <Kaart titel="Beheerders" label lijst>
+    <Kaart titel="Ledenbeheer" label lijst>
       <Lijst>
-        <Lijstrij href="/beheer/beheerders">{ingangTekst(aantal)}</Lijstrij>
-      </Lijst>
-    </Kaart>
-  );
-}
-
-/** De ingang naar Leden, met de taak als regel: wie nog niet is ingelogd. */
-function Ledenkaart({ nogNietIngelogd }: { nogNietIngelogd: number }) {
-  return (
-    <Kaart titel="Leden" label lijst>
-      <Lijst>
-        <Lijstrij href="/beheer/leden">{ledenIngangTekst(nogNietIngelogd)}</Lijstrij>
+        {rijen.map((rij) => (
+          <Lijstrij key={rij.href} href={rij.href}>
+            <span className={stijl.tekst}>
+              <strong className={stijl.ingang}>{rij.naam}</strong>
+              <span className={stijl.aanwezig}>{rij.taak ?? 'Niets te doen'}</span>
+            </span>
+          </Lijstrij>
+        ))}
       </Lijst>
     </Kaart>
   );
@@ -231,8 +248,7 @@ export default async function Beheer({
       zijkolom={
         <>
           <Aanmaken />
-          <Ledenkaart nogNietIngelogd={nogNietIngelogd} />
-          <Beheerderskaart aantal={teBevestigen} />
+          <Ledenbeheerkaart nogNietIngelogd={nogNietIngelogd} teBevestigen={teBevestigen} />
         </>
       }
     >
