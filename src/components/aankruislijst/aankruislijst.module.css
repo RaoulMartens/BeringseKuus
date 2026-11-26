@@ -25,6 +25,20 @@
   border-radius: var(--radius-control);
 }
 
+/* Een vast onderdeel van een formulier: geen kader en geen binnenrand, de vakjes staan als rijen in de kaart (de rand en de rondingen
+   horen bij een uitklapmenu). */
+.lijst.vast {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.vast .optie {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .optie {
   display: flex;
   align-items: center;

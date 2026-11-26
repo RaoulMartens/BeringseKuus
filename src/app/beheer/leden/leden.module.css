@@ -1,0 +1,126 @@
+/* De schermen van "Leden" (UC-013): lijstregels met een klein bolletje, het formulier van een lid en de bevestigingspagina's. Rustig: per scherm valt
+   één ding op (wat actie vraagt); de rest is grijs. Dezelfde tokens als de rest. */
+
+.formulier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+}
+
+.knoppen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Een regel in de lijst: een klein bolletje met initialen, de naam, en eronder de groepen of de taak. */
+.rij {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bol {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--neutraal-vlak);
+  color: var(--neutraal-tekst-zacht);
+  font: 700 0.75rem/1 var(--font-tekst);
+  letter-spacing: 0.02em;
+}
+
+.tekst {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.naam {
+  font-weight: 600;
+}
+
+.onder {
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+.zoek {
+  display: block;
+  width: 100%;
+  margin-bottom: 16px;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+.leeg {
+  margin: 0;
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* De gegevens van het lid: wat je niet wijzigt (het e-mailadres is waarmee het lid inlogt). */
+.gegevens {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 24px;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+}
+
+.gegevens dt {
+  color: var(--neutraal-tekst-zacht);
+}
+
+.gegevens dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hulp {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
+
+/* De activiteiten die een groepswijziging tegenhouden. */
+.blokkade {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+/* Wat er open valt bij inactief zetten. */
+.plekken {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .knoppen {
+    flex-direction: column;
+  }
+
+  .knoppen > * {
+    width: 100%;
+  }
+}
