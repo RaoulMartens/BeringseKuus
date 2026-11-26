@@ -8,6 +8,8 @@
 
 import { useState } from 'react';
 
+import { Icoon, type IcoonNaam } from '@/components/icoon/icoon';
+
 import stijl from './aankruislijst.module.css';
 
 export interface Optie {
@@ -31,6 +33,8 @@ interface Eigenschappen {
   vast?: boolean;
   /** Wordt aangeroepen met de nieuwe keuze, voor wie het aantal wijzigingen bijhoudt. */
   onWijzig?: (gekozen: string[]) => void;
+  /** Eerst één veld met de keuze (met dit icoon vooraan) en de vakjes pas na een klik, zoals "Voor wie" in het ontwerp. */
+  uitklapbaar?: { icoon: IcoonNaam };
   fout?: string;
 }
 
@@ -43,6 +47,7 @@ export function Aankruislijst({
   alles,
   vast,
   onWijzig,
+  uitklapbaar,
   fout,
 }: Eigenschappen) {
   const [gekozenNu, zetGekozen] = useState<string[]>(gekozen);
@@ -59,10 +64,43 @@ export function Aankruislijst({
     kies(gekozenNu.includes(waarde) ? gekozenNu.filter((w) => w !== waarde) : [...gekozenNu, waarde]);
   }
 
+  // Uitklapbaar: een veld met wat er is gekozen ("Iedereen", "Bestuur, Raad van Elf"); een klik toont de vakjes eronder. Ze blijven
+  // in de pagina als ze dicht zijn (verborgen, niet weg), dus de keuze gaat ook dicht gewoon mee met het formulier.
+  const [open, zetOpen] = useState(Boolean(fout));
+  const lijstId = `${naam}-lijst`;
+  const samenvatting =
+    gekozenNu.length === 0
+      ? (alles?.label ?? 'Niets gekozen')
+      : opties
+          .filter((optie) => gekozenNu.includes(optie.waarde))
+          .map((optie) => optie.label)
+          .join(', ');
+
   return (
     <fieldset className={stijl.groep} aria-describedby={beschrijving}>
       <legend className={stijl.legenda}>{legenda}</legend>
-      <ul className={[stijl.lijst, vast ? stijl.vast : undefined].filter(Boolean).join(' ')}>
+      {uitklapbaar && (
+        <button
+          type="button"
+          className={stijl.keuzeveld}
+          aria-expanded={open}
+          aria-controls={lijstId}
+          onClick={() => zetOpen(!open)}
+        >
+          <span className={stijl.keuzeIcoon}>
+            <Icoon naam={uitklapbaar.icoon} />
+          </span>
+          <span className={stijl.keuzeTekst}>{samenvatting}</span>
+          <span className={[stijl.chevron, open ? stijl.chevronOpen : undefined].filter(Boolean).join(' ')}>
+            <Icoon naam="chevron-omlaag" />
+          </span>
+        </button>
+      )}
+      <ul
+        id={lijstId}
+        hidden={uitklapbaar ? !open : undefined}
+        className={[stijl.lijst, vast ? stijl.vast : undefined].filter(Boolean).join(' ')}
+      >
         {alles && (
           <li>
             <label className={stijl.optie}>

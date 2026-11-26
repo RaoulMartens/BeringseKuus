@@ -15,16 +15,21 @@ type Eigenschappen = Omit<
   fout?: string;
   /** Een wijziging die nog niet is opgeslagen. */
   gewijzigd?: boolean;
+  /** Het label is er voor schermlezers maar niet te zien: de kaart eromheen heeft al dezelfde titel. */
+  labelVerborgen?: boolean;
 };
 
-export function Tekstvak({ id, label, hulp, fout, gewijzigd, ...invoer }: Eigenschappen) {
+export function Tekstvak({ id, label, hulp, fout, gewijzigd, labelVerborgen, ...invoer }: Eigenschappen) {
   const hulpId = hulp ? `${id}-hulp` : undefined;
   const foutId = fout ? `${id}-fout` : undefined;
   const beschrijving = [foutId, hulpId].filter(Boolean).join(' ') || undefined;
 
   return (
     <div className={stijl.veld}>
-      <label htmlFor={id} className={stijl.label}>
+      <label
+        htmlFor={id}
+        className={[stijl.label, labelVerborgen ? stijl.verborgen : undefined].filter(Boolean).join(' ')}
+      >
         {label}
       </label>
       <div className={stijl.invoer}>

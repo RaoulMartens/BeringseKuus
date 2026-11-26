@@ -5,7 +5,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
-import { logInAlsBeheerder, ruimActiviteitenOp, voegPlekToe } from './beheer-hulp.ts';
+import { logInAlsBeheerder, openVoorWie, ruimActiviteitenOp, voegPlekToe } from './beheer-hulp.ts';
 import { psql } from './database-hulp.ts';
 import { nieuwAdres } from './inloggen-hulp.ts';
 import { bevestigAdresVoor, maakLidMetRol, ruimLidOp } from './mfa-hulp.ts';
@@ -57,7 +57,9 @@ test('een nieuw concept aanmaken met een doelgroep en plekken, en terug in het o
   await expect(page.getByRole('heading', { level: 2, name: 'Concept' })).toBeVisible();
 
   await vulIn(page, naam, '2099-03-05');
+  await openVoorWie(page);
   await page.getByRole('checkbox', { name: /Bestuur/ }).check();
+  await openVoorWie(page);
   await expect(page.getByRole('checkbox', { name: /Iedereen/ })).not.toBeChecked();
   await voegPlekToe(page, 'tapper');
   await voegPlekToe(page, 'tapper');
@@ -128,6 +130,7 @@ test('een fout staat bij het veld en wat je had ingevuld blijft staan', async ({
   await page.getByLabel('Starttijd *').fill('20:00');
   await page.getByLabel('Eindtijd *').fill('20:00');
   await page.getByLabel('Locatie *').fill('Testlocatie');
+  await openVoorWie(page);
   await page.getByRole('checkbox', { name: /Dames/ }).check();
   await voegPlekToe(page, 'drankhaler');
   await opslaan(page).click();
@@ -135,7 +138,9 @@ test('een fout staat bij het veld en wat je had ingevuld blijft staan', async ({
   await expect(page.getByLabel('Eindtijd *')).toHaveAccessibleDescription(/gelijk zijn aan de starttijd/);
   await expect(page.getByLabel('Naam *')).toHaveValue(naam);
   await expect(page.getByLabel('Locatie *')).toHaveValue('Testlocatie');
+  await openVoorWie(page);
   await expect(page.getByRole('checkbox', { name: /Dames/ })).toBeChecked();
+  await openVoorWie(page);
   await expect(page.getByRole('checkbox', { name: /Iedereen/ })).not.toBeChecked();
   await expect(page.getByRole('button', { name: 'Nieuwe plek 1 van drankhaler weghalen' })).toBeVisible();
 
@@ -169,7 +174,8 @@ test('een concept bewerken: de velden staan er, een lege plek gaat weg en de ver
   // Open het concept via de regel in het overzicht.
   await page.getByRole('link', { name: new RegExp(naam) }).click();
   await expect(page).toHaveURL(/\/beheer\/activiteiten\/[0-9a-f-]{36}$/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${naam} — zondag 8 maart`);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(naam);
+  await expect(page.getByRole('main').getByText('Zondag 8 maart')).toBeVisible();
   await expect(page.getByLabel('Naam *')).toHaveValue(naam);
   await expect(page.getByLabel('Starttijd *')).toHaveValue('14:00');
   await expect(page.getByLabel('Locatie *')).toHaveValue('Testlocatie');
@@ -287,6 +293,7 @@ test('het formulier heeft geen toegankelijkheidsfouten en schuift niet opzij', a
     if (toestand === 'met fouten') {
       await vulIn(page, naam, '2099-03-11');
       await voegPlekToe(page, 'fotograaf');
+      await openVoorWie(page);
       await page.getByRole('checkbox', { name: /Raad van Elf/ }).check();
     }
   }

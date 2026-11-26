@@ -67,6 +67,7 @@ export function Bak({ begin, raadsleden, leden, fout }: Eigenschappen) {
       titel="Bak"
       ondertitel="Voor activiteiten waar mensen in de bak zitten, zoals de Bonte Avond. Alleen jij wijzigt de bak; leden zien wie erin zit."
       actie={<Schakelaar naam="Bak bijhouden bij deze activiteit" aan={actief} onWissel={zetAan} />}
+      leeg={!actief && !fout}
     >
       <input type="hidden" name="bak" value={bakNaarTekst(actief, plekken)} />
       <div className={stijl.bak}>

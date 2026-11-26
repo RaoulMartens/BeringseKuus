@@ -16,6 +16,60 @@
   color: var(--neutraal-tekst-zacht);
 }
 
+/* Het veld dat de keuze toont en de vakjes uitklapt (docs/visueel: `.wf-kiesveld` met `.wf-met-icoon`): dezelfde hoogte, rand en
+   hoek als elk veld, een icoon vooraan en een pijl achteraan. */
+.keuzeveld {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+  text-align: left;
+  cursor: pointer;
+}
+
+.keuzeveld:focus-visible {
+  outline: none;
+  border-color: var(--neutraal-tekst);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--neutraal-tekst) 10%, transparent);
+}
+
+.keuzeIcoon,
+.chevron {
+  flex: none;
+  display: inline-flex;
+  font-size: 1rem;
+}
+
+.keuzeTekst {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  color: var(--neutraal-tekst-zacht);
+  transition: transform 0.15s;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+@supports (corner-shape: squircle) {
+  .keuzeveld {
+    corner-shape: squircle;
+  }
+}
+
 .lijst {
   list-style: none;
   margin: 0;

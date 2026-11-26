@@ -91,3 +91,12 @@ export async function voegPlekToe(page: Page, rol: string): Promise<void> {
   await page.getByLabel('Plek toevoegen', { exact: true }).selectOption(rol);
   await page.getByRole('button', { name: 'Toevoegen', exact: true }).click();
 }
+
+/**
+ * "Voor wie" is een veld met de gekozen groepen; de vakjes staan pas onder het veld na een klik. Opent ze als ze dicht zijn,
+ * zodat een test een groep kan aan- of uitkruisen.
+ */
+export async function openVoorWie(page: Page): Promise<void> {
+  const knop = page.locator('button[aria-controls="groep-lijst"]');
+  if ((await knop.getAttribute('aria-expanded')) !== 'true') await knop.click();
+}

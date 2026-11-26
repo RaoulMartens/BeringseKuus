@@ -55,6 +55,17 @@
   padding-bottom: 8px;
 }
 
+/* een kaart zonder inhoud onder de kop: de opvulling van de kaart is genoeg, de ruimte tussen kop en inhoud is er dan te veel */
+.kopLeeg,
+.lijstKop.kopLeeg,
+.labelKop.kopLeeg {
+  margin-bottom: 0;
+}
+
+.lijstKop.kopLeeg {
+  padding-bottom: var(--padding-card);
+}
+
 .ondertitel {
   margin: 0;
   font-size: 0.875rem;

@@ -39,7 +39,10 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
   const activiteit = await leesActiviteit(supabase, id.data);
   if (!activiteit) notFound();
 
-  const titel = `${activiteit.naam} — ${langeDag(activiteit.datum)}`;
+  // De titel is de naam, de dag staat klein erboven (zoals in het ontwerp); lange namen breken zo niet af achter een streepje.
+  const titel = activiteit.naam;
+  const dag = langeDag(activiteit.datum);
+  const datum = dag.charAt(0).toUpperCase() + dag.slice(1);
   const terug = { href: '/beheer', tekst: 'Terug naar activiteiten' };
 
   // Een geannuleerde activiteit is niet te wijzigen (annuleren is buiten de MVP); het scherm toont wat er staat.
@@ -49,6 +52,7 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
       <Schermkader
         actief="beheer"
         titel={titel}
+        datum={datum}
         terug={terug}
         zijkolom={
           <Statuspaneel status="Geannuleerd" uitleg="Leden zien dat deze activiteit niet doorgaat." />
@@ -86,6 +90,7 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
     <Schermkader
       actief="beheer"
       titel={titel}
+      datum={datum}
       terug={terug}
       zijkolom={
         gepubliceerd ? (

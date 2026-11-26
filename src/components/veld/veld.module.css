@@ -14,6 +14,18 @@
   position: relative;
 }
 
+/* alleen voor schermlezers */
+.verborgen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .input {
   display: block;
   width: 100%;
@@ -24,6 +36,47 @@
   padding: 10px var(--padding-control-x);
   font: 400 0.875rem/1.4286 var(--font-tekst);
   color: var(--neutraal-tekst);
+}
+
+/* een icoon vooraan in het veld (docs/visueel: `.wf-met-icoon`): de invoer schuift op, het icoon staat erbij en vangt geen klik */
+.metIcoon .input {
+  padding-left: 42px;
+}
+
+.icoon {
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: 1rem;
+  color: var(--neutraal-tekst);
+  pointer-events: none;
+  /* boven het veld: een datum- of tijdveld heeft `position: relative` (voor de klikvlak van de browser) en zou het icoon anders bedekken */
+  z-index: 1;
+}
+
+/* Datum en tijd zijn gewone velden van de browser (kalender en tijdkiezer, ook op een telefoon), maar zonder het eigen icoontje
+   van de browser achteraan: dat is er twee keer. De knop van de browser ligt onzichtbaar over het hele veld, zodat een klik de
+   kiezer opent; met het toetsenbord blijven de onderdelen (dag, maand, uur, minuut) gewoon te bewerken. */
+.input[type='date'],
+.input[type='time'],
+.input[type='datetime-local'] {
+  position: relative;
+}
+
+.input[type='date']::-webkit-calendar-picker-indicator,
+.input[type='time']::-webkit-calendar-picker-indicator,
+.input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 /* focus (ook bij klikken, want in een veld typ je): de donkere rand van 1 px met een zachte ring erbuiten, zoals het ontwerp

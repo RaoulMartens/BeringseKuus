@@ -7,6 +7,8 @@
 
 import type { ComponentPropsWithoutRef } from 'react';
 
+import { Icoon, type IcoonNaam } from '@/components/icoon/icoon';
+
 import stijl from './veld.module.css';
 
 type Eigenschappen = Omit<
@@ -21,9 +23,11 @@ type Eigenschappen = Omit<
   fout?: string;
   /** Een wijziging die nog niet is opgeslagen. */
   gewijzigd?: boolean;
+  /** Een icoon vooraan in het veld (kalender, klok, locatie, bus): wat voor soort waarde er hoort. Versiering, niet voorgelezen. */
+  icoon?: IcoonNaam;
 };
 
-export function Veld({ id, label, hulp, fout, gewijzigd, ...invoer }: Eigenschappen) {
+export function Veld({ id, label, hulp, fout, gewijzigd, icoon, ...invoer }: Eigenschappen) {
   const hulpId = hulp ? `${id}-hulp` : undefined;
   const foutId = fout ? `${id}-fout` : undefined;
   const beschrijving = [foutId, hulpId].filter(Boolean).join(' ') || undefined;
@@ -33,7 +37,12 @@ export function Veld({ id, label, hulp, fout, gewijzigd, ...invoer }: Eigenschap
       <label htmlFor={id} className={stijl.label}>
         {label}
       </label>
-      <div className={stijl.invoer}>
+      <div className={[stijl.invoer, icoon ? stijl.metIcoon : undefined].filter(Boolean).join(' ')}>
+        {icoon && (
+          <span className={stijl.icoon}>
+            <Icoon naam={icoon} />
+          </span>
+        )}
         <input
           {...invoer}
           id={id}

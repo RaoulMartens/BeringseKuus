@@ -22,14 +22,29 @@ interface Eigenschappen {
    * ding op: de kaart waar de actie zit houdt de grote titel, de overige kaarten zijn labels.
    */
   label?: boolean;
+  /** Er staat (nu) niets onder de kop, bijvoorbeeld een kaart met een schakelaar die uit staat: dan geen lege ruimte onderaan. */
+  leeg?: boolean;
   children: ReactNode;
 }
 
-export function Kaart({ titel, kop: Kop = 'h2', ondertitel, actie, lijst, label, children }: Eigenschappen) {
+export function Kaart({
+  titel,
+  kop: Kop = 'h2',
+  ondertitel,
+  actie,
+  lijst,
+  label,
+  leeg,
+  children,
+}: Eigenschappen) {
   const titelKlasse = label ? stijl.label : stijl.titel;
   const kop = titel ? (
     <div
-      className={[lijst ? stijl.lijstKop : stijl.kop, label ? stijl.labelKop : undefined]
+      className={[
+        lijst ? stijl.lijstKop : stijl.kop,
+        label ? stijl.labelKop : undefined,
+        leeg ? stijl.kopLeeg : undefined,
+      ]
         .filter(Boolean)
         .join(' ')}
     >
