@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 
+import { Icoon } from '@/components/icoon/icoon';
 import { Kaart } from '@/components/kaart/kaart';
 import { Knop } from '@/components/knop/knop';
+import { Melding } from '@/components/melding/melding';
+import { rolIcoon } from '@/components/rolbezetting/rolbezetting';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { Stappenbalk } from '@/components/stappenbalk/stappenbalk';
 import { Vervangerkeuze } from '@/components/vervangerkeuze/vervangerkeuze';
@@ -10,9 +13,12 @@ import { langeDag, tijdTekst } from '@/lib/programma';
 import { leesTaak } from '@/lib/ruilen';
 
 import stijl from '../../afmelden/afmelden.module.css';
+import ledenstijl from '../../ledenscherm.module.css';
 import { laadOverdracht } from '../context';
 import { GeenOverdracht } from '../geen-overdracht';
 import { leesContact, leesVervangers } from '../gegevens';
+
+import kies from './kies.module.css';
 
 export const metadata: Metadata = { title: 'Dienst overdragen – Ledenplatform' };
 
@@ -21,6 +27,9 @@ export const metadata: Metadata = { title: 'Dienst overdragen – Ledenplatform'
  * alleen de uitkomst vast (R3). Wie niet te kiezen is, staat er grijs bij met de reden. Hoort de overdracht bij afmelden
  * (`?taak=afmelden`), dan staat de Stappenbalk erbij en loopt het lid na de bevestiging door naar het afmelden (UC-003 AF-1).
  * Deze pagina wijzigt niets: het formulier gaat naar de bevestiging.
+ *
+ * Opbouw als in het ontwerp (ruilen-kies-vervanger): links de uitleg en de lijst met namen, rechts de dienst die je overdraagt en wat
+ * als je geen vervanger vindt. Op een telefoon staat de dienst direct onder de uitleg en "Geen vervanger gevonden?" onderaan.
  */
 export default async function KiesVervanger({
   params,
@@ -48,11 +57,51 @@ export default async function KiesVervanger({
     .join(', ');
   const kiesbaar = vervangers.some((v) => v.beschikbaar);
 
+  const dienstKaart = (
+    <Kaart titel="Dienst die je overdraagt" label>
+      <div className={kies.bestand}>
+        <span className={kies.icoontegel}>
+          <Icoon naam={rolIcoon(dienst.rol)} />
+        </span>
+        <span className={kies.bestandTekst}>
+          <strong>{rol}</strong>
+          <span className={kies.sub}>
+            {activiteit.naam} — {langeDag(activiteit.datum)}
+          </span>
+        </span>
+      </div>
+      {tijden && <p className={kies.detail}>{tijden}.</p>}
+    </Kaart>
+  );
+
   return (
     <Schermkader
       actief="start"
       titel="Wie neemt je dienst over?"
       terug={{ href: '/', tekst: 'Terug naar start' }}
+      zijkolom={
+        <>
+          <div className={ledenstijl.nietOpMobiel}>{dienstKaart}</div>
+          <Kaart titel="Geen vervanger gevonden?">
+            <p className={stijl.tekst}>
+              {taak
+                ? 'Dan kun je je niet afmelden en blijft de dienst bij jou staan. Er wordt niets automatisch vrijgegeven.'
+                : 'Dan blijft de dienst bij jou staan. Er wordt niets automatisch vrijgegeven.'}
+            </p>
+            {contact && (
+              <div className={kies.contact}>
+                <Melding soort="info">
+                  Kom je er niet uit? Bel {contact.naam}, de eindverantwoordelijke:{' '}
+                  <strong>
+                    <a href={`tel:${contact.telefoon.replace(/[^\d+]/g, '')}`}>{contact.telefoon}</a>
+                  </strong>
+                  .
+                </Melding>
+              </div>
+            )}
+          </Kaart>
+        </>
+      }
     >
       {taak && (
         <Stappenbalk
@@ -62,34 +111,17 @@ export default async function KiesVervanger({
           ]}
         />
       )}
-      <p className={stijl.tekst}>
-        Regel zelf even met diegene dat hij of zij je dienst als {rol.toLowerCase()} overneemt; hier leg je
-        alleen de uitkomst vast. Na bevestigen is de dienst direct van de ander, zonder goedkeuring.
-      </p>
+      <Melding soort="info">
+        De afstemming regel je zelf, buiten de app; hier leg je alleen de uitkomst vast. Na bevestigen is de
+        dienst direct van de ander, zonder goedkeuring.
+      </Melding>
+      <div className={ledenstijl.alleenMobiel}>{dienstKaart}</div>
       <form method="get" action={`/ruilen/${activiteit.id}/bevestigen`} className={stijl.formulier}>
         {taak && <input type="hidden" name="taak" value={taak} />}
-        <Kaart titel="Dienst die je overdraagt">
-          <dl className={stijl.rijen}>
-            <div className={stijl.rij}>
-              <dt>Rol</dt>
-              <dd>{rol}</dd>
-            </div>
-            <div className={stijl.rij}>
-              <dt>Activiteit</dt>
-              <dd>
-                {activiteit.naam} — {langeDag(activiteit.datum)}
-              </dd>
-            </div>
-            {tijden && (
-              <div className={stijl.rij}>
-                <dt>Tijden</dt>
-                <dd>{tijden}</dd>
-              </div>
-            )}
-          </dl>
-        </Kaart>
         {kiesbaar ? (
-          <Vervangerkeuze vervangers={vervangers} />
+          <Kaart>
+            <Vervangerkeuze vervangers={vervangers} />
+          </Kaart>
         ) : (
           <Kaart titel="Niemand kan nu overnemen">
             <p className={stijl.tekst}>
@@ -99,25 +131,16 @@ export default async function KiesVervanger({
           </Kaart>
         )}
         <div className={stijl.knoppen}>
-          {kiesbaar && <Knop type="submit">Verder</Knop>}
+          {kiesbaar && (
+            <Knop type="submit" soort="positief">
+              Verder
+            </Knop>
+          )}
           <Knop href="/" soort="tekst">
             Annuleren
           </Knop>
         </div>
       </form>
-      <Kaart titel="Geen vervanger gevonden?">
-        <p className={stijl.tekst}>
-          {taak
-            ? 'Dan kun je je niet afmelden en blijft de dienst bij jou staan. Er wordt niets automatisch vrijgegeven.'
-            : 'Dan blijft de dienst bij jou staan. Er wordt niets automatisch vrijgegeven.'}
-        </p>
-        {contact && (
-          <p className={stijl.tekst}>
-            Kom je er niet uit? Bel {contact.naam}, de eindverantwoordelijke:{' '}
-            <a href={`tel:${contact.telefoon.replace(/[^\d+]/g, '')}`}>{contact.telefoon}</a>.
-          </p>
-        )}
-      </Kaart>
     </Schermkader>
   );
 }
