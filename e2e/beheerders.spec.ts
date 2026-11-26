@@ -37,7 +37,8 @@ test('een beheerder maakt een lid beheerder, bevestigt de toegang en trekt de re
 
   // De ingang staat op het activiteitenoverzicht.
   await page.goto('/beheer');
-  await page.getByRole('link', { name: /Beheerders bekijken|toegang(en)? bevestigen/ }).click();
+  // Eén kaart "Ledenbeheer" met een rij Leden en een rij Beheerders; de naam staat vooraan in de naam van de link.
+  await page.getByRole('link', { name: /^Beheerders\b/ }).click();
   await expect(page).toHaveURL(/\/beheer\/beheerders$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Beheerders' })).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);

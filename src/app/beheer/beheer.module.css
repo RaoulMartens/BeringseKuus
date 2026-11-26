@@ -42,6 +42,11 @@
   overflow-wrap: anywhere;
 }
 
+/* de naam van een ingang in de kaart Ledenbeheer: vet, maar rustiger dan de naam van een activiteit */
+.ingang {
+  font: 600 1rem/1.5 var(--font-tekst);
+}
+
 .tijd {
   font-weight: 400;
   color: var(--neutraal-tekst-zacht);
