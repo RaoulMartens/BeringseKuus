@@ -39,6 +39,12 @@
   padding-right: 0;
 }
 
+/* een rij zonder opvulling links en rechts krijgt geen grijs vlak bij hover: dat plakt dan aan de rand van de kaart. Het ontwerp
+   toont hover alleen op rijen die een link zijn; het vakje en de aanwijzer zeggen genoeg dat de rij klikbaar is. */
+.vast .optie:hover {
+  background: none;
+}
+
 .optie {
   display: flex;
   align-items: center;

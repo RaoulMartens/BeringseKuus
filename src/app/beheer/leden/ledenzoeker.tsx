@@ -28,7 +28,7 @@ export function Ledenzoeker({ titel, leden }: { titel: string; leden: Ledenregel
   const zichtbaar = gezocht ? leden.filter((l) => l.naam.toLowerCase().includes(gezocht)) : leden;
 
   return (
-    <Kaart titel={titel}>
+    <Kaart titel={titel} label>
       <label className={stijl.onder} htmlFor="zoek-lid">
         Zoek een lid
       </label>

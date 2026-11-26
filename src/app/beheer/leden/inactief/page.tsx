@@ -24,7 +24,7 @@ export default async function InactieveLeden() {
       titel="Inactieve leden"
       terug={{ href: '/beheer/leden', tekst: 'Terug naar leden' }}
       zijkolom={
-        <Kaart titel="Tonen">
+        <Kaart titel="Tonen" label>
           <Tellers
             klein
             naam="Leden tonen"
@@ -42,7 +42,7 @@ export default async function InactieveLeden() {
       }
     >
       {overzicht.inactief.length === 0 ? (
-        <Kaart titel="Inactief">
+        <Kaart titel="Inactief" label>
           <p className={stijl.hulp}>Er zijn geen inactieve leden.</p>
         </Kaart>
       ) : (

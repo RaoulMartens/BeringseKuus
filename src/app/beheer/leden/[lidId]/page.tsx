@@ -54,9 +54,9 @@ export default async function LidPagina({ params }: { params: Promise<{ lidId: s
         terug={{ href: '/beheer/leden', tekst: 'Terug naar leden' }}
         zijkolom={
           <>
-            <Kaart titel="Komende diensten" lijst>
+            <Kaart titel="Komende diensten" label lijst={lid.diensten.length > 0}>
               {lid.diensten.length === 0 ? (
-                <p className={stijl.hulp}>Geen komende diensten.</p>
+                <p className={stijl.leeg}>Geen komende diensten.</p>
               ) : (
                 <Lijst>
                   {lid.diensten.map((d) => (
@@ -79,15 +79,19 @@ export default async function LidPagina({ params }: { params: Promise<{ lidId: s
           </>
         }
       >
-        <Kaart titel="Gegevens">
+        <Kaart titel="Gegevens" label>
           <dl className={stijl.gegevens}>
-            <dt>E-mailadres</dt>
-            <dd>{lid.email}</dd>
-            <dt>Ingelogd</dt>
-            <dd>{ingelogdTekst(lid.laatstIngelogd)}</dd>
+            <div>
+              <dt>E-mailadres</dt>
+              <dd>{lid.email}</dd>
+            </div>
+            <div>
+              <dt>Ingelogd</dt>
+              <dd>{ingelogdTekst(lid.laatstIngelogd)}</dd>
+            </div>
           </dl>
           <p className={stijl.hulp}>
-            Het e-mailadres kun je hier niet wijzigen: daarmee logt {lid.voornaam} in.
+            Het e-mailadres kun je hier niet wijzigen: dat is waarmee {lid.voornaam} inlogt.
           </p>
         </Kaart>
         <Lidformulier

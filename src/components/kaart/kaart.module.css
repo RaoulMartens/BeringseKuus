@@ -39,6 +39,22 @@
   color: var(--thema-primair-tekst);
 }
 
+/* een kaart met een label: klein en grijs, zoals .wf-label; de ruimte eronder is die van .wf-spacer (16 px) */
+.label {
+  margin: 0;
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.labelKop {
+  margin-bottom: 16px;
+}
+
+.lijstKop.labelKop {
+  margin-bottom: 0;
+  padding-bottom: 8px;
+}
+
 .ondertitel {
   margin: 0;
   font-size: 0.875rem;
