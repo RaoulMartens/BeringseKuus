@@ -46,7 +46,7 @@ function Maandkaart({
   zichtbaarAlsLid: Set<string>;
 }) {
   return (
-    <Kaart titel={maand.titel} kop={kop} lijst>
+    <Kaart titel={maand.titel} kop={kop} label lijst>
       <Lijst>
         {groepeerReeksen(maand.activiteiten).map((item) => {
           if (item.soort === 'reeks') {

@@ -130,6 +130,22 @@
   color: var(--status-fout);
 }
 
+/* een rustige tekstlink: grijze tekst, geen rand en geen icoon; het ontwerp gebruikt hem voor een tweede handeling in een lijstrij */
+.link {
+  background: none;
+  border-color: transparent;
+  color: var(--neutraal-tekst-zacht);
+  font-weight: 600;
+}
+.link svg {
+  display: none;
+}
+.link:hover:not(:disabled) {
+  color: var(--neutraal-tekst);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .knop:disabled {
   background: var(--neutraal-lijn);
   border-color: var(--neutraal-lijn);

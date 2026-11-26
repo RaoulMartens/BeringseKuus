@@ -70,7 +70,7 @@ test('een nieuw concept aanmaken met een doelgroep en plekken, en terug in het o
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=[0-9a-f-]{36}$/);
   await expect(page.getByText(`${naam} is opgeslagen als concept.`)).toBeVisible();
   const rij = page.getByRole('listitem').filter({ hasText: naam });
-  await expect(rij).toContainText('Concept');
+  await expect(rij).toContainText('concept');
   await expect(rij).toContainText('Eindverantwoordelijke invullen, 2 tappers indelen');
 
   const id = activiteitId(naam);

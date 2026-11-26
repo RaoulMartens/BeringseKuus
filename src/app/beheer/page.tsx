@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { z } from 'zod';
 
+import { Datumblok } from '@/components/datumblok/datumblok';
 import { Kaart } from '@/components/kaart/kaart';
 import { Knop } from '@/components/knop/knop';
 import { Lijst, Lijstrij } from '@/components/lijst/lijst';
@@ -22,7 +23,7 @@ import {
 import { aantalTeBevestigen, ingangTekst } from '@/lib/beheerders';
 import { ledenIngangTekst, maakLedenoverzicht } from '@/lib/leden';
 import { huidigeGebruiker } from '@/lib/gebruiker';
-import { vandaagInNederland } from '@/lib/programma';
+import { dagTekst, maandKort, vandaagInNederland } from '@/lib/programma';
 import { naamUitLog } from '@/lib/verwijderen';
 import { maakSupabase } from '@/lib/supabase/server';
 
@@ -44,6 +45,21 @@ const LEEG: Record<Exclude<Filter, 'alles'>, string> = {
   concepten: 'Er zijn geen concepten.',
 };
 
+/** Het datumblok van een regel: vandaag en morgen als woord (in de themakleur), anders weekdag, dag en maand. */
+function Dagblok({ regel }: { regel: OverzichtRegel }) {
+  const nabij = regel.dag === 'Vandaag' || regel.dag === 'Morgen';
+  const dag = dagTekst(regel.datum);
+  return (
+    <Datumblok
+      weekdag={nabij ? regel.dag : dag.weekdag}
+      dag={dag.dag}
+      maand={nabij ? undefined : maandKort(regel.datum)}
+      lang={nabij ? `${regel.dag}, ${dag.lang}` : dag.lang}
+      vandaag={nabij}
+    />
+  );
+}
+
 function Regels({ regels, zonderKop }: { regels: OverzichtRegel[]; zonderKop?: boolean }) {
   return (
     <Lijst zonderKop={zonderKop}>
@@ -53,25 +69,27 @@ function Regels({ regels, zonderKop }: { regels: OverzichtRegel[]; zonderKop?: b
         const regel = item.regel;
         return (
           <Lijstrij key={regel.id} href={`/beheer/activiteiten/${regel.id}`}>
-            <span className={stijl.rijInhoud}>
-              <span className={stijl.tekst}>
-                <span className={stijl.dag}>{regel.dag}</span>
-                <strong className={stijl.naam}>
-                  {regel.naam}
-                  {regel.tijd && <span className={stijl.tijd}> — {regel.tijd}</span>}
-                </strong>
-                {regel.taak && <span className={stijl.taak}>{regel.taak}</span>}
-                {!regel.taak && regel.aanwezigheid && (
-                  <span className={stijl.aanwezig}>{regel.aanwezigheid}</span>
+            <span className={stijl.metBlok}>
+              <Dagblok regel={regel} />
+              <span className={stijl.rijInhoud}>
+                <span className={stijl.tekst}>
+                  <strong className={stijl.naam}>
+                    {regel.naam}
+                    {regel.tijd && <span className={stijl.tijd}> — {regel.tijd}</span>}
+                  </strong>
+                  {regel.taak && <span className={stijl.taak}>{regel.taak}</span>}
+                  {!regel.taak && regel.aanwezigheid && (
+                    <span className={stijl.aanwezig}>{regel.aanwezigheid}</span>
+                  )}
+                </span>
+                {regel.status === 'concept' && (
+                  <span className={stijl.label}>
+                    <Statuslabel status="concept" compactOpTelefoon>
+                      concept
+                    </Statuslabel>
+                  </span>
                 )}
               </span>
-              {regel.status === 'concept' && (
-                <span className={stijl.label}>
-                  <Statuslabel status="concept" compactOpTelefoon>
-                    Concept
-                  </Statuslabel>
-                </span>
-              )}
             </span>
           </Lijstrij>
         );
@@ -86,12 +104,14 @@ function Aanmaken() {
     <div className={stijl.nietOpMobiel}>
       <Kaart titel="Nieuwe activiteit" ondertitel="Begint als concept. Leden zien hem pas als je publiceert.">
         <div className={stijl.knoppen}>
-          <Knop href="/beheer/activiteiten/nieuw" soort="positief" icoon="plus" icoonGewicht="bold" vol>
+          <Knop href="/beheer/activiteiten/nieuw" soort="positief" icoon="plus" icoonGewicht="bold">
             Activiteit aanmaken
           </Knop>
-          <Knop href="/beheer/activiteiten/bulk" soort="secundair" vol>
-            Meerdere tegelijk aanmaken
-          </Knop>
+          <div className={stijl.scheiding}>
+            <Knop href="/beheer/activiteiten/bulk" soort="secundair" icoon="kopie">
+              Meerdere tegelijk aanmaken
+            </Knop>
+          </div>
         </div>
       </Kaart>
     </div>

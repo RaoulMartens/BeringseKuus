@@ -9,6 +9,7 @@
 //   gevaar       gevaarlijke keuze die niet de hoofdactie is: witte knop met rode rand
 //   tekst        een knop met alleen een rand (Annuleren)
 //   tekst-gevaar een link-achtige rode tekst (Concept verwijderen)
+//   link         een rustige tekstlink in grijs, zonder rand (Rechten intrekken in een lijst)
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -18,7 +19,7 @@ import { Icoon, type IcoonNaam } from '@/components/icoon/icoon';
 import stijl from './knop.module.css';
 
 export type KnopSoort =
-  'primair' | 'positief' | 'negatief' | 'secundair' | 'gevaar' | 'tekst' | 'tekst-gevaar';
+  'primair' | 'positief' | 'negatief' | 'secundair' | 'gevaar' | 'tekst' | 'tekst-gevaar' | 'link';
 
 const KLASSE: Record<KnopSoort, string | undefined> = {
   primair: stijl.primair,
@@ -28,6 +29,7 @@ const KLASSE: Record<KnopSoort, string | undefined> = {
   gevaar: stijl.gevaar,
   tekst: stijl.tekst,
   'tekst-gevaar': stijl.tekstGevaar,
+  link: stijl.link,
 };
 
 interface Gedeeld {
