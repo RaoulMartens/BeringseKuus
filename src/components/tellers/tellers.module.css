@@ -1,16 +1,20 @@
-/* Tellers die ook filter zijn, overgenomen uit docs/visueel/stijl.css sectie 11 (tegels op een groot scherm, afgeronde
-   labels op een telefoon). Het gekozen filter: een zachte ring in de themakleur, de tekst blijft donker. */
+/* Tellers die ook filter zijn, overgenomen uit docs/visueel/stijl.css sectie 18 en 23: afgeronde labels naast elkaar, op elk scherm.
+   Eerst waren het op een groot scherm tegels met een getal van 2 rem; die wogen zwaarder dan de lijst waar ze bij horen, en leken op
+   knoppen. Het gekozen filter: een gevuld warmgrijs vlak en vette tekst, geen gekleurde ring (te luid voor iets dat alleen laat zien
+   welke lijst je ziet). Het vlak is donkerder dan de pagina en dan een witte kaart, dus het staat overal los. */
 .tellers {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .teller {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   background: var(--neutraal-kaart);
-  border-radius: var(--radius-card);
-  padding: 16px;
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
   font-size: 0.875rem;
   color: var(--neutraal-tekst-zacht);
   text-decoration: none;
@@ -21,15 +25,15 @@
 }
 
 .aantal {
-  display: block;
-  font: 700 2rem/1.25 var(--font-tekst);
-  letter-spacing: -0.01em;
+  font: 700 1rem/1.5 var(--font-tekst);
+  letter-spacing: 0;
   color: var(--neutraal-tekst);
 }
 
 .actief {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--thema-primair) 65%, white);
+  background: var(--neutraal-lijn);
   color: var(--neutraal-tekst);
+  font-weight: 700;
 }
 
 .nul,
@@ -37,46 +41,15 @@
   color: var(--neutraal-tekst-zacht);
 }
 
-@media (max-width: 700px) {
-  .tellers {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .teller {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    border-radius: var(--radius-full);
-    padding: 6px 14px;
-  }
-
-  .aantal {
-    display: inline;
-    font: 700 1rem/1.5 var(--font-tekst);
-    letter-spacing: 0;
-  }
+/* in een kaart (ledenbeheer) zijn de labels transparant: de kaart is al wit, en een wit label op wit valt weg */
+.inKaart .teller {
+  background: transparent;
 }
 
-/* De labels, ook op een groot scherm: voor een overzicht waar de getallen niet de inhoud zijn maar een filter (ledenbeheer: er valt één ding op,
-   wat actie vraagt, en dat is niet het aantal leden). Op een telefoon zijn alle tellers zo. */
-.klein {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.inKaart .teller:hover:not(.actief) {
+  background: var(--neutraal-hover);
 }
 
-.klein .teller {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  border-radius: var(--radius-full);
-  padding: 6px 14px;
-}
-
-.klein .aantal {
-  display: inline;
-  font: 700 1rem/1.5 var(--font-tekst);
-  letter-spacing: 0;
+.inKaart .actief {
+  background: var(--neutraal-lijn);
 }

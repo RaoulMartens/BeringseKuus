@@ -74,7 +74,9 @@ export default async function Overgedragen({
         </p>
       </Kaart>
       <div className={stijl.knoppen}>
-        <Knop href="/">Terug naar start</Knop>
+        <Knop href="/" soort="positief">
+          Terug naar start
+        </Knop>
         <Knop href={afmeldenHref(activiteit.id)} soort="secundair">
           Ook afmelden
         </Knop>

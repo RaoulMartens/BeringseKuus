@@ -57,7 +57,7 @@ export default async function Leden({
         <>
           <Kaart titel="Tonen" label>
             <Tellers
-              klein
+              inKaart
               naam="Leden tonen"
               tellers={[
                 { href: '/beheer/leden', aantal: overzicht.actief.length, label: 'actief', actief: true },
