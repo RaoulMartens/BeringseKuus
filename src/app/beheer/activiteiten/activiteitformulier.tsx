@@ -137,20 +137,23 @@ export function Activiteitformulier({
             defaultValue={waarde('naam')}
             fout={fouten.naam}
           />
-          <Veld
-            id="datum"
-            name="datum"
-            label="Datum *"
-            type="date"
-            defaultValue={waarde('datum')}
-            fout={fouten.datum}
-          />
-          <div className={stijl.rij}>
+          {/* Wanneer: de datum en de drie tijden in één rij (op een telefoon de datum eerst, daaronder de tijden). */}
+          <div className={stijl.wanneer}>
+            <Veld
+              id="datum"
+              name="datum"
+              label="Datum *"
+              type="date"
+              icoon="kalender"
+              defaultValue={waarde('datum')}
+              fout={fouten.datum}
+            />
             <Veld
               id="verzameltijd"
               name="verzameltijd"
               label="Verzameltijd"
               type="time"
+              icoon="klok"
               defaultValue={waarde('verzameltijd')}
               fout={fouten.verzameltijd}
             />
@@ -159,6 +162,7 @@ export function Activiteitformulier({
               name="starttijd"
               label="Starttijd *"
               type="time"
+              icoon="klok"
               defaultValue={waarde('starttijd')}
               fout={fouten.starttijd}
             />
@@ -167,6 +171,7 @@ export function Activiteitformulier({
               name="eindtijd"
               label="Eindtijd *"
               type="time"
+              icoon="klok"
               defaultValue={waarde('eindtijd')}
               fout={fouten.eindtijd}
             />
@@ -175,6 +180,7 @@ export function Activiteitformulier({
             id="locatie"
             name="locatie"
             label="Locatie *"
+            icoon="locatie"
             maxLength={200}
             defaultValue={waarde('locatie')}
             fout={fouten.locatie}
@@ -185,6 +191,7 @@ export function Activiteitformulier({
               name="bus_vertrektijd"
               label="Busvertrek"
               type="time"
+              icoon="bus"
               hulp="Leeg: er rijdt geen bus."
               defaultValue={waarde('bus_vertrektijd')}
               fout={fouten.bus_vertrektijd}
@@ -211,18 +218,24 @@ export function Activiteitformulier({
               toelichting: ledenTekst(groep.leden),
             }))}
             gekozen={staat.waarden?.groepen ?? begin.groepen}
+            uitklapbaar={{ icoon: 'groep' }}
             fout={fouten.groepen}
           />
-          <Tekstvak
-            id="notitie"
-            name="notitie"
-            label="Belangrijk om te weten"
-            maxLength={TEKENS_NOTITIE}
-            hulp="Vrij tekstveld, mag later worden aangevuld."
-            defaultValue={waarde('notitie')}
-            fout={fouten.notitie}
-          />
         </div>
+      </Kaart>
+
+      {/* Een eigen kaart met dezelfde titel als in het ontwerp; het label van het veld is er voor schermlezers. */}
+      <Kaart titel="Belangrijk om te weten">
+        <Tekstvak
+          id="notitie"
+          name="notitie"
+          label="Belangrijk om te weten"
+          labelVerborgen
+          maxLength={TEKENS_NOTITIE}
+          hulp="Vrij tekstveld, mag later worden aangevuld."
+          defaultValue={waarde('notitie')}
+          fout={fouten.notitie}
+        />
       </Kaart>
 
       <Kaart titel="Rolbezetting">

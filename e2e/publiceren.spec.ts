@@ -9,6 +9,7 @@ import {
   lidIdVan,
   logInAlsBeheerder,
   maakTestlid,
+  openVoorWie,
   ruimActiviteitenOp,
   ruimTestledenOp,
 } from './beheer-hulp.ts';
@@ -61,6 +62,7 @@ async function maakConcept(
   if (opties.groep) {
     // Wie op een plek staat, moet in de doelgroep zitten (R22): de eindverantwoordelijke dus ook.
     psql(`insert into public.lid_groep (lid_id, groep_id) values ('${ger.id}', '${opties.groep.id}');`);
+    await openVoorWie(page);
     await page.getByRole('checkbox', { name: new RegExp(opties.groep.naam) }).check();
   }
   await page.getByRole('button', { name: 'Opslaan als concept' }).click();
@@ -75,10 +77,10 @@ test('Publiceren vraagt eerst een bevestiging; Annuleren laat het concept staan,
   aangemaakt.push(await logInAlsBeheerder(page));
   const naam = maakNaam('stappen');
   const { id } = await maakConcept(page, naam, { eindtijd: true, telefoon: true });
-  await expect(page.getByRole('button', { name: 'Publiceren' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Publiceren', exact: true })).toBeVisible();
 
   // Het concept wordt bewaard en daarna volgt de bevestiging als eigen pagina, met de vraag als titel.
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
   await expect(page.getByRole('heading', { level: 1, name: `${naam} publiceren?` })).toBeVisible();
   await expect(page.getByText(/Zichtbaar voor: Alle \d+ actieve leden/)).toBeVisible();
@@ -99,9 +101,9 @@ test('Publiceren vraagt eerst een bevestiging; Annuleren laat het concept staan,
   expect(status(id)).toBe('concept');
 
   // Publiceren: naar het overzicht met een melding; de status is gepubliceerd en het staat in het log.
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(/\/beheer\?gepubliceerd=/);
   await expect(page.getByText(`${naam} is gepubliceerd.`)).toBeVisible();
   expect(status(id)).toBe('gepubliceerd');
@@ -121,7 +123,7 @@ test('zonder eindtijd of telefoonnummer kan de bevestiging niet worden gegeven',
   const naam = maakNaam('onvolledig');
   const { id } = await maakConcept(page, naam, { eindtijd: false, telefoon: false });
 
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
   await expect(page.getByText('Publiceren kan nog niet.')).toBeVisible();
   await expect(
@@ -137,7 +139,7 @@ test('zonder eindtijd of telefoonnummer kan de bevestiging niet worden gegeven',
       .first(),
   ).toBeVisible();
   // Er is geen knop om te publiceren, alleen een weg terug.
-  await expect(page.getByRole('button', { name: 'Publiceren' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Publiceren', exact: true })).toHaveCount(0);
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   await page.getByRole('link', { name: 'Terug naar de activiteit' }).last().click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}$`));
@@ -149,13 +151,13 @@ test('een activiteit die een ander net wijzigde, wordt niet ongemerkt gepublicee
   const naam = maakNaam('verouderd');
   const { id } = await maakConcept(page, naam, { eindtijd: true, telefoon: true });
 
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
 
   // Een andere beheerder wijzigt het concept terwijl de bevestiging openstaat.
   psql(`update public.activiteiten set versie = versie + 1 where id = '${id}';`);
 
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Iemand anders' })).toContainText(
     'Iemand anders heeft deze activiteit net gewijzigd',
   );
@@ -198,14 +200,14 @@ test('publiceren voor een groep waar de beheerder zelf niet in zit: de pagina ze
   const tekst = `Jij zit zelf niet in ${groep.naam}, dus je ziet deze activiteit zelf niet op Start of Programma.`;
 
   // Vooraf: op de bevestiging, als hint en niet als blokkade.
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
   await expect(page.getByText(tekst)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Publiceren' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Publiceren', exact: true })).toBeEnabled();
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
 
   // Erna: in het overzicht staat het naast de melding dat het gepubliceerd is.
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(/\/beheer\?gepubliceerd=/);
   await expect(page.getByText(`${naam} is gepubliceerd.`)).toBeVisible();
   await expect(page.getByText(tekst)).toBeVisible();
@@ -227,10 +229,10 @@ test('zit de beheerder zelf wel in de groep, dan geen waarschuwing en blijft "Zo
   const naam = maakNaam('ingroep');
   const { id } = await maakConcept(page, naam, { eindtijd: true, telefoon: true, groep });
 
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/beheer/activiteiten/${id}/publiceren$`));
   await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);
-  await page.getByRole('button', { name: 'Publiceren' }).click();
+  await page.getByRole('button', { name: 'Publiceren', exact: true }).click();
   await expect(page).toHaveURL(/\/beheer\?gepubliceerd=/);
   await expect(page.getByText(`${naam} is gepubliceerd.`)).toBeVisible();
   await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);

@@ -8,6 +8,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   logInAlsBeheerder,
   maakTestlid,
+  openVoorWie,
   ruimActiviteitenOp,
   ruimTestledenOp,
   voegPlekToe,
@@ -206,6 +207,7 @@ test('iemand buiten de groep voor wie de activiteit is, geeft een fout bij de pl
   const naam = maakNaam('groep');
 
   await begin(page, naam, '2099-04-08');
+  await openVoorWie(page);
   await page.getByRole('checkbox', { name: /Bestuur/ }).check();
   await voegPlekToe(page, 'tapper');
   await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: gerrit.naam });
@@ -214,9 +216,11 @@ test('iemand buiten de groep voor wie de activiteit is, geeft een fout bij de pl
   await expect(page).toHaveURL(/\/beheer\/activiteiten\/nieuw$/);
   await expect(page.getByText(/hoort niet bij de groep voor wie deze activiteit is/)).toBeVisible();
   await expect(plek(page, 'Nieuwe plek 1 van tapper')).toHaveValue(gerrit.id);
+  await openVoorWie(page);
   await expect(page.getByRole('checkbox', { name: /Bestuur/ })).toBeChecked();
 
   // Zonder de groep gaat het door.
+  await openVoorWie(page);
   await page.getByRole('checkbox', { name: /Iedereen/ }).check();
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
