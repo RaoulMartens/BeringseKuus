@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 
-import { stuurUitnodigingen } from '../taken/worker.ts';
+import { HERINNERING_CRON, stuurUitnodigingen, zetHerinneringenKlaar } from '../taken/worker.ts';
 
 const echteFetch = globalThis.fetch;
 afterEach(() => {
@@ -26,6 +26,7 @@ interface Aanroep {
 interface Opdracht {
   id: number;
   lid_id: string;
+  soort: 'uitnodiging' | 'herinnering';
   voornaam: string;
   email: string;
   account_id: string | null;
@@ -60,6 +61,7 @@ function nabootsen(
 const NIEUW: Opdracht = {
   id: 7,
   lid_id: 'lid-1',
+  soort: 'uitnodiging',
   voornaam: 'Piet',
   email: 'piet@example.test',
   account_id: null,
@@ -141,4 +143,26 @@ test('uitnodigingen: een mislukte mail laat de opdracht staan, met het account w
 test('uitnodigingen: oppakken mislukt, dan mislukt de run', async () => {
   globalThis.fetch = (async () => new Response('stuk', { status: 500 })) as typeof fetch;
   await assert.rejects(stuurUitnodigingen(ENV), /uitnodigingen oppakken mislukt: 500/);
+});
+
+test('uitnodigingen: een herinnering heeft een eigen mail en maakt geen nieuw account', async () => {
+  const aanroepen = nabootsen([
+    { ...NIEUW, soort: 'herinnering', account_id: 'account-oud', account_email: 'piet@example.test' },
+  ]);
+  assert.deepEqual(await stuurUitnodigingen(ENV), { verstuurd: 1, mislukt: 0 });
+  assert.match(String(mail(aanroepen)?.body.Subject), /^Herinnering:/);
+  assert.match(String(mail(aanroepen)?.body.TextBody), /Je bent nog niet ingelogd/);
+  assert.equal(aanroepen.filter((a) => a.url.includes('/auth/v1/')).length, 0);
+});
+
+test('herinneringen: roept de databasefunctie aan en geeft het aantal terug', async () => {
+  const urls: string[] = [];
+  globalThis.fetch = (async (url: string | URL | Request) => {
+    urls.push(String(url));
+    return new Response('3', { headers: { 'content-type': 'application/json' } });
+  }) as typeof fetch;
+  assert.equal(await zetHerinneringenKlaar(ENV), 3);
+  assert.deepEqual(urls, ['https://db.example.test/rest/v1/rpc/herinneringen_klaarzetten']);
+  assert.equal(await zetHerinneringenKlaar({}), 0);
+  assert.equal(HERINNERING_CRON, '0 7 * * *');
 });

@@ -60,6 +60,18 @@ Functies (alleen beheerders met een recente code; de Worker-functies alleen `ser
 Een lid dat nog niet is ingelogd staat onder "Vraagt aandacht" met de status van de uitnodiging ("uitnodiging wordt verstuurd", "uitgenodigd 14 november",
 "versturen is mislukt"). Zonder Worker (geheimen niet gezet) blijft het bij "wordt verstuurd": de opdracht wacht.
 
+## Herinnering aan wie nog niet is ingelogd
+
+Een lid dat na de uitnodiging nog nooit is ingelogd krijgt een herinnering: één keer na 3 dagen en nog een keer na 7 dagen, gerekend vanaf de laatste
+verstuurde uitnodiging; daarna niet meer. De taken-Worker draait hiervoor elke ochtend om 07:00 UTC (`HERINNERING_CRON`, `zetHerinneringenKlaar`) en
+roept `herinneringen_klaarzetten` aan; die zet een opdracht klaar (`soort = 'herinnering'` in `lid_uitnodigingen`) die de gewone minuuttaak verstuurt, met
+een eigen, kortere mail (`maakHerinnering`). Alleen actieve leden die kunnen inloggen: geen beheeraccount, geen extern, niet inactief, en alleen als de
+uitnodiging echt is verstuurd (geen opdracht die nog wacht). Een lid dat inlogt of inactief wordt gezet, krijgt er geen meer. Op "Vraagt aandacht" staat
+"herinnerd 18 november"; het lidscherm zegt "Herinnering verstuurd op …". Het aantal dagen zijn de standaardwaarden van de functie (3 en 7).
+
+Niet: een herinnering voor leden die de bouwer met `leden:uitnodigen` heeft uitgenodigd (die hebben geen opdracht in `lid_uitnodigingen`), en een knop om
+herinneringen uit te zetten.
+
 ## Wat er niet is
 
 - Anonimiseren na twee jaar (FO 12) en een bericht aan het lid of de leden bij inactief zetten (dat laatste volgt met de berichten, `Berichten.md`).

@@ -500,6 +500,7 @@ export type Database = {
           id: number;
           lid_id: string;
           pogingen: number;
+          soort: string;
           status: string;
           vereniging_id: string;
           verstuurd_op: string | null;
@@ -513,6 +514,7 @@ export type Database = {
           id?: never;
           lid_id: string;
           pogingen?: number;
+          soort?: string;
           status?: string;
           vereniging_id?: string;
           verstuurd_op?: string | null;
@@ -525,6 +527,7 @@ export type Database = {
           id?: never;
           lid_id?: string;
           pogingen?: number;
+          soort?: string;
           status?: string;
           vereniging_id?: string;
           verstuurd_op?: string | null;
@@ -961,6 +964,7 @@ export type Database = {
           email: string;
           id: number;
           lid_id: string;
+          soort: string;
           voornaam: string;
         }[];
       };
@@ -972,6 +976,10 @@ export type Database = {
           telefoon: string;
           voornaam: string;
         }[];
+      };
+      herinneringen_klaarzetten: {
+        Args: { p_na_dagen?: number; p_tweede_na_dagen?: number };
+        Returns: number;
       };
       huidig_seizoen: { Args: Record<PropertyKey, never>; Returns: number };
       leden_beheer_lijst: {
@@ -994,6 +1002,7 @@ export type Database = {
         Returns: {
           aangemaakt: string;
           lid_id: string;
+          soort: string;
           status: string;
           verstuurd_op: string;
         }[];

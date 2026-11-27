@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(46);
+select plan(55);
 
 -- ===== Hulpen (alleen in deze transactie) =====
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
@@ -227,6 +227,38 @@ reset role;
 select is((select status from public.lid_uitnodigingen where id = current_setting('test.opdracht')::bigint), 'verstuurd', 'afgerond als verstuurd');
 select is((select auth_user_id::text from public.leden where id = (current_setting('test.res1')::jsonb ->> 'lid_id')::uuid), current_setting('test.account'),
   'het inlogaccount is aan het lid gekoppeld');
+
+-- ===== 7b. Herinneringen =====
+-- Een lid met een verstuurde uitnodiging van 4 dagen geleden, nooit ingelogd: krijgt een herinnering. Een lid dat net is uitgenodigd of is ingelogd niet.
+select pg_temp.als('t_beheer', 'aal2');
+set local role authenticated;
+select set_config('test.her', public.lid_toevoegen('T Her', 'Inner', 't_her@example.com', null, array[current_setting('test.dames')::uuid])::jsonb ->> 'lid_id', true);
+reset role;
+update public.lid_uitnodigingen set status = 'verstuurd', verstuurd_op = now() - interval '4 days', aangemaakt = now() - interval '4 days'
+ where lid_id = current_setting('test.her')::uuid;
+set local role service_role;
+select is(public.herinneringen_klaarzetten(), 1, 'na 3 dagen zonder inloggen komt er een herinnering klaar');
+select is(public.herinneringen_klaarzetten(), 0, 'een tweede keer maakt niets bij (er wacht er al een)');
+reset role;
+select is((select soort || ' ' || status from public.lid_uitnodigingen where lid_id = current_setting('test.her')::uuid order by id desc limit 1),
+  'herinnering wacht', 'de herinnering is een opdracht voor de Worker');
+update public.lid_uitnodigingen set status = 'verstuurd', verstuurd_op = now() where lid_id = current_setting('test.her')::uuid and soort = 'herinnering';
+set local role service_role;
+select is(public.herinneringen_klaarzetten(), 0, 'na de eerste herinnering volgt er pas na 7 dagen een tweede');
+reset role;
+update public.lid_uitnodigingen set verstuurd_op = now() - interval '8 days', aangemaakt = now() - interval '8 days'
+ where lid_id = current_setting('test.her')::uuid and soort = 'uitnodiging';
+set local role service_role;
+select is(public.herinneringen_klaarzetten(), 1, 'na 7 dagen komt de tweede herinnering klaar');
+reset role;
+update public.lid_uitnodigingen set status = 'verstuurd', verstuurd_op = now() where lid_id = current_setting('test.her')::uuid and soort = 'herinnering';
+set local role service_role;
+select is(public.herinneringen_klaarzetten(), 0, 'er komen er hooguit twee');
+reset role;
+select is((select count(*)::int from public.lid_uitnodigingen where lid_id = current_setting('test.her')::uuid and soort = 'herinnering'), 2, 'twee herinneringen in totaal');
+select is((select count(*)::int from public.lid_uitnodigingen where lid_id = (current_setting('test.res1')::jsonb ->> 'lid_id')::uuid and soort = 'herinnering'), 0,
+  'een lid dat net een uitnodiging kreeg of nog wacht krijgt er geen');
+select is(has_function_privilege('authenticated', 'public.herinneringen_klaarzetten(int, int)', 'execute'), false, 'alleen de taken-Worker zet herinneringen klaar');
 
 -- ===== 8. De uitnodigingen in de lijst =====
 select pg_temp.als('t_beheer', 'aal2');

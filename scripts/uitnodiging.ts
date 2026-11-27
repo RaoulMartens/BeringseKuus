@@ -220,3 +220,70 @@ export function maakUitnodiging(opties: {
 
   return { onderwerp, tekst, html };
 }
+
+/**
+ * De herinnering: een paar dagen na de uitnodiging, aan een lid dat nog niet is ingelogd (UC-013, herinnering). Korter dan de uitnodiging: wat
+ * te doen en wat te doen als de mail met de code niet aankomt. Geen verwijt en geen druk.
+ */
+export function maakHerinnering(opties: {
+  voornaam: string;
+  ondertekening: string;
+  site: string;
+  test?: boolean;
+}): Mail {
+  const { voornaam, ondertekening, site } = opties;
+  const aanhef = `Beste ${voornaam},`;
+  const onderwerp = `${opties.test ? '[TEST] ' : ''}Herinnering: log in op het ledenplatform van de vereniging`;
+  const inleiding =
+    'Een paar dagen geleden kreeg je een uitnodiging voor het ledenplatform van de vereniging. Je bent nog niet ingelogd. Dat kost een minuut:';
+  const stappen = [
+    `Ga naar ${site}`,
+    'Vul het e-mailadres in waarop je deze mail kreeg.',
+    'Je krijgt een mail met een code van zes cijfers. Vul die in.',
+  ];
+  const wachtwoord = 'Een wachtwoord heb je niet nodig. De code werkt één keer en is 24 uur geldig.';
+  const lukt =
+    'Komt de mail met de code niet aan? Kijk dan eerst in je map met ongewenste e-mail of "Overige" (bij Hotmail en Outlook komt hij daar nog wel eens terecht). Lukt het dan nog niet, laat het dan het bestuur weten.';
+  const geen =
+    'Heb je al ingelogd, of wil je niet meer meedoen? Laat het het bestuur weten, dan houden we je niet langer in de lijst.';
+  const groet = 'Alaaf,';
+
+  const tekst = [
+    aanhef,
+    '',
+    inleiding,
+    ...stappen.map((stap, i) => `${i + 1}. ${stap}`),
+    '',
+    wachtwoord,
+    '',
+    lukt,
+    '',
+    geen,
+    '',
+    groet,
+    ondertekening,
+    '',
+  ].join('\n');
+
+  const html = [
+    '<!doctype html>',
+    '<html lang="nl">',
+    '<head><meta charset="utf-8"><title>' + escape(onderwerp) + '</title></head>',
+    '<body>',
+    `<p>${escape(aanhef)}</p>`,
+    `<p>${escape(inleiding)}</p>`,
+    '<ol>',
+    `<li>Ga naar <a href="${escape(site)}">${escape(site)}</a></li>`,
+    `<li>${escape(stappen[1] ?? '')}</li>`,
+    `<li>${escape(stappen[2] ?? '')}</li>`,
+    '</ol>',
+    `<p>${escape(wachtwoord)}</p>`,
+    `<p>${escape(lukt)}</p>`,
+    `<p>${escape(geen)}</p>`,
+    `<p>${escape(groet)}<br>${escape(ondertekening)}</p>`,
+    '</body>',
+    '</html>',
+  ].join('\n');
+
+  return { onderwerp, tekst, html };
+}

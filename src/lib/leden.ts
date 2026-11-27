@@ -36,6 +36,8 @@ export interface Lidregel {
 }
 
 export interface Uitnodiging {
+  /** Een uitnodiging, of een herinnering (een paar dagen later, aan wie nog niet is ingelogd). */
+  soort?: 'uitnodiging' | 'herinnering';
   status: 'wacht' | 'verstuurd' | 'mislukt';
   verstuurdOp: string | null;
 }
@@ -97,6 +99,12 @@ export function dagMaand(iso: string): string {
 /** De regel onder de naam bij "Vraagt aandacht": wat er aan de hand is. */
 export function aandachtRegel(lid: Lidregel): string {
   const uitnodiging = lid.uitnodiging;
+  if (uitnodiging?.soort === 'herinnering') {
+    if (uitnodiging.status === 'wacht') return 'Nog niet ingelogd · herinnering wordt verstuurd';
+    if (uitnodiging.status === 'verstuurd' && uitnodiging.verstuurdOp) {
+      return `Nog niet ingelogd · herinnerd ${dagMaand(uitnodiging.verstuurdOp)}`;
+    }
+  }
   if (uitnodiging?.status === 'wacht') return 'Nog niet ingelogd · uitnodiging wordt verstuurd';
   if (uitnodiging?.status === 'mislukt') return 'Nog niet ingelogd · uitnodiging versturen is mislukt';
   if (uitnodiging?.status === 'verstuurd' && uitnodiging.verstuurdOp) {
@@ -121,6 +129,14 @@ export function inactiefRegel(lid: Lidregel): string {
 /** Wat de kaart Gegevens zegt over de uitnodiging van een lid; null als er (nog) niets te zeggen is. */
 export function uitnodigingTekst(uitnodiging: Uitnodiging | null | undefined): string | null {
   if (!uitnodiging) return null;
+  if (uitnodiging.soort === 'herinnering') {
+    if (uitnodiging.status === 'wacht') return 'Herinnering wordt verstuurd';
+    if (uitnodiging.status === 'verstuurd') {
+      return uitnodiging.verstuurdOp
+        ? `Herinnering verstuurd op ${dagMaand(uitnodiging.verstuurdOp)}`
+        : 'Herinnering verstuurd';
+    }
+  }
   if (uitnodiging.status === 'wacht') return 'Wordt verstuurd';
   if (uitnodiging.status === 'mislukt') return 'Versturen is mislukt: stuur hem opnieuw';
   return uitnodiging.verstuurdOp ? `Verstuurd op ${dagMaand(uitnodiging.verstuurdOp)}` : 'Verstuurd';

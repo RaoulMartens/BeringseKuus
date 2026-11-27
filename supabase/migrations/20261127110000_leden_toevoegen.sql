@@ -19,6 +19,8 @@ create table public.lid_uitnodigingen (
   vereniging_id uuid not null default 'b3a17e00-0000-4000-8000-000000000001' references public.verenigingen (id),
   lid_id uuid not null references public.leden (id) on delete cascade,
   door_lid_id uuid references public.leden (id) on delete set null,
+  -- Een uitnodiging of een herinnering (het lid heeft zich na een paar dagen nog niet aangemeld); dezelfde weg naar de Worker.
+  soort text not null default 'uitnodiging' check (soort in ('uitnodiging', 'herinnering')),
   status text not null default 'wacht' check (status in ('wacht', 'verstuurd', 'mislukt')),
   fout text,
   pogingen int not null default 0,
@@ -331,7 +333,7 @@ $$;
 -- ===== De uitnodigingen van de leden (voor de lijst en het lidscherm) =====
 -- Per lid de laatste opdracht: wacht (wordt verstuurd), verstuurd of mislukt.
 create function public.leden_uitnodigingen() returns table (
-  lid_id uuid, status text, aangemaakt timestamptz, verstuurd_op timestamptz
+  lid_id uuid, soort text, status text, aangemaakt timestamptz, verstuurd_op timestamptz
 )
 language plpgsql security definer
 set search_path = ''
@@ -341,7 +343,7 @@ begin
     perform intern.fout('geen_admin');
   end if;
   return query
-  select distinct on (u.lid_id) u.lid_id, u.status, u.aangemaakt, u.verstuurd_op
+  select distinct on (u.lid_id) u.lid_id, u.soort, u.status, u.aangemaakt, u.verstuurd_op
     from public.lid_uitnodigingen u
    order by u.lid_id, u.aangemaakt desc, u.id desc;
 end
@@ -352,7 +354,7 @@ $$;
 -- inactief is geworden wordt `mislukt` (lid_inactief). Na vijf pogingen ook (te_veel_pogingen). account_id is het inlogaccount van het
 -- lid, of dat met hetzelfde adres (een eerdere run kan het account hebben gemaakt zonder het vast te leggen).
 create function public.claim_uitnodigingen(p_max int default 20, p_claim_minuten int default 5)
-returns table (id bigint, lid_id uuid, voornaam text, email text, account_id uuid, account_email text)
+returns table (id bigint, lid_id uuid, soort text, voornaam text, email text, account_id uuid, account_email text)
 language plpgsql security definer
 set search_path = ''
 as $$
@@ -373,9 +375,9 @@ begin
     update public.lid_uitnodigingen w
        set pogingen = w.pogingen + 1, claim_tot = now() + make_interval(mins => greatest(p_claim_minuten, 1))
       from gekozen g where w.id = g.id
-    returning w.id, w.lid_id
+    returning w.id, w.lid_id, w.soort
   )
-  select b.id, l.id, l.voornaam, p.email,
+  select b.id, l.id, b.soort, l.voornaam, p.email,
          coalesce(l.auth_user_id, (select au.id from auth.users au where lower(au.email) = p.email)),
          (select au.email::text from auth.users au
            where au.id = coalesce(l.auth_user_id, (select au2.id from auth.users au2 where lower(au2.email) = p.email)))
@@ -383,6 +385,48 @@ begin
     join public.leden l on l.id = b.lid_id
     join public.leden_prive p on p.lid_id = l.id
    order by b.id;
+end
+$$;
+
+-- Herinneringen (door de Worker, elke ochtend): een lid dat na de uitnodiging nog nooit is ingelogd krijgt een herinnering, één keer na 3 dagen en nog
+-- een keer na 7 dagen (dus hooguit twee), gerekend vanaf de laatste verstuurde uitnodiging. Alleen actieve leden die kunnen inloggen (geen beheeraccount,
+-- geen externe helper), en alleen als de uitnodiging echt is verstuurd. Een lid dat is ingelogd of inactief is gezet, krijgt er geen meer. De herinnering
+-- is een opdracht in hetzelfde postvak-uit; de Worker stuurt hem. Geeft het aantal nieuwe opdrachten.
+create function public.herinneringen_klaarzetten(p_na_dagen int default 3, p_tweede_na_dagen int default 7) returns int
+language plpgsql security definer
+set search_path = ''
+as $$
+declare
+  v_aantal int;
+begin
+  perform pg_advisory_xact_lock(hashtext('herinneringen_klaarzetten'));
+  with kandidaten as (
+    select l.id as lid_id,
+           (select max(u.verstuurd_op) from public.lid_uitnodigingen u
+             where u.lid_id = l.id and u.soort = 'uitnodiging' and u.status = 'verstuurd') as uitgenodigd,
+           (select count(*) from public.lid_uitnodigingen u where u.lid_id = l.id and u.soort = 'herinnering'
+               and u.status in ('wacht', 'verstuurd')
+               and u.aangemaakt > coalesce((select max(u2.verstuurd_op) from public.lid_uitnodigingen u2
+                                             where u2.lid_id = l.id and u2.soort = 'uitnodiging' and u2.status = 'verstuurd'), '-infinity')) as herinnerd
+      from public.leden l
+      join public.leden_prive p on p.lid_id = l.id
+     where l.type = 'lid' and l.actief and not l.alleen_beheer
+       and not exists (select 1 from auth.users au where au.id = l.auth_user_id and au.last_sign_in_at is not null)
+       and not exists (select 1 from public.lid_uitnodigingen u where u.lid_id = l.id and u.status = 'wacht')
+  ), nieuw as (
+    insert into public.lid_uitnodigingen (lid_id, soort)
+    select k.lid_id, 'herinnering' from kandidaten k
+     where k.uitgenodigd is not null
+       and ((k.herinnerd = 0 and k.uitgenodigd <= now() - make_interval(days => p_na_dagen))
+         or (k.herinnerd = 1 and k.uitgenodigd <= now() - make_interval(days => p_tweede_na_dagen)))
+    returning lid_id
+  ), logregel as (
+    insert into public.wijzigingen_log (door_lid_id, actie, tabel, rij_id, omschrijving)
+    select null, 'herinnering_gestuurd', 'leden', n.lid_id, 'Herinnering om in te loggen klaargezet door het systeem' from nieuw n
+    returning 1
+  )
+  select count(*) into v_aantal from nieuw;
+  return v_aantal;
 end
 $$;
 
@@ -432,5 +476,7 @@ grant execute on function public.leden_uitnodigingen() to authenticated;
 
 revoke all on function public.claim_uitnodigingen(int, int) from public, anon, authenticated;
 revoke all on function public.uitnodiging_afronden(bigint, text, uuid, text) from public, anon, authenticated;
+revoke all on function public.herinneringen_klaarzetten(int, int) from public, anon, authenticated;
+grant execute on function public.herinneringen_klaarzetten(int, int) to service_role;
 grant execute on function public.claim_uitnodigingen(int, int) to service_role;
 grant execute on function public.uitnodiging_afronden(bigint, text, uuid, text) to service_role;

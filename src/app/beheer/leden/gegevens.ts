@@ -13,7 +13,11 @@ export async function leesUitnodigingen(supabase: Supabase): Promise<Map<string,
   const uit = new Map<string, Uitnodiging>();
   for (const rij of data) {
     if (rij.status === 'wacht' || rij.status === 'verstuurd' || rij.status === 'mislukt') {
-      uit.set(rij.lid_id, { status: rij.status, verstuurdOp: rij.verstuurd_op });
+      uit.set(rij.lid_id, {
+        soort: rij.soort === 'herinnering' ? 'herinnering' : 'uitnodiging',
+        status: rij.status,
+        verstuurdOp: rij.verstuurd_op,
+      });
     }
   }
   return uit;

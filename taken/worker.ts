@@ -15,7 +15,7 @@
 // Geen fetch-handler: deze Worker heeft geen adres (workers_dev staat uit in taken/wrangler.jsonc). In de logs staan alleen
 // aantallen en foutcodes, geen namen, adressen of berichttekst.
 
-import { maakUitnodiging } from '../scripts/uitnodiging.ts';
+import { maakHerinnering, maakUitnodiging } from '../scripts/uitnodiging.ts';
 import {
   groepeer,
   inStukken,
@@ -244,6 +244,7 @@ async function stuur(
 interface Uitnodiging {
   id: number;
   lid_id: string;
+  soort: 'uitnodiging' | 'herinnering';
   voornaam: string;
   email: string;
   account_id: string | null;
@@ -306,12 +307,13 @@ export async function stuurUitnodigingen(env: Omgeving): Promise<UitnodigingUitk
         if (!gewijzigd.ok) fout = `adres_${gewijzigd.status}`;
       }
       if (!fout) {
-        const mail = maakUitnodiging({
+        const maak = opdracht.soort === 'herinnering' ? maakHerinnering : maakUitnodiging;
+        const mail = maak({
           voornaam: opdracht.voornaam,
           ondertekening: env.BERICHT_ONDERTEKENING ?? 'Het bestuur',
           site: (env.SITE_URL ?? 'https://beringsekuus.crispy-concepts.nl').replace(/\/+$/, ''),
           test: Boolean(env.BERICHT_TEST_ADRES),
-          metProef: false,
+          ...(opdracht.soort === 'herinnering' ? {} : { metProef: false }),
         });
         const antwoord = await fetch('https://api.postmarkapp.com/email', {
           method: 'POST',
@@ -358,15 +360,39 @@ export async function stuurUitnodigingen(env: Omgeving): Promise<UitnodigingUitk
   return uitkomst;
 }
 
+/** De nachtelijke taak (taken/wrangler.jsonc, 07:00 UTC): leden die na de uitnodiging nog niet zijn ingelogd een herinnering laten sturen. */
+export const HERINNERING_CRON = '0 7 * * *';
+
+/** Zet de herinneringen klaar (de database bepaalt wie: 3 en 7 dagen na de uitnodiging, hooguit twee); de uitnodigingstaak verstuurt ze. Geeft het aantal. */
+export async function zetHerinneringenKlaar(env: Omgeving): Promise<number> {
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY } = env;
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    console.log('herinneringen: geheimen ontbreken, niets klaargezet');
+    return 0;
+  }
+  const antwoord = await supabase({ SUPABASE_URL, SUPABASE_SECRET_KEY }, 'rpc/herinneringen_klaarzetten', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  if (!antwoord.ok) throw new Error(`herinneringen klaarzetten mislukt: ${antwoord.status}`);
+  const aantal = Number(await antwoord.json());
+  console.log(`herinneringen: ${aantal} klaargezet`);
+  return aantal;
+}
+
 const takenWorker = {
-  async scheduled(_gebeurtenis: unknown, env: Omgeving): Promise<void> {
+  async scheduled(gebeurtenis: { cron?: string }, env: Omgeving): Promise<void> {
     // Twee onafhankelijke taken in één run: een storing in de ene houdt de andere niet tegen. Alleen de soort fout in de log, geen
     // inhoud. Faalt er één, dan toont Cloudflare de run als mislukt.
     let mislukt: unknown = null;
-    for (const [naam, taak] of [
-      ['berichten', () => verstuurBerichten(env)],
-      ['uitnodigingen', () => stuurUitnodigingen(env)],
-    ] as const) {
+    const taken =
+      gebeurtenis.cron === HERINNERING_CRON
+        ? ([['herinneringen', () => zetHerinneringenKlaar(env)]] as const)
+        : ([
+            ['berichten', () => verstuurBerichten(env)],
+            ['uitnodigingen', () => stuurUitnodigingen(env)],
+          ] as const);
+    for (const [naam, taak] of taken) {
       try {
         await taak();
       } catch (fout) {
