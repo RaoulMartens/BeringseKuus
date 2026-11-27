@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(46);
 
 -- ===== Hulpen (alleen in deze transactie) =====
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
@@ -154,6 +154,14 @@ select is((select p.email from public.leden_prive p where p.lid_id = (current_se
   'het nieuwe adres staat er');
 select is((select count(*)::int from public.lid_uitnodigingen where lid_id = (current_setting('test.res1')::jsonb ->> 'lid_id')::uuid and status = 'wacht'), 3,
   'en er staat een nieuwe opdracht klaar voor het nieuwe adres');
+
+-- Een lid zonder groep (van voor dit scherm) kan zijn adres toch corrigeren.
+insert into public.leden (id, voornaam, achternaam, type) values ('00000000-0000-4000-8000-0000000000c1', 'T Zonder', 'Groep', 'lid');
+insert into public.leden_prive (lid_id, email) values ('00000000-0000-4000-8000-0000000000c1', 't_zondergroep@example.com');
+set local role authenticated;
+select is(public.t_rz($$ select public.lid_adres_corrigeren('00000000-0000-4000-8000-0000000000c1', 't_zondergroep2@example.com') $$),
+  'geen fout', 'ook een lid zonder groep kan zijn adres corrigeren');
+reset role;
 
 -- ===== 6. Meerdere leden =====
 select set_config('test.regels', jsonb_build_array(

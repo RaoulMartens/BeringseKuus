@@ -145,3 +145,87 @@
     width: 100%;
   }
 }
+
+/* Twee velden naast elkaar (voornaam en achternaam); op een telefoon onder elkaar. */
+.veldrij {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap-group);
+}
+
+@media (max-width: 700px) {
+  .veldrij {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Het adres dat nu geldt, boven het veld voor het nieuwe. */
+.adres {
+  margin: 0 0 var(--gap-group);
+  font: 600 1.25rem/1.4 var(--font-tekst);
+  overflow-wrap: anywhere;
+}
+
+/* De bestandskeuze van "Meerdere leden toevoegen" (zelfde als bij activiteiten in bulk). */
+.download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--neutraal-tekst);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.download svg {
+  width: 18px;
+  height: 18px;
+}
+
+.bestandsveld {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-field);
+}
+
+.bestandslabel {
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst-zacht);
+}
+
+.bestand {
+  display: block;
+  width: 100%;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-control);
+  min-height: var(--control-default);
+  padding: 10px var(--padding-control-x);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+}
+
+/* De knop van de bestandskiezer van de browser: dezelfde stijl als de andere knoppen met alleen een rand. */
+.bestand::file-selector-button {
+  margin-right: 12px;
+  padding: 6px 14px;
+  background: var(--neutraal-kaart);
+  border: 1px solid var(--neutraal-tekst);
+  border-radius: var(--radius-control);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
+  color: var(--neutraal-tekst);
+  cursor: pointer;
+}
+
+.bestand::file-selector-button:hover {
+  background: var(--neutraal-hover);
+}
+
+.bestandsnaam {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  flex-wrap: wrap;
+}

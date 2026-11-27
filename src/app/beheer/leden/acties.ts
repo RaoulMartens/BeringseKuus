@@ -14,6 +14,8 @@ import { maakSupabase } from '@/lib/supabase/server';
 
 export interface LedenStaat {
   melding: string | null;
+  /** Bij email_bestaat: het lid dat dit adres al heeft (voor de link naar dat lid). */
+  bestaand?: Ledenfout['bestaand'];
   /** Bij dienst_blokkeert: de activiteiten waar het lid een plek heeft. */
   activiteiten?: Ledenfout['activiteiten'];
 }
@@ -38,7 +40,7 @@ function naFout(logtekst: string, fout: Databasefout): LedenStaat {
     detail = undefined;
   }
   const vertaald = vertaalLedenfout(fout.message, detail);
-  return { melding: vertaald.tekst, activiteiten: vertaald.activiteiten };
+  return { melding: vertaald.tekst, activiteiten: vertaald.activiteiten, bestaand: vertaald.bestaand };
 }
 
 export async function slaLidOp(_vorige: LedenStaat, formulier: FormData): Promise<LedenStaat> {
@@ -83,4 +85,61 @@ export async function zetLidActief(_vorige: LedenStaat, formulier: FormData): Pr
   const { error } = await supabase.rpc('lid_actief_zetten', { p_lid_id: lid.data });
   if (error) return naFout('lid niet weer actief gezet', error);
   redirect(`/beheer/leden?actief=${lid.data}`);
+}
+
+const TEKST = z.string().max(300);
+
+/** Een nieuw lid toevoegen (UC-013 AF-4): het lid staat meteen in de lijst, de taken-Worker maakt het account en stuurt de uitnodiging. */
+export async function voegLidToe(_vorige: LedenStaat, formulier: FormData): Promise<LedenStaat> {
+  await eisBeheer();
+  const voornaam = TEKST.safeParse(formulier.get('voornaam'));
+  const achternaam = TEKST.safeParse(formulier.get('achternaam'));
+  const email = TEKST.safeParse(formulier.get('email'));
+  const telefoon = TEKST.safeParse(formulier.get('telefoon') ?? '');
+  const groepen = z.array(z.uuid()).safeParse(formulier.getAll('groep'));
+  if (!voornaam.success || !achternaam.success || !email.success || !telefoon.success) {
+    return { melding: vertaalLedenfout('veld_ongeldig').tekst };
+  }
+  if (!groepen.success) return { melding: vertaalLedenfout('groep_onbekend').tekst };
+  const aanmerkingen = formulier.getAll('aanmerking');
+
+  const supabase = await maakSupabase();
+  const { data, error } = await supabase.rpc('lid_toevoegen', {
+    p_voornaam: voornaam.data,
+    p_achternaam: achternaam.data,
+    p_email: email.data,
+    p_telefoon: telefoon.data,
+    p_groepen: groepen.data,
+    p_mag_bob: aanmerkingen.includes('bob'),
+    p_mag_eindverantw: aanmerkingen.includes('eindverantwoordelijke'),
+  });
+  if (error) return naFout('lid niet toegevoegd', error);
+  const lid = z.object({ lid_id: z.uuid() }).safeParse(data);
+  redirect(lid.success ? `/beheer/leden?toegevoegd=${lid.data.lid_id}` : '/beheer/leden');
+}
+
+/** De uitnodiging opnieuw sturen aan een lid dat nog nooit is ingelogd (UC-013 AF-5). */
+export async function stuurUitnodigingOpnieuw(_vorige: LedenStaat, formulier: FormData): Promise<LedenStaat> {
+  await eisBeheer();
+  const lid = ID.safeParse(formulier.get('lid_id'));
+  if (!lid.success) return { melding: vertaalLedenfout('lid_onbekend').tekst };
+
+  const supabase = await maakSupabase();
+  const { error } = await supabase.rpc('lid_uitnodiging_opnieuw', { p_lid_id: lid.data });
+  if (error) return naFout('uitnodiging niet opnieuw gestuurd', error);
+  redirect(`/beheer/leden?uitgenodigd=${lid.data}`);
+}
+
+/** Het e-mailadres van een lid dat nog nooit is ingelogd corrigeren; het lid krijgt een uitnodiging op het nieuwe adres (UC-013 AF-6). */
+export async function corrigeerAdres(_vorige: LedenStaat, formulier: FormData): Promise<LedenStaat> {
+  await eisBeheer();
+  const lid = ID.safeParse(formulier.get('lid_id'));
+  if (!lid.success) return { melding: vertaalLedenfout('lid_onbekend').tekst };
+  const email = TEKST.safeParse(formulier.get('email'));
+  if (!email.success) return { melding: vertaalLedenfout('email_ongeldig').tekst };
+
+  const supabase = await maakSupabase();
+  const { error } = await supabase.rpc('lid_adres_corrigeren', { p_lid_id: lid.data, p_email: email.data });
+  if (error) return naFout('adres niet gecorrigeerd', error);
+  redirect(`/beheer/leden?uitgenodigd=${lid.data}`);
 }

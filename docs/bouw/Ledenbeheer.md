@@ -12,6 +12,10 @@ Tot nu toe zette de bouwer telefoon, groepen en aanmerkingen met `npm run leden:
 | `/beheer/leden/[lid]/inactief` | Bevestigen: toont vooraf welke plekken openvallen. |
 | `/beheer/leden/inactief` | De inactieve leden; een rij opent de bevestiging van weer actief maken. |
 | `/beheer/leden/[lid]/actief` | Bevestigen van weer actief maken. |
+| `/beheer/leden/nieuw` en `/nieuw/bevestigen` | Een lid toevoegen: formulier (naam, e-mailadres, telefoon, groepen, bijzondere rollen) en een bevestigingspagina. Formulier en bevestiging delen de ingevulde waarden via een layout (`nieuwlidstaat.tsx`), zodat Annuleren je terugbrengt in het ingevulde formulier. |
+| `/beheer/leden/[lid]/uitnodigen` | De uitnodiging opnieuw sturen aan een lid dat nog nooit is ingelogd (bevestigen). |
+| `/beheer/leden/[lid]/adres` | Het e-mailadres corrigeren van een lid dat nog nooit is ingelogd; het lid krijgt een uitnodiging op het nieuwe adres. |
+| `/beheer/leden/importeren` | Meerdere leden uit een Excel-bestand (`public/lid-sjabloon.xlsx`): bestand kiezen, controle (de proef van de database), toevoegen. Alles of niets. |
 
 Na elke handeling gaat de beheerder naar het overzicht met een melding in de woorden van de knop. Op het beheeroverzicht staat een
 kaart "Leden" met de taak als regel ("2 nog niet ingelogd").
@@ -34,18 +38,40 @@ Vijf functies, elk alleen voor een beheerder met een recente code (`intern.is_be
   laat het nummer staan.
 - Een beheeraccount (`alleen_beheer`) en een externe helper staan niet in de lijst.
 
-## Wat er niet is (volgende stap)
+## Leden toevoegen en uitnodigen (BA-11)
 
-- **Een nieuw lid toevoegen** en **de uitnodiging opnieuw sturen**: die maken een inlogaccount aan, en de geheime sleutel daarvoor hoort
-  alleen bij de taken-Worker (Bouwbesluiten). Voorlopig blijft dat `leden:zet` en `leden:uitnodigen`.
-- Anonimiseren na twee jaar (FO 12) en een bericht aan het lid of de leden bij inactief zetten (berichten staan nog uit, `Berichten.md`).
-- Gelijktijdig bewerken van hetzelfde lid door twee beheerders: de laatste opslag wint (de plekken en groepen worden wel
-  tegen elkaar beschermd door de locks).
+De app kan geen inlogaccount aanmaken: dat vraagt de geheime sleutel van Supabase en die hoort alleen bij de taken-Worker. Daarom werkt dit zoals de
+berichten per mail (`Berichten.md`), in migratie `20261127110000_leden_toevoegen.sql`:
+
+1. De database maakt het lid aan (`leden`, `leden_prive`, `lid_groep`) en zet in dezelfde transactie een opdracht klaar in `lid_uitnodigingen`. Het lid
+   staat dus meteen in lijsten, groepen en het overzicht, zonder account (`auth_user_id` is leeg).
+2. De taken-Worker (`stuurUitnodigingen`, elke minuut) pakt de opdrachten op met `claim_uitnodigingen` (atomair; het aantal pogingen telt bij het oppakken,
+   na vijf is het `mislukt`), maakt het inlogaccount aan, of zet het nieuwe e-mailadres als het account een ander adres heeft, stuurt de uitnodigingsmail
+   (de tekst van `scripts/uitnodiging.ts`, zonder de alinea over de proef) en legt het resultaat vast met `uitnodiging_afronden`, ook de koppeling van het
+   account aan het lid. Een fout laat de opdracht staan voor een volgende run; één mislukte opdracht stopt de rest niet.
+3. Met `BERICHT_TEST_ADRES` gaat de mail naar dat adres (met [TEST] in het onderwerp); het account wordt dan wel echt aangemaakt.
+
+Functies (alleen beheerders met een recente code; de Worker-functies alleen `service_role`):
+`lid_toevoegen`, `lid_uitnodiging_opnieuw` (niet vaker dan één keer per 10 minuten, R39), `lid_adres_corrigeren` (alleen zolang het lid nooit is ingelogd),
+`leden_importeren` (met `p_proef` alleen een controle per regel; zonder is het alles of niets, een bestaand adres wordt overgeslagen, R40) en
+`leden_uitnodigingen` (de laatste opdracht per lid, voor de lijst en het lidscherm). Foutcodes: `email_bestaat` (met het lid erbij, voor de link),
+`email_ongeldig`, `email_dubbel`, `veld_ontbreekt`, `groep_nodig`, `al_ingelogd`, `te_snel`, `lid_inactief`, `adres_ongewijzigd`, `import_fout`.
+
+Een lid dat nog niet is ingelogd staat onder "Vraagt aandacht" met de status van de uitnodiging ("uitnodiging wordt verstuurd", "uitgenodigd 14 november",
+"versturen is mislukt"). Zonder Worker (geheimen niet gezet) blijft het bij "wordt verstuurd": de opdracht wacht.
+
+## Wat er niet is
+
+- Anonimiseren na twee jaar (FO 12) en een bericht aan het lid of de leden bij inactief zetten (dat laatste volgt met de berichten, `Berichten.md`).
+- Het e-mailadres wijzigen van een lid dat al inlogt: dat is het adres waarmee het lid inlogt (R33). Daarvoor is nog geen scherm.
+- Gelijktijdig bewerken van hetzelfde lid door twee beheerders: de laatste opslag wint (de plekken en groepen worden wel tegen elkaar beschermd door de locks).
 
 ## Tests
 
 - `supabase/tests/database/ledenbeheer.test.sql` (36): rechten, lijst, lezen, opslaan en elke foutcode, inactief zetten en weer actief.
 - `src/lib/leden.test.ts`: de teksten, het tellen van wijzigingen en het lezen van het antwoord van de database.
 - `e2e/ledenbeheer.spec.ts`: het hele pad in de browser, met toegankelijkheidscontrole.
+- `supabase/tests/database/leden_toevoegen.test.sql` (46): toevoegen, de foutcodes, opnieuw uitnodigen, adres corrigeren, import (proef en alles of niets) en de opdrachten voor de Worker.
+- `src/lib/ledenimport.test.ts`, `scripts/taken-uitnodigingen.test.ts` en `e2e/ledenbeheer-toevoegen.spec.ts`: het bestand lezen, de Worker, en de schermen in de browser.
 - `rechten.test.sql` en `fase2_opslaan.test.sql` kennen de vijf functies: ze mogen worden aangeroepen en `lid_inactief_zetten` schrijft in
   `rol_slots`.

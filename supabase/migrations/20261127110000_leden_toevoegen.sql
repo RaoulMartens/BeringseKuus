@@ -97,6 +97,23 @@ begin
 end
 $$;
 
+-- Geeft de fout email_bestaat als het adres al bij een lid hoort (behalve p_behalve), met dat lid erbij: de pagina kan er dan naartoe linken.
+create function intern.email_bestaat_fout(p_email text, p_behalve uuid) returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_lid record;
+begin
+  select l.id, l.voornaam || ' ' || l.achternaam as naam, l.actief into v_lid
+    from public.leden_prive p join public.leden l on l.id = p.lid_id
+   where p.email = p_email and (p_behalve is null or l.id <> p_behalve);
+  if found then
+    perform intern.fout('email_bestaat', jsonb_build_object('lid_id', v_lid.id, 'naam', v_lid.naam, 'actief', v_lid.actief));
+  end if;
+end
+$$;
+
 -- ===== Een lid toevoegen =====
 create function public.lid_toevoegen(
   p_voornaam text, p_achternaam text, p_email text, p_telefoon text, p_groepen uuid[],
@@ -118,9 +135,7 @@ begin
   end if;
 
   select * into v_ctl from intern.lid_controleren(p_voornaam, p_achternaam, p_email, p_telefoon, p_groepen);
-  if exists (select 1 from public.leden_prive where email = v_ctl.o_email) then
-    perform intern.fout('email_bestaat');
-  end if;
+  perform intern.email_bestaat_fout(v_ctl.o_email, null);
   v_id := intern.lid_maken(v_ctl.o_voornaam, v_ctl.o_achternaam, v_ctl.o_email, v_ctl.o_telefoon, v_ctl.o_groepen,
                            p_mag_bob, p_mag_eindverantw, intern.huidig_lid());
   return jsonb_build_object('lid_id', v_id, 'voornaam', v_ctl.o_voornaam, 'achternaam', v_ctl.o_achternaam,
@@ -197,10 +212,10 @@ begin
     perform intern.fout('al_ingelogd');
   end if;
 
-  select * into v_ctl from intern.lid_controleren(v_lid.voornaam, v_lid.achternaam, p_email, null, array(select groep_id from public.lid_groep where lid_id = v_lid.id));
-  if exists (select 1 from public.leden_prive where email = v_ctl.o_email and lid_id <> v_lid.id) then
-    perform intern.fout('email_bestaat');
-  end if;
+  -- Alleen het adres wordt gecontroleerd; de groepen van het lid doen hier niet mee (een lid zonder groep kan zijn adres toch corrigeren): een willekeurige
+  -- bestaande groep laat die controle slagen.
+  select * into v_ctl from intern.lid_controleren(v_lid.voornaam, v_lid.achternaam, p_email, null, array(select g.id from public.groepen g limit 1));
+  perform intern.email_bestaat_fout(v_ctl.o_email, v_lid.id);
   -- Hetzelfde adres: niets te corrigeren.
   if exists (select 1 from public.leden_prive where lid_id = v_lid.id and email = v_ctl.o_email) then
     perform intern.fout('adres_ongewijzigd');
@@ -401,6 +416,7 @@ $$;
 
 -- ===== Rechten =====
 revoke all on function intern.lid_controleren(text, text, text, text, uuid[]) from public, anon, authenticated;
+revoke all on function intern.email_bestaat_fout(text, uuid) from public, anon, authenticated;
 revoke all on function intern.lid_maken(text, text, text, text, uuid[], boolean, boolean, uuid) from public, anon, authenticated;
 
 revoke all on function public.lid_toevoegen(text, text, text, text, uuid[], boolean, boolean) from public, anon;
