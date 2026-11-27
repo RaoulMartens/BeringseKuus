@@ -97,7 +97,7 @@ test('Concept verwijderen vraagt eerst een bevestiging; Annuleren laat alles sta
   expect(antwoord?.status()).toBe(404);
 });
 
-test('een gepubliceerde activiteit verwijderen: de bevestiging zegt dat leden hem zien en geen bericht krijgen', async ({
+test('een gepubliceerde activiteit verwijderen: de bevestiging zegt dat leden hem zien en wie een plek had een mail krijgt', async ({
   page,
 }) => {
   aangemaakt.push(await logInAlsBeheerder(page));
@@ -117,7 +117,7 @@ test('een gepubliceerde activiteit verwijderen: de bevestiging zegt dat leden he
   await expect(page.getByText('Leden zien deze activiteit nu in het programma.')).toBeVisible();
   await expect(page.getByText('2 mensen zijn al ingedeeld. Die indeling verdwijnt.')).toBeVisible();
   await expect(page.getByText('1 lid heeft zich afgemeld. Die afmelding verdwijnt ook.')).toBeVisible();
-  await expect(page.getByText('Er gaat geen bericht uit.')).toBeVisible();
+  await expect(page.getByText('Wie een plek had, krijgt een mail.')).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
 
   await page.getByRole('button', { name: 'Activiteit verwijderen' }).click();
