@@ -11,9 +11,8 @@
 // (R21), en alleen een lid. Wie al op een andere plek staat of zich heeft afgemeld, kun je niet kiezen; wie nog niet is
 // aangemerkt als geschikt voor BOB of eindverantwoordelijke, staat er met een hint (R19: een hulp, geen blokkade).
 //
-// Wie nog niet aan de beurt is geweest (UC-012): in de keuzelijst staan leden zonder dienst dit seizoen bovenaan in een eigen groep, en bij
-// een lege plek staat een snelkeuze met die leden: een tik zet iemand op de plek. De keuzelijst werkt daarnaast gewoon; het is een
-// hulp, geen regel.
+// Wie nog niet aan de beurt is geweest (UC-012): in de keuzelijst staan leden zonder dienst dit seizoen bovenaan in een eigen groep. Het
+// overzicht van alle leden met hun aantal diensten staat op het beheeroverzicht; dit is een hulp, geen regel.
 
 import { useId, useState } from 'react';
 
@@ -27,7 +26,6 @@ import {
   PLEK_WEGHALEN,
   TEKENS_HELPER,
 } from '@/lib/activiteitformulier';
-import { kortNaam } from '@/lib/naam';
 import { rolLabel, vergelijkRollen } from '@/lib/rollen';
 
 import type { Kandidaat } from './gegevens';
@@ -151,68 +149,6 @@ function magExtern(rol: string): boolean {
   return rol !== 'eindverantwoordelijke';
 }
 
-interface SnelkeuzeEigenschappen {
-  /** Wie nog niet aan de beurt is geweest en hier te kiezen is, op alfabet; de eerste vijf worden getoond. */
-  leden: Kandidaat[];
-  /** Het label van de plek waar de keuze naartoe gaat ("Tapper 2"), voor schermlezers. */
-  plek: string;
-  onKies: (id: string) => void;
-}
-
-const MAX_SNELKEUZE = 5;
-
-/**
- * De snelkeuze onder de eerste lege plek van een rol (UC-012): één regel, aan het veld vast, met een bliksem, de voornamen van wie nog niet
- * aan de beurt is geweest (met een plus: een tik zet iemand op de plek) en een link naar het overzicht van alle leden. Dat overzicht opent in
- * een nieuw tabblad, zodat wat op dit scherm nog niet is opgeslagen niet kwijtraakt.
- */
-function Snelkeuze({ leden, plek, onKies }: SnelkeuzeEigenschappen) {
-  const getoond = leden.slice(0, MAX_SNELKEUZE);
-  // De toegankelijke naam begint met wat er in beeld staat ("Jan P." of "Karin"), daarna de hele naam.
-  const spreek = (lid: Kandidaat): string => {
-    const kort = kortNaam(lid, getoond);
-    return lid.naam.startsWith(kort) ? lid.naam : `${kort} (${lid.naam})`;
-  };
-  return (
-    <div className={stijl.snel}>
-      <span
-        className={stijl.snelIcoon}
-        role="img"
-        aria-label="Nog niet aan de beurt geweest: tik om in te vullen"
-        title="Nog niet aan de beurt geweest: tik om in te vullen"
-      >
-        <Icoon naam="bliksem" />
-      </span>
-      <ul className={stijl.snelLijst}>
-        {getoond.map((lid) => (
-          <li key={lid.id}>
-            <button
-              type="button"
-              className={stijl.snelKnop}
-              aria-label={`${spreek(lid)} op ${plek} zetten (nog geen dienst dit seizoen)`}
-              onClick={() => onKies(lid.id)}
-            >
-              <Icoon naam="plus" gewicht="bold" />
-              {kortNaam(lid, getoond)}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <a
-        href="/beheer/verdeling"
-        target="_blank"
-        rel="noopener noreferrer"
-        className={stijl.snelAlle}
-        aria-label="Alle leden bekijken (opent in een nieuw tabblad)"
-        title="Alle leden bekijken"
-      >
-        Alle
-        <Icoon naam="chevron-rechts" />
-      </a>
-    </div>
-  );
-}
-
 function Keuzelijst({
   naam,
   label,
@@ -313,18 +249,6 @@ export function Plekken({
     }
     return start;
   });
-  /** Wie nog niet aan de beurt is geweest en nu te kiezen is: geen afmelding, nog niet gekozen, en alleen een lid (geen externe helper). */
-  const snelleLeden = (rol: string): Kandidaat[] => {
-    const gekozen = elders('');
-    return kandidaten.filter(
-      (k) =>
-        !k.extern &&
-        k.diensten === 0 &&
-        !afgemeld.includes(k.id) &&
-        !gekozen.has(k.id) &&
-        rol !== 'eindverantwoordelijke',
-    );
-  };
   /** Wie er nu als eindverantwoordelijke is gekozen (of stond), om te waarschuwen als hij geen telefoonnummer heeft. */
   const gekozenEv = kandidaten.find((k) => k.id === keuzes[evNaam]);
   const wijzig = (naam: string, waarde: string): void =>
@@ -351,13 +275,6 @@ export function Plekken({
     zetNieuw((vorige) => [...vorige, { tijdelijk, rol }]);
     zetKeuzes((vorige) => ({ ...vorige, [`plek_nieuw_${tijdelijk}`]: '' }));
     zetTeller((vorige) => vorige + 1);
-  }
-
-  /** Een tik in de snelkeuze: de persoon staat in het veld van de plek (zoals na een keuze in de lijst) en in de staat. */
-  function kiesInVeld(naam: string, id: string): void {
-    const veld = document.getElementById(naam);
-    if (veld instanceof HTMLSelectElement) veld.value = id;
-    wijzig(naam, id);
   }
 
   function haalNieuweWeg(tijdelijk: string) {
@@ -405,12 +322,6 @@ export function Plekken({
         const toegevoegd = nieuw.filter((plek) => plek.rol === rol);
         // Werker is te algemeen en kan er niet meer bij; een bestaande werker-plek blijft wel te zien en in te delen.
         const toevoegbaar = rollen.some((r) => r.code === rol);
-        // De snelkeuze hoort bij de eerste lege plek van de rol: bestaand (nog niemand op, niemand gekozen) of nieuw.
-        const leegSleutel = [
-          ...vast.filter((plek) => plek.bezetterId === null).map((plek) => `plek_${plek.id}`),
-          ...toegevoegd.map((plek) => `plek_nieuw_${plek.tijdelijk}`),
-        ].find((sleutel) => (keuzes[sleutel] ?? '') === '');
-        const snel = leegSleutel ? snelleLeden(rol) : [];
         return (
           <section key={rol} aria-labelledby={kopId} className={stijl.rol}>
             <h3 id={kopId} className={stijl.rolkop}>
@@ -447,13 +358,6 @@ export function Plekken({
                         <Icoon naam="kruis" />
                       </button>
                     )}
-                    {naam === leegSleutel && snel.length > 0 && (
-                      <Snelkeuze
-                        leden={snel}
-                        plek={`${kop} ${nummer + 1}`}
-                        onKies={(id) => kiesInVeld(naam, id)}
-                      />
-                    )}
                     {keuzes[naam] === PLEK_HELPER && (
                       <HelperNaam veld={naam} label={`${kop} ${nummer + 1}`} begin={beginKeuzes} />
                     )}
@@ -485,13 +389,6 @@ export function Plekken({
                     >
                       <Icoon naam="kruis" />
                     </button>
-                    {naam === leegSleutel && snel.length > 0 && (
-                      <Snelkeuze
-                        leden={snel}
-                        plek={`nieuwe plek ${nummer + 1} van ${inZin}`}
-                        onKies={(id) => kiesInVeld(naam, id)}
-                      />
-                    )}
                     {keuzes[naam] === PLEK_HELPER && (
                       <HelperNaam
                         veld={naam}
