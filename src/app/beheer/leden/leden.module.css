@@ -229,3 +229,9 @@
   margin: 0;
   flex-wrap: wrap;
 }
+
+/* Een actie achter een gegeven ("Corrigeren", "Opnieuw sturen"): een rustige tekstlink in dezelfde regel, geen knop. */
+.rijactie {
+  margin-left: 12px;
+  white-space: nowrap;
+}

@@ -88,29 +88,35 @@ export default async function LidPagina({ params }: { params: Promise<{ lidId: s
           <dl className={stijl.gegevens}>
             <div>
               <dt>E-mailadres</dt>
-              <dd>{lid.email}</dd>
+              <dd>
+                {lid.email}
+                {nogNietIngelogd && (
+                  <span className={stijl.rijactie}>
+                    <Knop href={`/beheer/leden/${lid.lidId}/adres`} soort="link">
+                      Corrigeren
+                    </Knop>
+                  </span>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Ingelogd</dt>
               <dd>{ingelogdTekst(lid.laatstIngelogd)}</dd>
             </div>
-            {uitnodiging && (
+            {nogNietIngelogd && (
               <div>
                 <dt>Uitnodiging</dt>
-                <dd>{uitnodiging}</dd>
+                <dd>
+                  {uitnodiging ?? 'Niet via het platform verstuurd'}
+                  <span className={stijl.rijactie}>
+                    <Knop href={`/beheer/leden/${lid.lidId}/uitnodigen`} soort="link">
+                      Opnieuw sturen
+                    </Knop>
+                  </span>
+                </dd>
               </div>
             )}
           </dl>
-          {nogNietIngelogd && (
-            <div className={stijl.knoppen}>
-              <Knop href={`/beheer/leden/${lid.lidId}/uitnodigen`} soort="tekst">
-                Uitnodiging opnieuw sturen
-              </Knop>
-              <Knop href={`/beheer/leden/${lid.lidId}/adres`} soort="tekst">
-                E-mailadres corrigeren
-              </Knop>
-            </div>
-          )}
           <p className={stijl.hulp}>
             {nogNietIngelogd
               ? `Zolang ${lid.voornaam} nog nooit is ingelogd kun je het e-mailadres corrigeren, bijvoorbeeld bij een typfout. Daarna niet meer: dat is waarmee ${lid.voornaam} inlogt.`

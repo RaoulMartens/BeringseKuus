@@ -101,7 +101,7 @@ test('een lid dat nog niet is ingelogd: uitnodiging opnieuw sturen en het adres 
 
   await page.goto(`/beheer/leden/${lid.id}`);
   await expect(page.getByText('Nog niet', { exact: false }).first()).toBeVisible();
-  await page.getByRole('link', { name: 'Uitnodiging opnieuw sturen' }).click();
+  await page.getByRole('link', { name: 'Opnieuw sturen' }).click();
   await expect(
     page.getByRole('heading', { level: 1, name: `Uitnodiging opnieuw sturen aan ${lid.naam}?` }),
   ).toBeVisible();

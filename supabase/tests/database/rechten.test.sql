@@ -48,7 +48,7 @@ select is_empty(
   $$ select p.oid::regprocedure::text
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute')
-        and p.proname <> all (array['activiteit_opslaan', 'activiteit_opslaan_met_bak', 'activiteit_verwijderen', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus', 'activiteiten_bulk_aanmaken', 'activiteiten_bulk_wijzigen', 'beheerders_lijst', 'beheerder_kandidaten', 'beheerder_maken', 'beheerder_bevestigen', 'beheerder_intrekken', 'leden_beheer_lijst', 'lid_beheer_lezen', 'lid_opslaan', 'lid_inactief_zetten', 'lid_actief_zetten', 'lid_toevoegen', 'lid_uitnodiging_opnieuw', 'lid_adres_corrigeren', 'leden_importeren', 'leden_uitnodigingen',
+        and p.proname <> all (array['activiteit_opslaan', 'activiteit_opslaan_met_bak', 'activiteit_verwijderen', 'concept_verwijderen', 'beheeroverzicht', 'beheerstatus', 'activiteiten_bulk_aanmaken', 'activiteiten_bulk_wijzigen', 'beheerders_lijst', 'beheerder_kandidaten', 'beheerder_maken', 'beheerder_bevestigen', 'beheerder_intrekken', 'leden_beheer_lijst', 'lid_beheer_lezen', 'lid_opslaan', 'lid_inactief_zetten', 'wijzigingen_lezen', 'lid_actief_zetten', 'lid_toevoegen', 'lid_uitnodiging_opnieuw', 'lid_adres_corrigeren', 'leden_importeren', 'leden_uitnodigingen',
                                     'huidig_seizoen', 'contact_eindverantwoordelijke', 'meld_af',
                                     'trek_afmelding_in', 'ruil_dienst', 'beschikbare_vervangers', 'wie_komt_er', 'zet_eigen_telefoon']) $$,
   'ingelogd: in public alleen de functies die de app aanroept zijn uit te voeren'

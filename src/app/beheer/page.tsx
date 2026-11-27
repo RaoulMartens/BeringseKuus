@@ -122,7 +122,7 @@ function Aanmaken() {
 }
 
 /**
- * De ingangen naar Leden en Beheerders in één kaart (wireframe admin-activiteiten, "Ledenbeheer"): de naam vet, daaronder de taak
+ * De ingangen naar Leden, Beheerders en het wijzigingenlog in één kaart (wireframe admin-activiteiten, "Ledenbeheer"): de naam vet, daaronder de taak
  * in woorden (wie nog niet is ingelogd, welke toegang nog bevestigd moet worden). Is er niets te doen, dan staat er dat.
  */
 function Ledenbeheerkaart({
@@ -143,6 +143,7 @@ function Ledenbeheerkaart({
       naam: 'Beheerders',
       taak: teBevestigen === 0 ? null : ingangTekst(teBevestigen),
     },
+    { href: '/beheer/wijzigingen', naam: 'Wijzigingen', taak: 'Wie deed wat' },
   ];
   return (
     <Kaart titel="Ledenbeheer" label lijst>

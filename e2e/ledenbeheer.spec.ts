@@ -42,11 +42,11 @@ test('een beheerder wijzigt een lid, zet het op inactief en maakt het weer actie
 
   // De ingang staat op het activiteitenoverzicht; het lid heeft geen account en staat dus onder "Vraagt aandacht".
   await page.goto('/beheer');
-  // Eén kaart "Ledenbeheer" met een rij Leden (en de taak: wie nog niet is ingelogd) en een rij Beheerders.
+  // Eén kaart "Ledenbeheer" met een rij Leden (en de taak: wie nog niet is ingelogd), een rij Beheerders en een rij Wijzigingen.
   const ledenbeheer = page
     .locator('section')
     .filter({ has: page.getByRole('heading', { name: 'Ledenbeheer' }) });
-  await expect(ledenbeheer.getByRole('link')).toHaveCount(2);
+  await expect(ledenbeheer.getByRole('link')).toHaveCount(3);
   await expect(ledenbeheer.getByRole('link', { name: /^Leden\b.*nog niet ingelogd/ })).toBeVisible();
   await ledenbeheer.getByRole('link', { name: /^Leden\b/ }).click();
   await expect(page).toHaveURL(/\/beheer\/leden$/);

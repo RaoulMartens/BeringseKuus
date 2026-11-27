@@ -1075,6 +1075,17 @@ export type Database = {
           voornaam: string;
         }[];
       };
+      wijzigingen_lezen: {
+        Args: { p_aantal?: number; p_soort?: string; p_voor_id?: number };
+        Returns: {
+          doel_id: string;
+          doel_soort: string;
+          door: string;
+          id: number;
+          moment: string;
+          omschrijving: string;
+        }[];
+      };
       zet_eigen_telefoon: { Args: { p_telefoon: string }; Returns: undefined };
     };
     Enums: {
