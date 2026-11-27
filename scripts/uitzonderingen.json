@@ -17,6 +17,12 @@
       "sha256": "32f782bc7da0e0fb7250c133bda953a0ec0de051d4a4a9dcb254e8bdd2db31cc",
       "reden": "Het Excel-sjabloon voor de import van activiteiten (eigen werk): één tabblad met de kolomnamen, twee voorbeeldregels met verzonnen gegevens ('Voorbeeld: ...') en een tabblad met uitleg. De inhoud (xl/worksheets) is nagelopen: geen echte namen, e-mailadressen of telefoonnummers",
       "gecontroleerd": "2026-11-13"
+    },
+    {
+      "pad": "public/lid-sjabloon.xlsx",
+      "sha256": "8bf40d32a03697cf31176e96d09414d354566a9d9cb1043384b228ed384e34e4",
+      "reden": "Het Excel-sjabloon voor het toevoegen van meerdere leden (eigen werk): één tabblad met de kolomnamen, twee voorbeeldregels met verzonnen gegevens ('Voorbeeld: ...', adressen op example.com) en een tabblad met uitleg. De inhoud (xl/worksheets) is nagelopen: geen echte namen, e-mailadressen of telefoonnummers. De naam bevat bewust niet 'leden': de poort wijst bestanden met die naam af.",
+      "gecontroleerd": "2026-11-27"
     }
   ]
 }

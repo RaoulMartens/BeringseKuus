@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { z } from 'zod';
 
 import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
 import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
@@ -22,7 +23,7 @@ import stijl from './leden.module.css';
 
 export const metadata: Metadata = { title: 'Leden – Ledenplatform' };
 
-const HANDELINGEN: LedenHandeling[] = ['inactief', 'actief', 'opgeslagen'];
+const HANDELINGEN: LedenHandeling[] = ['inactief', 'actief', 'opgeslagen', 'toegevoegd', 'uitgenodigd'];
 
 export default async function Leden({
   searchParams,
@@ -37,6 +38,9 @@ export default async function Leden({
 
   // Na een handeling staat het lid (een id, geen naam) in de adresbalk; de naam komt uit de database.
   let melding: { vet: string; vervolg: string } | null = null;
+  // Na een import staat het aantal in de adresbalk, geen lid.
+  const geimporteerd = z.coerce.number().int().min(1).max(999).safeParse(parameters.geimporteerd);
+  if (geimporteerd.success) melding = ledenMelding('geimporteerd', '', geimporteerd.data);
   for (const handeling of HANDELINGEN) {
     const id = z.uuid().safeParse(parameters[handeling]);
     if (!id.success) continue;
@@ -71,7 +75,12 @@ export default async function Leden({
             />
           </Kaart>
           <Kaart titel="Nieuw lid" label>
-            <p className={stijl.hulp}>Nieuwe leden voegt de bouwer nog toe. Dat kan binnenkort ook hier.</p>
+            <div className={stijl.knoppen}>
+              <Knop href="/beheer/leden/nieuw">Nieuw lid</Knop>
+              <Knop href="/beheer/leden/importeren" soort="tekst">
+                Meerdere leden toevoegen
+              </Knop>
+            </div>
           </Kaart>
         </>
       }
