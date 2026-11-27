@@ -2,6 +2,7 @@
 // eronder. Lege plekken zijn voor een lid onzichtbaar (R13), dus er staan alleen namen. Alleen de eindverantwoordelijke
 // heeft een telefoonnummer (R10). Jezelf herken je aan "(jij)" en een vetter lettertype, niet alleen aan kleur.
 
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { Icoon, type IcoonNaam } from '@/components/icoon/icoon';
@@ -36,6 +37,8 @@ interface Eigenschappen {
   onderaan?: ReactNode;
   /** De kop van de kaart; "Bak" voor de bak (BA-8), die dezelfde opmaak heeft maar geen diensten bevat. */
   titel?: string;
+  /** Voor het bestuur: waar "Neem over" achter de naam van een ander naartoe gaat (een dienst overnemen). Zonder is er geen link. */
+  overnemen?: (lidId: string) => string;
   /** Zonder icoon bij de kopjes: de kopjes van de bak (prins en adjudant, vorst, Raad van Elf) zijn geen diensten. */
   zonderIcoon?: boolean;
 }
@@ -47,6 +50,7 @@ export function Rolbezetting({
   onderaan,
   titel = 'Rolbezetting',
   zonderIcoon = false,
+  overnemen,
 }: Eigenschappen) {
   return (
     <section className={stijl.kaart} aria-label={`${titel} ${activiteit}`}>
@@ -64,6 +68,12 @@ export function Rolbezetting({
                 {groep.namen.map((naam) => (
                   <li key={naam.lidId} className={stijl.naam}>
                     {naam.jij ? <strong>{naam.naam} (jij)</strong> : <span>{naam.naam}</span>}
+                    {overnemen && !naam.jij && groep.rol !== 'eindverantwoordelijke' && (
+                      <Link href={overnemen(naam.lidId)} className={stijl.overnemen}>
+                        Neem over
+                        <span className={stijl.verborgen}> de dienst van {naam.naam}</span>
+                      </Link>
+                    )}
                     {groep.rol === 'eindverantwoordelijke' && telefoon && (
                       <span className={stijl.telefoon}>
                         <Icoon naam="telefoon" className={stijl.telefoonIcoon} />

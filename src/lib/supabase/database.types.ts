@@ -1004,6 +1004,7 @@ export type Database = {
           voornaam: string;
         }[];
       };
+      dienst_overnemen: { Args: { p_activiteit_id: string; p_lid_id: string; p_rol: string }; Returns: Json };
       herinneringen_klaarzetten: { Args: { p_na_dagen?: number }; Returns: number };
       huidig_seizoen: { Args: Record<PropertyKey, never>; Returns: number };
       leden_beheer_lijst: {
