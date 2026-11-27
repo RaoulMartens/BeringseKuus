@@ -48,9 +48,14 @@
   color: var(--neutraal-tekst-zacht);
 }
 
-/* Het filter: in de zijkolom op een computer; op een telefoon (waar de zijkolom onder de lijst valt) als pillen bovenaan. */
+/* Een regel zonder link heeft geen pijltje; zijn ruimte (16px + 12px tussenruimte) blijft vrij, zodat het uur bij alle regels op dezelfde plek staat. */
+.zonderPijl {
+  padding-inline-end: 28px;
+}
+
+/* Het filter: dezelfde pillen als de tellers elders (wit op de pagina, de gekozen in het grijs van de lijnen), bovenaan de lijst, op elk scherm. */
 .pillen {
-  display: none;
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -58,28 +63,20 @@
 .pil {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--neutraal-lijn-sterk);
-  border-radius: var(--radius-full);
   background: var(--neutraal-kaart);
-  color: var(--neutraal-tekst);
-  font: 400 0.875rem/1.4286 var(--font-tekst);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst-zacht);
   text-decoration: none;
 }
 
-.pilActief {
-  background: var(--neutraal-vlak);
-  border-color: var(--neutraal-tekst);
-  font-weight: 600;
+.pil:hover:not(.pilActief) {
+  background: var(--neutraal-hover);
 }
 
-@media (max-width: 700px) {
-  .pillen {
-    display: flex;
-  }
-
-  .alleenDesktop {
-    display: none;
-  }
+.pilActief {
+  background: var(--neutraal-lijn);
+  color: var(--neutraal-tekst);
+  font-weight: 700;
 }
