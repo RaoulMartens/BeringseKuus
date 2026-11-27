@@ -602,8 +602,8 @@ select is(
       and p.prosrc ~* '(rol_slots|activiteit_groep)'
       and (p.prosrc ~* '(insert\s+into|update|delete\s+from|merge\s+into|truncate)\s+(only\s+)?(public\.)?(rol_slots|activiteit_groep)'
            or p.prosrc ~* '\mexecute\M')),
-  array['activiteit_opslaan', 'activiteiten_bulk_aanmaken', 'bak_zetten', 'lid_inactief_zetten', 'oud_papier_aanmaken', 'ruil_dienst'],
-  'alleen activiteit_opslaan, activiteiten_bulk_aanmaken, bak_zetten, lid_inactief_zetten, oud_papier_aanmaken en ruil_dienst schrijven in rol_slots en activiteit_groep');
+  array['activiteit_opslaan', 'activiteiten_bulk_aanmaken', 'bak_zetten', 'dienst_overnemen', 'lid_inactief_zetten', 'oud_papier_aanmaken', 'ruil_dienst'],
+  'alleen activiteit_opslaan, activiteiten_bulk_aanmaken, bak_zetten, lid_inactief_zetten, oud_papier_aanmaken, ruil_dienst en dienst_overnemen schrijven in rol_slots en activiteit_groep');
 
 select * from finish();
 rollback;

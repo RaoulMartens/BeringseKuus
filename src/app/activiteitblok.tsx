@@ -35,9 +35,19 @@ interface Eigenschappen {
   metNaam: boolean;
   /** Iets dat direct onder het kaartje komt, voor de rest van het blok: op een telefoon de status (ontwerp 16-10-2026). */
   naKaartje?: ReactNode;
+  /** Voor het bestuur: waar "Neem over" achter de naam van een ander naartoe gaat. */
+  overnemen?: (lidId: string) => string;
 }
 
-export function Activiteitblok({ activiteit, indeling, eigenLidId, dag, metNaam, naKaartje }: Eigenschappen) {
+export function Activiteitblok({
+  activiteit,
+  indeling,
+  eigenLidId,
+  dag,
+  metNaam,
+  naKaartje,
+  overnemen,
+}: Eigenschappen) {
   const groepen = groepeerRollen(indeling.plekken, eigenLidId);
   const notitie = activiteit.notitie?.trim();
   // De bak (BA-8): onder de rolbezetting, alleen lezen, alleen kopjes waar iemand zit.
@@ -69,6 +79,7 @@ export function Activiteitblok({ activiteit, indeling, eigenLidId, dag, metNaam,
         activiteit={activiteit.naam}
         groepen={groepen}
         telefoon={indeling.telefoon}
+        overnemen={overnemen}
         onderaan={isNogNietIngedeeld(groepen) ? 'De rest van de indeling volgt nog.' : undefined}
       />
       {bak.length > 0 && (
