@@ -62,7 +62,7 @@ export default async function Publiceren({ params }: { params: Promise<{ id: str
     >
       {kanPubliceren ? (
         <Melding soort="info">
-          Leden zien de activiteit zodra je publiceert. Berichten naar leden gaan in deze versie nog niet uit.
+          Leden zien de activiteit zodra je publiceert. Wie al een plek heeft, krijgt een mail.
         </Melding>
       ) : (
         <Melding soort="let-op">
