@@ -44,7 +44,7 @@ test('het bestuur neemt een dienst over in drie klikken', async ({ page }) => {
 
   await page.goto(`/programma/${activiteit}`);
   await expect(page.getByText(lid.naam, { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: /^Neem over/ }).click();
+  await page.getByRole('link', { name: /^Neem de dienst van .* over$/ }).click();
 
   // De bevestigingspagina: wat er gebeurt, met het werkwoord op de knop.
   await expect(
