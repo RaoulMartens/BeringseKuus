@@ -1,0 +1,49 @@
+/* Het wijzigingenlog (UC-015): een regel is wie (vet), wat (grijs, eronder) en het uur rechts. Rustig: het is een naslagwerk, geen takenlijst. */
+
+.regel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tekst {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.wie {
+  font-weight: 600;
+}
+
+.wat {
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+  overflow-wrap: anywhere;
+}
+
+.uur {
+  flex: none;
+  font-size: 0.875rem;
+  color: var(--neutraal-tekst-zacht);
+  font-variant-numeric: tabular-nums;
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hulp {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--neutraal-tekst-zacht);
+}
