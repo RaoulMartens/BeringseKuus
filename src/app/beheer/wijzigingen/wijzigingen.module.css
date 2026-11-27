@@ -47,3 +47,39 @@
   line-height: 1.4286;
   color: var(--neutraal-tekst-zacht);
 }
+
+/* Het filter: in de zijkolom op een computer; op een telefoon (waar de zijkolom onder de lijst valt) als pillen bovenaan. */
+.pillen {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pil {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--neutraal-lijn-sterk);
+  border-radius: var(--radius-full);
+  background: var(--neutraal-kaart);
+  color: var(--neutraal-tekst);
+  font: 400 0.875rem/1.4286 var(--font-tekst);
+  text-decoration: none;
+}
+
+.pilActief {
+  background: var(--neutraal-vlak);
+  border-color: var(--neutraal-tekst);
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .pillen {
+    display: flex;
+  }
+
+  .alleenDesktop {
+    display: none;
+  }
+}
