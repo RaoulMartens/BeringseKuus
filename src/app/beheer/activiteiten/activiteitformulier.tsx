@@ -55,7 +55,7 @@ interface Eigenschappen {
   bak: { actief: boolean; plekken: BakPlek[] };
   /** De leden van de Raad van Elf, om de bak mee te vullen als hij wordt aangezet. */
   raadsleden: string[];
-  /** De activiteit is al gepubliceerd: leden zien elke wijziging direct (er gaat nog geen bericht uit). */
+  /** De activiteit is al gepubliceerd: leden zien elke wijziging direct (en krijgen er een mail van, behalve bij de notitie). */
   gepubliceerd?: boolean;
 }
 
@@ -124,7 +124,7 @@ export function Activiteitformulier({
         titel="Wanneer en waar"
         ondertitel={
           gepubliceerd
-            ? 'Leden zien een wijziging meteen. Er gaat nog geen bericht uit: laat het zelf weten als het ertoe doet.'
+            ? 'Leden zien een wijziging meteen en krijgen er een mail van (niet bij de notitie).'
             : 'Velden met * zijn verplicht om te kunnen publiceren. Opslaan als concept kan altijd, ook halfaf.'
         }
       >

@@ -556,6 +556,33 @@ export type Database = {
           },
         ];
       };
+      oud_papier_aangemaakt: {
+        Row: {
+          aangemaakt: string;
+          datum: string;
+          vereniging_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          aangemaakt?: string;
+          datum: string;
+          vereniging_id?: string;
+        };
+        Update: {
+          aangemaakt?: string;
+          datum?: string;
+          vereniging_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'oud_papier_aangemaakt_vereniging_id_fkey';
+            columns: ['vereniging_id'];
+            isOneToOne: false;
+            referencedRelation: 'verenigingen';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       rol_slots: {
         Row: {
           activiteit_id: string;
@@ -1032,6 +1059,7 @@ export type Database = {
       };
       lid_uitnodiging_opnieuw: { Args: { p_lid_id: string }; Returns: Json };
       meld_af: { Args: { p_activiteit_id: string; p_toelichting?: string }; Returns: Json };
+      oud_papier_aanmaken: { Args: { p_maanden?: number; p_vandaag?: string }; Returns: number };
       ruil_dienst: { Args: { p_rol_slot_id: string; p_vervanger_id: string }; Returns: Json };
       trek_afmelding_in: { Args: { p_activiteit_id: string }; Returns: Json };
       uitnodiging_afronden: {

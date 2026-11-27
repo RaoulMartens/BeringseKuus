@@ -1,6 +1,6 @@
-// "Wie is aan de beurt?" (UC-012, FO 9.2, bouwgids 8.2), met echte gegevens: het raster van alle leden met hun aantal diensten, de
-// snelkeuze bij een lege plek en de groep "Nog niet aan de beurt" in de keuzelijst. De telregels zelf staan in src/lib/verdeling.test.ts;
-// deze tests bewijzen de pagina, de leesroute en het formulier. Elk seizoen van het raster ligt ver in de toekomst en elke schermbreedte
+// "Wie is aan de beurt?" (UC-012, FO 9.2, bouwgids 8.2), met echte gegevens: het raster van alle leden met hun aantal diensten, een kaart op
+// het beheeroverzicht, en de groep "Nog niet aan de beurt" in de keuzelijst. De telregels zelf staan in src/lib/verdeling.test.ts;
+// deze tests bewijzen de kaart, de leesroute en het formulier. Elk seizoen van het raster ligt ver in de toekomst en elke schermbreedte
 // heeft er een eigen, zodat de twee tests die tegelijk draaien elkaars activiteiten niet zien.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
@@ -69,10 +69,8 @@ test('het raster toont alle leden met hun aantal diensten, de minste eerst', asy
   psql(`insert into public.rol_slots (activiteit_id, rol_type, bezetter_id, plek_label, volgorde)
         values ('${een}', 'bak', '${nog.id}', 'raadslid', 101);`);
 
-  await page.goto(`/beheer/verdeling?seizoen=${j}`);
-  await expect(page.getByRole('heading', { level: 1, name: 'Wie is aan de beurt?' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Terug naar activiteiten' })).toBeVisible();
-  await expect(page.getByText(`Vastelaovend ${j}/${j + 1}`)).toBeVisible();
+  await page.goto(`/beheer?seizoen=${j}`);
+  await expect(page.getByRole('heading', { level: 2, name: 'Wie is aan de beurt?' })).toBeVisible();
 
   const raster = page.getByRole('region', { name: 'Alle leden en hun diensten dit seizoen' });
   // Geen dienst: de bak telt niet, een geannuleerde activiteit telt niet.
@@ -99,33 +97,6 @@ test('het raster toont alle leden met hun aantal diensten, de minste eerst', asy
 
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-});
-
-test('de snelkeuze zet iemand die nog niet aan de beurt is geweest op de lege plek', async ({ page }) => {
-  aangemaakt.push(await logInAlsBeheerder(page));
-  maakTestlid('Snel', kenmerk);
-
-  await page.goto('/beheer/activiteiten/nieuw');
-  await voegPlekToe(page, 'tapper');
-  const veld = page.getByLabel('Nieuwe plek 1 van tapper', { exact: true });
-  const knoppen = page.getByRole('button', { name: /op nieuwe plek 1 van tapper zetten/ });
-  await expect(knoppen.first()).toBeVisible();
-  expect(await knoppen.count()).toBeLessThanOrEqual(5);
-
-  // De link naar alle leden opent in een nieuw tabblad: wat nog niet is opgeslagen blijft staan.
-  const alle = page.getByRole('link', { name: /Alle leden bekijken/ });
-  await expect(alle).toHaveAttribute('href', '/beheer/verdeling');
-  await expect(alle).toHaveAttribute('target', '_blank');
-
-  const label = (await knoppen.first().getAttribute('aria-label')) ?? '';
-  const naam = label.slice(0, label.indexOf(' op nieuwe plek'));
-  expect(naam).not.toBe('');
-  expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
-
-  await knoppen.first().click();
-  // De naam staat nu in de keuzelijst van de plek; de plek is niet meer leeg, dus de snelkeuze is weg.
-  await expect(veld.locator('option:checked')).toContainText(naam.split(' ')[0] ?? naam);
-  await expect(knoppen).toHaveCount(0);
 });
 
 test('de keuzelijst zet wie nog niet aan de beurt is geweest bovenaan in een eigen groep', async ({

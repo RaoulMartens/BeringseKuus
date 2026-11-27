@@ -54,11 +54,7 @@ export default async function ActiviteitVerwijderen({ params }: { params: Promis
         )}
         <p className={stijl.tekst}>{ingedeeldTekst(ingedeeld)}</p>
         {afgemeld && <p className={stijl.tekst}>{afgemeld}</p>}
-        {gepubliceerd && (
-          <p className={stijl.tekst}>
-            Er gaat geen bericht uit. Laat het de leden zelf weten, zeker wie er is ingedeeld.
-          </p>
-        )}
+        {gepubliceerd && <p className={stijl.tekst}>Wie een plek had, krijgt een mail.</p>}
         <p className={stijl.tekst}>Dit kun je niet terugdraaien.</p>
       </Kaart>
       <Verwijderformulier

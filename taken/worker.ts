@@ -98,6 +98,26 @@ export interface Uitkomst {
   overgeslagen: number;
 }
 
+/** De nachtelijke taak (taken/wrangler.jsonc, 03:00 UTC): oud papier voor de komende 12 maanden als concept aanmaken (UC-014). */
+export const OUD_PAPIER_CRON = '0 3 * * *';
+
+/** Roept `oud_papier_aanmaken` aan; de database bepaalt wat er ontbreekt en maakt nooit dubbel. Geeft het aantal nieuwe concepten. */
+export async function maakOudPapier(env: Omgeving): Promise<number> {
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY } = env;
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    console.log('oud papier: geheimen ontbreken, niets aangemaakt');
+    return 0;
+  }
+  const antwoord = await supabase({ SUPABASE_URL, SUPABASE_SECRET_KEY }, 'rpc/oud_papier_aanmaken', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  if (!antwoord.ok) throw new Error(`oud papier aanmaken mislukt: ${antwoord.status}`);
+  const aantal = Number(await antwoord.json());
+  console.log(`oud papier: ${aantal} concepten aangemaakt`);
+  return aantal;
+}
+
 export async function verstuurBerichten(env: Omgeving, nu: Date = new Date()): Promise<Uitkomst> {
   const { SUPABASE_URL, SUPABASE_SECRET_KEY, POSTMARK_TOKEN, BERICHT_AFZENDER } = env;
   const uitkomst: Uitkomst = { verstuurd: 0, mislukt: 0, overgeslagen: 0 };
@@ -388,10 +408,12 @@ const takenWorker = {
     const taken =
       gebeurtenis.cron === HERINNERING_CRON
         ? ([['herinneringen', () => zetHerinneringenKlaar(env)]] as const)
-        : ([
-            ['berichten', () => verstuurBerichten(env)],
-            ['uitnodigingen', () => stuurUitnodigingen(env)],
-          ] as const);
+        : gebeurtenis.cron === OUD_PAPIER_CRON
+          ? ([['oud papier', () => maakOudPapier(env)]] as const)
+          : ([
+              ['berichten', () => verstuurBerichten(env)],
+              ['uitnodigingen', () => stuurUitnodigingen(env)],
+            ] as const);
     for (const [naam, taak] of taken) {
       try {
         await taak();

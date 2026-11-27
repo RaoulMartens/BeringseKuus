@@ -1,5 +1,5 @@
 // Een gepubliceerde activiteit wijzigen (review F2-01), met echte gegevens: na het publiceren kan het bestuur nog indelen en
-// corrigeren. Leden zien elke wijziging meteen; er gaat nog geen bericht uit (O-1). De eindverantwoordelijke is vast: alleen
+// corrigeren. Leden zien elke wijziging meteen en krijgen er een mail van (O-1). De eindverantwoordelijke is vast: alleen
 // rechtstreeks te vervangen, door iemand met een telefoonnummer (R21). De controles zelf staan in public.activiteit_opslaan
 // (pgTAP, `fase2_opslaan.test.sql`); deze tests bewijzen formulier, serveractie en wat een lid daarna ziet.
 import AxeBuilder from '@axe-core/playwright';

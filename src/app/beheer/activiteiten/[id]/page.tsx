@@ -97,7 +97,7 @@ export default async function Activiteit({ params }: { params: Promise<{ id: str
           <Statuspaneel
             status="Gepubliceerd"
             stip="vol"
-            uitleg="Leden zien deze activiteit. Een wijziging zien ze meteen; er gaat nog geen bericht uit."
+            uitleg="Leden zien deze activiteit. Een wijziging zien ze meteen en ze krijgen er een mail van (niet bij de notitie)."
             onderaan={
               <>
                 {!zelfNiet && (
