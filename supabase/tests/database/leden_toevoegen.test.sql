@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(54);
+select plan(55);
 
 -- ===== Hulpen (alleen in deze transactie) =====
 create temp table gebruikers (naam text primary key, uid uuid not null, lid uuid);
