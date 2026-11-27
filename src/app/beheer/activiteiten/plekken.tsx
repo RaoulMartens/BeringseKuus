@@ -110,15 +110,18 @@ function HelperNaam({ veld, label, begin }: { veld: string; label: string; begin
   );
 }
 
-/** Het label van een keuze: de naam, met erachter waarom het niet of met een kanttekening kan. */
+/**
+ * Het label van een keuze: de naam, en alleen als het nodig is een korte aantekening erachter: waarom iemand niet te kiezen is, of dat
+ * hij niet is aangemerkt voor deze rol. De lijst is die van de browser (op elk apparaat bekend en toegankelijk), dus één regel per
+ * naam en zo kort mogelijk; het aantal diensten staat niet in de lijst maar in de kaart "Wie is aan de beurt?" op het beheeroverzicht.
+ */
 function optieLabel(kandidaat: Kandidaat, rol: string, reden: string | null): string {
   const delen = [kandidaat.naam];
   if (kandidaat.extern) delen.push('(extern)');
   if (reden) delen.push(`— ${reden}`);
-  else if (kandidaat.diensten === 1) delen.push('— 1 dienst dit seizoen');
-  else if (rol === 'bob' && !kandidaat.magBob) delen.push('— nog niet aangemerkt als BOB');
+  else if (rol === 'bob' && !kandidaat.magBob) delen.push('— niet aangemerkt');
   else if (rol === 'eindverantwoordelijke' && !kandidaat.magEindverantwoordelijke) {
-    delen.push('— nog niet aangemerkt als eindverantwoordelijke');
+    delen.push('— niet aangemerkt');
   }
   return delen.join(' ');
 }

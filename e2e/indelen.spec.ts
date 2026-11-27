@@ -117,7 +117,7 @@ test('iemand indelen, de eindverantwoordelijke kiezen, en daarna eraf halen: ope
   await expect(ev.getByRole('option', { name: 'Plek openlaten' })).toHaveCount(1);
   await expect(ev.getByRole('option', { name: 'Plek weghalen' })).toHaveCount(0);
   // Anna is niet aangemerkt als eindverantwoordelijke: een hint bij de naam, geen blokkade (R19).
-  await ev.selectOption({ label: `${anna.naam} — nog niet aangemerkt als eindverantwoordelijke` });
+  await ev.selectOption({ label: `${anna.naam} — niet aangemerkt` });
   await opslaan(page).click();
   await expect(page).toHaveURL(/\/beheer\?opgeslagen=/);
   expect(bezetters(id, 'eindverantwoordelijke')).toBe('Anna');
@@ -185,7 +185,7 @@ test('een externe helper kan tapper en BOB zijn maar geen eindverantwoordelijke;
   ).toHaveCount(0);
 
   // Een hulp bij het kiezen, geen blokkade (R19).
-  const hint = `${gewoon.naam} — nog niet aangemerkt als BOB`;
+  const hint = `${gewoon.naam} — niet aangemerkt`;
   await expect(plek(page, 'Nieuwe plek 1 van BOB').getByRole('option', { name: hint })).toHaveCount(1);
   await plek(page, 'Nieuwe plek 1 van BOB').selectOption({ label: hint });
   await plek(page, 'Nieuwe plek 1 van tapper').selectOption({ label: 'Iemand van buiten de vereniging…' });
