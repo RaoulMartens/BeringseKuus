@@ -27,7 +27,7 @@ import stijl from './wijzigingen.module.css';
 export const metadata: Metadata = { title: 'Wijzigingen – Ledenplatform' };
 
 /**
- * Het wijzigingenlog (wireframe admin-wijzigingen, UC-015): per dag wie wat deed, van nieuw naar oud, met een filter in de zijkolom en "Toon oudere
+ * Het wijzigingenlog (wireframe admin-wijzigingen, UC-015): per dag wie wat deed, van nieuw naar oud, met filters bovenaan en "Toon oudere
  * wijzigingen" om verder terug te gaan. Alleen-lezen. Wat erin staat en wie het mag lezen, bepaalt de database (wijzigingen_lezen).
  */
 export default async function Wijzigingen({
@@ -65,20 +65,6 @@ export default async function Wijzigingen({
       terug={{ href: '/beheer', tekst: 'Terug naar activiteiten' }}
       zijkolom={
         <>
-          <div className={stijl.alleenDesktop}>
-            <Kaart titel="Tonen" label lijst>
-              <Lijst>
-                {SOORTEN.map((s) => (
-                  <Lijstrij key={s} href={wijzigingenHref(s)} gemarkeerd={s === soort}>
-                    <span className={stijl.filter}>
-                      <span aria-hidden="true">{s === soort ? '●' : '○'}</span>
-                      {s === soort ? <strong>{SOORT_LABEL[s]}</strong> : SOORT_LABEL[s]}
-                    </span>
-                  </Lijstrij>
-                ))}
-              </Lijst>
-            </Kaart>
-          </div>
           <Kaart>
             <p className={stijl.hulp}>
               Wie wat wanneer heeft gewijzigd, van nieuw naar oud. Alleen beheerders zien dit. Afmeldingen
@@ -114,7 +100,11 @@ export default async function Wijzigingen({
           <Lijst>
             {dag.regels.map((w) => (
               <Lijstrij key={w.id} href={doelHref(w) ?? undefined}>
-                <span className={stijl.regel}>
+                <span
+                  className={[stijl.regel, doelHref(w) ? undefined : stijl.zonderPijl]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
                   <span className={stijl.tekst}>
                     <strong className={stijl.wie}>{w.door}</strong>
                     <span className={stijl.wat}>{w.omschrijving}</span>
