@@ -103,6 +103,11 @@
 .gegevens dd {
   margin: 0;
   overflow-wrap: anywhere;
+  /* een actie achter het gegeven staat aan het einde van de regel, onder elkaar op één lijn */
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 /* een lege kaart (geen komende diensten): de tekst staat binnen de opvulling van de kaart */
@@ -232,6 +237,6 @@
 
 /* Een actie achter een gegeven ("Corrigeren", "Opnieuw sturen"): een rustige tekstlink in dezelfde regel, geen knop. */
 .rijactie {
-  margin-left: 12px;
+  flex: none;
   white-space: nowrap;
 }

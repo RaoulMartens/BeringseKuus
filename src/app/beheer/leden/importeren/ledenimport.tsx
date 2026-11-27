@@ -222,9 +222,6 @@ export function Ledenimport({ groepen }: { groepen: Groep[] }) {
         <Knop type="submit" soort="positief" disabled={fouten.length > 0 || aantal === 0}>
           {toevoegen}
         </Knop>
-        <Knop soort="tekst" onClick={terug}>
-          Ander bestand kiezen
-        </Knop>
       </div>
     </form>
   );

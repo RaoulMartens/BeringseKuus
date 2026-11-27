@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
@@ -64,18 +65,20 @@ export default async function Wijzigingen({
       terug={{ href: '/beheer', tekst: 'Terug naar activiteiten' }}
       zijkolom={
         <>
-          <Kaart titel="Tonen" label lijst>
-            <Lijst>
-              {SOORTEN.map((s) => (
-                <Lijstrij key={s} href={wijzigingenHref(s)} gemarkeerd={s === soort}>
-                  <span className={stijl.filter}>
-                    <span aria-hidden="true">{s === soort ? '●' : '○'}</span>
-                    {s === soort ? <strong>{SOORT_LABEL[s]}</strong> : SOORT_LABEL[s]}
-                  </span>
-                </Lijstrij>
-              ))}
-            </Lijst>
-          </Kaart>
+          <div className={stijl.alleenDesktop}>
+            <Kaart titel="Tonen" label lijst>
+              <Lijst>
+                {SOORTEN.map((s) => (
+                  <Lijstrij key={s} href={wijzigingenHref(s)} gemarkeerd={s === soort}>
+                    <span className={stijl.filter}>
+                      <span aria-hidden="true">{s === soort ? '●' : '○'}</span>
+                      {s === soort ? <strong>{SOORT_LABEL[s]}</strong> : SOORT_LABEL[s]}
+                    </span>
+                  </Lijstrij>
+                ))}
+              </Lijst>
+            </Kaart>
+          </div>
           <Kaart>
             <p className={stijl.hulp}>
               Wie wat wanneer heeft gewijzigd, van nieuw naar oud. Alleen beheerders zien dit. Afmeldingen
@@ -85,6 +88,18 @@ export default async function Wijzigingen({
         </>
       }
     >
+      <nav aria-label="Tonen" className={stijl.pillen}>
+        {SOORTEN.map((s) => (
+          <Link
+            key={s}
+            href={wijzigingenHref(s)}
+            className={[stijl.pil, s === soort ? stijl.pilActief : undefined].filter(Boolean).join(' ')}
+            aria-current={s === soort ? 'page' : undefined}
+          >
+            {SOORT_LABEL[s]}
+          </Link>
+        ))}
+      </nav>
       {dagen.length === 0 && (
         <Kaart>
           <p className={stijl.hulp}>
