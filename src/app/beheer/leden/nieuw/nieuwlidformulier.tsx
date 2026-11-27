@@ -70,12 +70,12 @@ export function Nieuwlidformulier({ groepen }: { groepen: Groep[] }) {
           onChange={(e) => zet({ email: e.target.value })}
         />
       </Kaart>
-      <Kaart titel="Telefoonnummer (niet verplicht)" label>
+      <Kaart>
         <Veld
           id="telefoon"
           type="tel"
           inputMode="tel"
-          label="Telefoonnummer"
+          label="Telefoonnummer (niet verplicht)"
           autoComplete="off"
           maxLength={30}
           hulp="Het lid kan het later zelf invullen op Mijn account. Leden zien het alleen bij activiteiten waar dit lid eindverantwoordelijke is."
