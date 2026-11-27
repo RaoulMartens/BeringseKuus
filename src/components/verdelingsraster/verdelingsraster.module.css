@@ -9,7 +9,7 @@
 .label {
   display: block;
   margin: 0;
-  font: 700 0.875rem/1.4286 var(--font-tekst);
+  font: 600 0.875rem/1.4286 var(--font-tekst);
   color: var(--neutraal-tekst-zacht);
 }
 
