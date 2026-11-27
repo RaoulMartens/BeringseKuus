@@ -9,10 +9,13 @@
   box-sizing: border-box;
 }
 
-/* De ruimte voor de scrollbalk is er altijd: anders schuift de pagina een paar pixels opzij zodra een scherm lang genoeg wordt om
-   te scrollen (en weer terug op een kort scherm). Op telefoons met zwevende balken heeft dit geen effect. */
+/* De scrollbalk is er op elk scherm, ook als de pagina niet scrolt: zo schuift de pagina niet een paar pixels opzij zodra een scherm lang genoeg
+   wordt, en blijft er geen leeg vlak rechts van de rode balk staan (scrollbar-gutter: stable liet dat vlak open). De balk is dun en in de
+   kleuren van de pagina, zodat hij rustig blijft. Op telefoons met zwevende balken heeft dit geen effect. */
 html {
-  scrollbar-gutter: stable;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: var(--neutraal-lijn-sterk) var(--neutraal-vlak);
 }
 
 body {
