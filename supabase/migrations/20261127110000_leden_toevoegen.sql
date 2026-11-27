@@ -388,11 +388,11 @@ begin
 end
 $$;
 
--- Herinneringen (door de Worker, elke ochtend): een lid dat na de uitnodiging nog nooit is ingelogd krijgt een herinnering, één keer na 3 dagen en nog
--- een keer na 7 dagen (dus hooguit twee), gerekend vanaf de laatste verstuurde uitnodiging. Alleen actieve leden die kunnen inloggen (geen beheeraccount,
--- geen externe helper), en alleen als de uitnodiging echt is verstuurd. Een lid dat is ingelogd of inactief is gezet, krijgt er geen meer. De herinnering
--- is een opdracht in hetzelfde postvak-uit; de Worker stuurt hem. Geeft het aantal nieuwe opdrachten.
-create function public.herinneringen_klaarzetten(p_na_dagen int default 3, p_tweede_na_dagen int default 7) returns int
+-- Herinneringen (door de Worker, elke ochtend): een lid dat na de uitnodiging nog nooit is ingelogd krijgt één herinnering, 3 dagen na de laatste verstuurde
+-- uitnodiging; nooit meer dan één per lid. Wil de beheerder daarna nog een keer mailen, dan stuurt hij zelf de uitnodiging opnieuw (lid_uitnodiging_opnieuw).
+-- Alleen actieve leden die kunnen inloggen (geen beheeraccount, geen externe helper), en alleen als de uitnodiging echt is verstuurd. Een lid dat is
+-- ingelogd of inactief is gezet, krijgt er geen. De herinnering is een opdracht in hetzelfde postvak-uit; de Worker stuurt hem. Geeft het aantal nieuwe opdrachten.
+create function public.herinneringen_klaarzetten(p_na_dagen int default 3) returns int
 language plpgsql security definer
 set search_path = ''
 as $$
@@ -400,25 +400,18 @@ declare
   v_aantal int;
 begin
   perform pg_advisory_xact_lock(hashtext('herinneringen_klaarzetten'));
-  with kandidaten as (
-    select l.id as lid_id,
-           (select max(u.verstuurd_op) from public.lid_uitnodigingen u
-             where u.lid_id = l.id and u.soort = 'uitnodiging' and u.status = 'verstuurd') as uitgenodigd,
-           (select count(*) from public.lid_uitnodigingen u where u.lid_id = l.id and u.soort = 'herinnering'
-               and u.status in ('wacht', 'verstuurd')
-               and u.aangemaakt > coalesce((select max(u2.verstuurd_op) from public.lid_uitnodigingen u2
-                                             where u2.lid_id = l.id and u2.soort = 'uitnodiging' and u2.status = 'verstuurd'), '-infinity')) as herinnerd
+  with nieuw as (
+    insert into public.lid_uitnodigingen (lid_id, soort)
+    select l.id, 'herinnering'
       from public.leden l
-      join public.leden_prive p on p.lid_id = l.id
      where l.type = 'lid' and l.actief and not l.alleen_beheer
        and not exists (select 1 from auth.users au where au.id = l.auth_user_id and au.last_sign_in_at is not null)
+       -- Er is een uitnodiging verstuurd, die is minstens p_na_dagen oud, en er wacht niets meer.
+       and (select max(u.verstuurd_op) from public.lid_uitnodigingen u
+             where u.lid_id = l.id and u.soort = 'uitnodiging' and u.status = 'verstuurd') <= now() - make_interval(days => p_na_dagen)
        and not exists (select 1 from public.lid_uitnodigingen u where u.lid_id = l.id and u.status = 'wacht')
-  ), nieuw as (
-    insert into public.lid_uitnodigingen (lid_id, soort)
-    select k.lid_id, 'herinnering' from kandidaten k
-     where k.uitgenodigd is not null
-       and ((k.herinnerd = 0 and k.uitgenodigd <= now() - make_interval(days => p_na_dagen))
-         or (k.herinnerd = 1 and k.uitgenodigd <= now() - make_interval(days => p_tweede_na_dagen)))
+       -- Hooguit één herinnering per lid, ooit.
+       and not exists (select 1 from public.lid_uitnodigingen u where u.lid_id = l.id and u.soort = 'herinnering' and u.status in ('wacht', 'verstuurd'))
     returning lid_id
   ), logregel as (
     insert into public.wijzigingen_log (door_lid_id, actie, tabel, rij_id, omschrijving)
@@ -476,7 +469,7 @@ grant execute on function public.leden_uitnodigingen() to authenticated;
 
 revoke all on function public.claim_uitnodigingen(int, int) from public, anon, authenticated;
 revoke all on function public.uitnodiging_afronden(bigint, text, uuid, text) from public, anon, authenticated;
-revoke all on function public.herinneringen_klaarzetten(int, int) from public, anon, authenticated;
-grant execute on function public.herinneringen_klaarzetten(int, int) to service_role;
+revoke all on function public.herinneringen_klaarzetten(int) from public, anon, authenticated;
+grant execute on function public.herinneringen_klaarzetten(int) to service_role;
 grant execute on function public.claim_uitnodigingen(int, int) to service_role;
 grant execute on function public.uitnodiging_afronden(bigint, text, uuid, text) to service_role;

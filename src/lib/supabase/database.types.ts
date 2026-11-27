@@ -977,10 +977,7 @@ export type Database = {
           voornaam: string;
         }[];
       };
-      herinneringen_klaarzetten: {
-        Args: { p_na_dagen?: number; p_tweede_na_dagen?: number };
-        Returns: number;
-      };
+      herinneringen_klaarzetten: { Args: { p_na_dagen?: number }; Returns: number };
       huidig_seizoen: { Args: Record<PropertyKey, never>; Returns: number };
       leden_beheer_lijst: {
         Args: Record<PropertyKey, never>;

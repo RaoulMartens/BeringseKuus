@@ -62,14 +62,15 @@ Een lid dat nog niet is ingelogd staat onder "Vraagt aandacht" met de status van
 
 ## Herinnering aan wie nog niet is ingelogd
 
-Een lid dat na de uitnodiging nog nooit is ingelogd krijgt een herinnering: één keer na 3 dagen en nog een keer na 7 dagen, gerekend vanaf de laatste
-verstuurde uitnodiging; daarna niet meer. De taken-Worker draait hiervoor elke ochtend om 07:00 UTC (`HERINNERING_CRON`, `zetHerinneringenKlaar`) en
-roept `herinneringen_klaarzetten` aan; die zet een opdracht klaar (`soort = 'herinnering'` in `lid_uitnodigingen`) die de gewone minuuttaak verstuurt, met
-een eigen, kortere mail (`maakHerinnering`). Alleen actieve leden die kunnen inloggen: geen beheeraccount, geen extern, niet inactief, en alleen als de
-uitnodiging echt is verstuurd (geen opdracht die nog wacht). Een lid dat inlogt of inactief wordt gezet, krijgt er geen meer. Op "Vraagt aandacht" staat
-"herinnerd 18 november"; het lidscherm zegt "Herinnering verstuurd op …". Het aantal dagen zijn de standaardwaarden van de functie (3 en 7).
+Een lid dat na de uitnodiging nog nooit is ingelogd krijgt **één** herinnering, 3 dagen na de laatste verstuurde uitnodiging; nooit meer dan één per lid. Wil de
+beheerder nog een keer mailen, dan stuurt hij zelf de uitnodiging opnieuw (lidscherm, "Uitnodiging opnieuw sturen"); daarna volgt er geen automatische herinnering
+meer. De taken-Worker draait hiervoor elke ochtend om 07:00 UTC (`HERINNERING_CRON`, `zetHerinneringenKlaar`) en roept `herinneringen_klaarzetten` aan; die zet een
+opdracht klaar (`soort = 'herinnering'` in `lid_uitnodigingen`) die de gewone minuuttaak verstuurt, met een eigen, kortere mail (`maakHerinnering`). Alleen actieve
+leden die kunnen inloggen: geen beheeraccount, geen extern, niet inactief, en alleen als de uitnodiging echt is verstuurd (geen opdracht die nog wacht). Een lid dat
+inlogt of inactief wordt gezet, krijgt er geen. Op "Vraagt aandacht" staat "herinnerd 18 november"; het lidscherm zegt "Herinnering verstuurd op …". De 3 dagen zijn de
+standaardwaarde van de functie.
 
-Niet: een herinnering voor leden die de bouwer met `leden:uitnodigen` heeft uitgenodigd (die hebben geen opdracht in `lid_uitnodigingen`), en een knop om
+Niet: een herinnering voor leden die de bouwer met `leden:uitnodigen` heeft uitgenodigd (die hebben geen opdracht in `lid_uitnodigingen`), en een schakelaar om
 herinneringen uit te zetten.
 
 ## Wat er niet is
