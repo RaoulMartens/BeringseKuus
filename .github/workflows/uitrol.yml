@@ -137,7 +137,7 @@ jobs:
       url: ${{ vars.SITE_URL }}
     steps:
       # Alleen wat de uitrol nodig heeft, uit de commit waarop check groen was: wrangler (uitrol/), de configuratie,
-      # de taken-Worker (zonder pakketten, scripts/controleer-poort.ts) en de controle na afloop. Geen code van de app.
+      # de taken-Worker (zonder pakketten, scripts/controleer-poort.ts; met de tekst van de uitnodigingsmail, scripts/uitnodiging.ts, zonder imports) en de controle na afloop. Geen code van de app.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
@@ -146,6 +146,7 @@ jobs:
             uitrol
             wrangler.jsonc
             taken
+            scripts/uitnodiging.ts
             scripts/controleer-online.ts
             src/lib/beveiligingsheaders.ts
           sparse-checkout-cone-mode: false

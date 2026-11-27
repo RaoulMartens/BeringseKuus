@@ -139,8 +139,11 @@ export function maakUitnodiging(opties: {
   ondertekening: string;
   site: string;
   test?: boolean;
+  /** De alinea over de proef (nog geen mail bij indelen). Standaard aan, voor het script; de Worker zet hem uit. */
+  metProef?: boolean;
 }): Mail {
   const { voornaam, ondertekening, site } = opties;
+  const metProef = opties.metProef ?? true;
   const aanhef = `Beste ${voornaam},`;
   const onderwerp = `${opties.test ? '[TEST] ' : ''}Het ledenplatform van de vereniging staat klaar: log vandaag nog in`;
 
@@ -182,8 +185,7 @@ export function maakUitnodiging(opties: {
     '',
     lukt,
     '',
-    proef,
-    '',
+    ...(metProef ? [proef, ''] : []),
     groet,
     ondertekening,
     '',
@@ -209,7 +211,7 @@ export function maakUitnodiging(opties: {
     '</ul>',
     `<p><strong>Afmelden en overdragen:</strong> ${escape(afmelden)}</p>`,
     `<p>${escape(lukt)}</p>`,
-    `<p>${escape(proef)}</p>`,
+    ...(metProef ? [`<p>${escape(proef)}</p>`] : []),
     `<p>${escape(groet)}<br>${escape(ondertekening)}</p>`,
     '</body>',
     '</html>',

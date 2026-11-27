@@ -15,6 +15,7 @@
 // Geen fetch-handler: deze Worker heeft geen adres (workers_dev staat uit in taken/wrangler.jsonc). In de logs staan alleen
 // aantallen en foutcodes, geen namen, adressen of berichttekst.
 
+import { maakUitnodiging } from '../scripts/uitnodiging.ts';
 import {
   groepeer,
   inStukken,
@@ -240,15 +241,140 @@ async function stuur(
   }
 }
 
+interface Uitnodiging {
+  id: number;
+  lid_id: string;
+  voornaam: string;
+  email: string;
+  account_id: string | null;
+  account_email: string | null;
+}
+
+export interface UitnodigingUitkomst {
+  verstuurd: number;
+  mislukt: number;
+}
+
+async function auth(db: Db, pad: string, init: RequestInit): Promise<Response> {
+  return fetch(`${db.SUPABASE_URL.replace(/\/+$/, '')}/auth/v1/${pad}`, {
+    ...init,
+    headers: {
+      'content-type': 'application/json',
+      apikey: db.SUPABASE_SECRET_KEY,
+      authorization: `Bearer ${db.SUPABASE_SECRET_KEY}`,
+    },
+  });
+}
+
+/**
+ * Leden die in de app zijn toegevoegd (of een nieuw adres kregen) krijgen hier hun inlogaccount en de uitnodiging (BA-11). De app
+ * kan geen account maken (de geheime sleutel hoort alleen hier). Per opdracht: het account aanmaken, of het nieuwe adres zetten als
+ * dat niet meer klopt; dan de mail; dan het resultaat vastleggen. Een fout laat de opdracht staan voor een volgende run (tot vijf
+ * pogingen); één mislukte opdracht stopt de rest niet.
+ */
+export async function stuurUitnodigingen(env: Omgeving): Promise<UitnodigingUitkomst> {
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY, POSTMARK_TOKEN, BERICHT_AFZENDER } = env;
+  const uitkomst: UitnodigingUitkomst = { verstuurd: 0, mislukt: 0 };
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !POSTMARK_TOKEN || !BERICHT_AFZENDER) {
+    console.log('uitnodigingen: geheimen of afzender ontbreken, niets verstuurd');
+    return uitkomst;
+  }
+  const db: Db = { SUPABASE_URL, SUPABASE_SECRET_KEY };
+  const claim = await supabase(db, 'rpc/claim_uitnodigingen', {
+    method: 'POST',
+    body: JSON.stringify({ p_max: 20 }),
+  });
+  if (!claim.ok) throw new Error(`uitnodigingen oppakken mislukt: ${claim.status}`);
+  const opdrachten = (await claim.json()) as Uitnodiging[];
+
+  for (const opdracht of opdrachten) {
+    let accountId = opdracht.account_id;
+    let fout: string | null = null;
+    try {
+      if (!accountId) {
+        const gemaakt = await auth(db, 'admin/users', {
+          method: 'POST',
+          body: JSON.stringify({ email: opdracht.email, email_confirm: true }),
+        });
+        if (gemaakt.ok) accountId = ((await gemaakt.json()) as { id: string }).id;
+        else fout = `account_${gemaakt.status}`;
+      } else if (opdracht.account_email?.toLowerCase() !== opdracht.email) {
+        const gewijzigd = await auth(db, `admin/users/${accountId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ email: opdracht.email, email_confirm: true }),
+        });
+        if (!gewijzigd.ok) fout = `adres_${gewijzigd.status}`;
+      }
+      if (!fout) {
+        const mail = maakUitnodiging({
+          voornaam: opdracht.voornaam,
+          ondertekening: env.BERICHT_ONDERTEKENING ?? 'Het bestuur',
+          site: (env.SITE_URL ?? 'https://beringsekuus.crispy-concepts.nl').replace(/\/+$/, ''),
+          test: Boolean(env.BERICHT_TEST_ADRES),
+          metProef: false,
+        });
+        const antwoord = await fetch('https://api.postmarkapp.com/email', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json',
+            'x-postmark-server-token': POSTMARK_TOKEN,
+          },
+          body: JSON.stringify({
+            From: BERICHT_AFZENDER,
+            To: env.BERICHT_TEST_ADRES || opdracht.email,
+            Subject: mail.onderwerp,
+            TextBody: mail.tekst,
+            HtmlBody: mail.html,
+            MessageStream: 'outbound',
+            TrackOpens: false,
+            TrackLinks: 'None',
+          }),
+        });
+        if (!antwoord.ok) fout = `postmark_${antwoord.status}`;
+      }
+    } catch {
+      fout = 'onbereikbaar';
+    }
+    const afgerond = await supabase(db, 'rpc/uitnodiging_afronden', {
+      method: 'POST',
+      body: JSON.stringify({
+        p_id: opdracht.id,
+        p_status: fout ? 'wacht' : 'verstuurd',
+        p_auth_user_id: accountId,
+        p_fout: fout,
+      }),
+    });
+    if (!afgerond.ok) console.error(`uitnodigingen: vastleggen mislukt: ${afgerond.status}`);
+    if (fout) {
+      uitkomst.mislukt += 1;
+      console.error(`uitnodigingen: opdracht ${opdracht.id} mislukt: ${fout}`);
+    } else {
+      uitkomst.verstuurd += 1;
+    }
+  }
+  if (opdrachten.length > 0)
+    console.log(`uitnodigingen: ${uitkomst.verstuurd} verstuurd, ${uitkomst.mislukt} mislukt`);
+  return uitkomst;
+}
+
 const takenWorker = {
   async scheduled(_gebeurtenis: unknown, env: Omgeving): Promise<void> {
-    try {
-      await verstuurBerichten(env);
-    } catch (fout) {
-      // Alleen de soort fout, geen inhoud. Cloudflare toont de run dan als mislukt.
-      console.error(`berichten: run mislukt: ${fout instanceof Error ? fout.message : 'onbekend'}`);
-      throw fout;
+    // Twee onafhankelijke taken in één run: een storing in de ene houdt de andere niet tegen. Alleen de soort fout in de log, geen
+    // inhoud. Faalt er één, dan toont Cloudflare de run als mislukt.
+    let mislukt: unknown = null;
+    for (const [naam, taak] of [
+      ['berichten', () => verstuurBerichten(env)],
+      ['uitnodigingen', () => stuurUitnodigingen(env)],
+    ] as const) {
+      try {
+        await taak();
+      } catch (fout) {
+        console.error(`${naam}: run mislukt: ${fout instanceof Error ? fout.message : 'onbekend'}`);
+        mislukt = fout;
+      }
     }
+    if (mislukt) throw mislukt;
   },
 };
 
