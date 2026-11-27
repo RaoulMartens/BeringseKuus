@@ -69,9 +69,12 @@ export function Rolbezetting({
                   <li key={naam.lidId} className={stijl.naam}>
                     {naam.jij ? <strong>{naam.naam} (jij)</strong> : <span>{naam.naam}</span>}
                     {overnemen && !naam.jij && groep.rol !== 'eindverantwoordelijke' && (
-                      <Link href={overnemen(naam.lidId)} className={stijl.overnemen}>
+                      <Link
+                        href={overnemen(naam.lidId)}
+                        className={stijl.overnemen}
+                        aria-label={`Neem de dienst van ${naam.naam} over`}
+                      >
                         Neem over
-                        <span className={stijl.verborgen}> de dienst van {naam.naam}</span>
                       </Link>
                     )}
                     {groep.rol === 'eindverantwoordelijke' && telefoon && (
