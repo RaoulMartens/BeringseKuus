@@ -40,6 +40,11 @@ const Rij = z.object({
   doel_id: z.uuid().nullable(),
 });
 
+/** Een regel uit de database die technisch is, in woorden (het beheerspoor schrijft de oude en nieuwe tijd van de bevestiging als UTC-tekst). */
+export function leesbaar(omschrijving: string): string {
+  return /^beheerder_sinds /.test(omschrijving) ? 'Toegang van een beheerder bevestigd' : omschrijving;
+}
+
 /** Leest het antwoord van wijzigingen_lezen; een regel die niet klopt valt weg. */
 export function leesWijzigingen(json: unknown): Wijziging[] {
   const lijst = z.array(z.unknown()).safeParse(json);
@@ -53,7 +58,7 @@ export function leesWijzigingen(json: unknown): Wijziging[] {
       id: r.id,
       moment: r.moment,
       door: r.door,
-      omschrijving: r.omschrijving,
+      omschrijving: leesbaar(r.omschrijving),
       doel: r.doel_soort && r.doel_id ? { soort: r.doel_soort, id: r.doel_id } : null,
     });
   }

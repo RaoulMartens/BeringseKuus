@@ -89,7 +89,7 @@ export default async function LidPagina({ params }: { params: Promise<{ lidId: s
             <div>
               <dt>E-mailadres</dt>
               <dd>
-                {lid.email}
+                <span className={stijl.waarde}>{lid.email}</span>
                 {nogNietIngelogd && (
                   <span className={stijl.rijactie}>
                     <Knop href={`/beheer/leden/${lid.lidId}/adres`} soort="link">
@@ -107,7 +107,7 @@ export default async function LidPagina({ params }: { params: Promise<{ lidId: s
               <div>
                 <dt>Uitnodiging</dt>
                 <dd>
-                  {uitnodiging ?? 'Niet via het platform verstuurd'}
+                  <span className={stijl.waarde}>{uitnodiging ?? 'Niet via het platform verstuurd'}</span>
                   <span className={stijl.rijactie}>
                     <Knop href={`/beheer/leden/${lid.lidId}/uitnodigen`} soort="link">
                       Opnieuw sturen

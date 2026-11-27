@@ -83,7 +83,7 @@
 /* een regel per gegeven, met een lijn tussen de regels (zoals in het ontwerp); de namen staan in een vaste kolom onder elkaar */
 .gegevens > div {
   display: grid;
-  grid-template-columns: 8rem 1fr;
+  grid-template-columns: 8rem minmax(0, 1fr);
   gap: 24px;
   padding: 12px 0;
 }
@@ -105,9 +105,33 @@
   overflow-wrap: anywhere;
   /* een actie achter het gegeven staat aan het einde van de regel, onder elkaar op één lijn */
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 4px 12px;
+}
+
+/* de waarde mag krimpen en afbreken, zodat een lang adres de actie niet platdrukt: past de actie er niet naast, dan komt ze eronder */
+.waarde {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* een actie in een regel is een compacte tekstlink: de padding van een knop zou de regel hoger maken dan de naam ernaast */
+.rijactie a {
+  min-height: 0;
+  padding: 0;
+}
+
+.gegevens > div {
+  align-items: baseline;
+}
+
+@media (max-width: 700px) {
+  .gegevens > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
 }
 
 /* een lege kaart (geen komende diensten): de tekst staat binnen de opvulling van de kaart */
