@@ -31,6 +31,15 @@ export interface Lidregel {
   ooitIngelogd: boolean;
   accountSinds: string | null;
   inactiefSinds: string | null;
+  /** De laatste uitnodiging (leden_uitnodigingen); leeg als het platform er nog geen heeft gestuurd (bijvoorbeeld door de bouwer uitgenodigd). */
+  uitnodiging?: Uitnodiging | null;
+}
+
+export interface Uitnodiging {
+  /** Een uitnodiging, of een herinnering (een paar dagen later, aan wie nog niet is ingelogd). */
+  soort?: 'uitnodiging' | 'herinnering';
+  status: 'wacht' | 'verstuurd' | 'mislukt';
+  verstuurdOp: string | null;
 }
 
 /** Voornaam en achternaam als één naam; de achternaam mag leeg zijn. */
@@ -89,6 +98,18 @@ export function dagMaand(iso: string): string {
 
 /** De regel onder de naam bij "Vraagt aandacht": wat er aan de hand is. */
 export function aandachtRegel(lid: Lidregel): string {
+  const uitnodiging = lid.uitnodiging;
+  if (uitnodiging?.soort === 'herinnering') {
+    if (uitnodiging.status === 'wacht') return 'Nog niet ingelogd · herinnering wordt verstuurd';
+    if (uitnodiging.status === 'verstuurd' && uitnodiging.verstuurdOp) {
+      return `Nog niet ingelogd · herinnerd ${dagMaand(uitnodiging.verstuurdOp)}`;
+    }
+  }
+  if (uitnodiging?.status === 'wacht') return 'Nog niet ingelogd · uitnodiging wordt verstuurd';
+  if (uitnodiging?.status === 'mislukt') return 'Nog niet ingelogd · uitnodiging versturen is mislukt';
+  if (uitnodiging?.status === 'verstuurd' && uitnodiging.verstuurdOp) {
+    return `Nog niet ingelogd · uitgenodigd ${dagMaand(uitnodiging.verstuurdOp)}`;
+  }
   return lid.accountSinds
     ? `Nog niet ingelogd · account sinds ${dagMaand(lid.accountSinds)}`
     : 'Nog niet ingelogd';
@@ -103,6 +124,22 @@ export function groepenRegel(lid: Pick<Lidregel, 'groepen' | 'isBeheerder'>): st
 /** De regel in de lijst met inactieve leden: sinds wanneer, als dat bekend is. */
 export function inactiefRegel(lid: Lidregel): string {
   return lid.inactiefSinds ? `Inactief sinds ${dagMaand(lid.inactiefSinds)}` : 'Inactief';
+}
+
+/** Wat de kaart Gegevens zegt over de uitnodiging van een lid; null als er (nog) niets te zeggen is. */
+export function uitnodigingTekst(uitnodiging: Uitnodiging | null | undefined): string | null {
+  if (!uitnodiging) return null;
+  if (uitnodiging.soort === 'herinnering') {
+    if (uitnodiging.status === 'wacht') return 'Herinnering wordt verstuurd';
+    if (uitnodiging.status === 'verstuurd') {
+      return uitnodiging.verstuurdOp
+        ? `Herinnering verstuurd op ${dagMaand(uitnodiging.verstuurdOp)}`
+        : 'Herinnering verstuurd';
+    }
+  }
+  if (uitnodiging.status === 'wacht') return 'Wordt verstuurd';
+  if (uitnodiging.status === 'mislukt') return 'Versturen is mislukt: stuur hem opnieuw';
+  return uitnodiging.verstuurdOp ? `Verstuurd op ${dagMaand(uitnodiging.verstuurdOp)}` : 'Verstuurd';
 }
 
 // ===== één lid =====
@@ -221,6 +258,8 @@ export function wijzigingenTekst(aantal: number): string {
 
 export interface Ledenfout {
   tekst: string;
+  /** Bij email_bestaat: het lid dat dit adres al heeft. */
+  bestaand?: { lidId: string; naam: string; actief: boolean };
   /** Bij dienst_blokkeert: de activiteiten waar het lid een plek heeft. */
   activiteiten?: { naam: string; datum: string }[];
 }
@@ -244,6 +283,37 @@ export function vertaalLedenfout(code: string, detail?: unknown): Ledenfout {
       return { tekst: 'Kies minstens één groep: een lid zonder groep ziet geen enkele activiteit.' };
     case 'groep_onbekend':
       return { tekst: 'Een van de gekozen groepen bestaat niet (meer). Open de pagina opnieuw.' };
+    case 'email_bestaat': {
+      const gelezen = z.object({ lid_id: z.uuid(), naam: z.string(), actief: z.boolean() }).safeParse(detail);
+      if (!gelezen.success) return { tekst: 'Dit e-mailadres hoort al bij een lid.' };
+      return {
+        tekst: `Dit e-mailadres hoort al bij ${gelezen.data.naam}.`,
+        bestaand: { lidId: gelezen.data.lid_id, naam: gelezen.data.naam, actief: gelezen.data.actief },
+      };
+    }
+    case 'email_ongeldig':
+      return { tekst: 'Dit e-mailadres klopt niet. Controleer het: er moet een @ en een punt in staan.' };
+    case 'veld_ontbreekt':
+      return { tekst: 'Vul voornaam, achternaam en e-mailadres in.' };
+    case 'veld_ongeldig':
+      return { tekst: 'Een naam is te lang (hooguit 100 tekens).' };
+    case 'al_ingelogd':
+      return {
+        tekst:
+          'Dit lid is al ingelogd. Het e-mailadres kun je dan niet meer wijzigen en een uitnodiging is niet nodig.',
+      };
+    case 'te_snel':
+      return {
+        tekst: 'Er is net al een uitnodiging verstuurd. Wacht even tot het over tien minuten nog eens kan.',
+      };
+    case 'lid_inactief':
+      return { tekst: 'Dit lid is inactief. Maak het eerst weer actief.' };
+    case 'adres_ongewijzigd':
+      return { tekst: 'Dit is hetzelfde e-mailadres als nu. Er is niets gewijzigd.' };
+    case 'import_fout':
+      return { tekst: 'Er staat een regel in het bestand die niet klopt. Er is niemand toegevoegd.' };
+    case 'te_veel_regels':
+      return { tekst: 'Er staan te veel regels in het bestand (hooguit 200). Er is niemand toegevoegd.' };
     case 'dienst_blokkeert': {
       const lijst = leesBlokkade(detail);
       return {
@@ -266,10 +336,18 @@ function leesBlokkade(detail: unknown): { naam: string; datum: string }[] {
 
 // ===== meldingen =====
 
-export type LedenHandeling = 'inactief' | 'actief' | 'opgeslagen';
+export type LedenHandeling =
+  'inactief' | 'actief' | 'opgeslagen' | 'toegevoegd' | 'uitgenodigd' | 'geimporteerd';
 
 export function isLedenHandeling(waarde: unknown): waarde is LedenHandeling {
-  return waarde === 'inactief' || waarde === 'actief' || waarde === 'opgeslagen';
+  return (
+    waarde === 'inactief' ||
+    waarde === 'actief' ||
+    waarde === 'opgeslagen' ||
+    waarde === 'toegevoegd' ||
+    waarde === 'uitgenodigd' ||
+    waarde === 'geimporteerd'
+  );
 }
 
 /** De melding na een handeling, in de woorden van de knop: een vette zin en een vervolg. */
@@ -294,5 +372,22 @@ export function ledenMelding(
       };
     case 'opgeslagen':
       return { vet: `De wijzigingen voor ${naam} zijn opgeslagen.`, vervolg: '' };
+    case 'toegevoegd':
+      return {
+        vet: `${naam} is toegevoegd.`,
+        vervolg:
+          'De uitnodiging gaat binnen een minuut per mail. Tot het lid voor het eerst is ingelogd, staat het onder Vraagt aandacht.',
+      };
+    case 'uitgenodigd':
+      return {
+        vet: `${naam} is uitgenodigd.`,
+        vervolg: 'De mail gaat binnen een minuut naar het adres van het lid.',
+      };
+    case 'geimporteerd':
+      return {
+        vet: plekkenOpen === 1 ? '1 lid is toegevoegd.' : `${plekkenOpen} leden zijn toegevoegd.`,
+        vervolg:
+          'De uitnodigingen gaan binnen een paar minuten weg. Wie nog niet is ingelogd, staat onder Vraagt aandacht.',
+      };
   }
 }

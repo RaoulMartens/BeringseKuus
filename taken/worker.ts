@@ -15,6 +15,7 @@
 // Geen fetch-handler: deze Worker heeft geen adres (workers_dev staat uit in taken/wrangler.jsonc). In de logs staan alleen
 // aantallen en foutcodes, geen namen, adressen of berichttekst.
 
+import { maakHerinnering, maakUitnodiging } from '../scripts/uitnodiging.ts';
 import {
   groepeer,
   inStukken,
@@ -95,6 +96,26 @@ export interface Uitkomst {
   verstuurd: number;
   mislukt: number;
   overgeslagen: number;
+}
+
+/** De nachtelijke taak (taken/wrangler.jsonc, 03:00 UTC): oud papier voor de komende 12 maanden als concept aanmaken (UC-014). */
+export const OUD_PAPIER_CRON = '0 3 * * *';
+
+/** Roept `oud_papier_aanmaken` aan; de database bepaalt wat er ontbreekt en maakt nooit dubbel. Geeft het aantal nieuwe concepten. */
+export async function maakOudPapier(env: Omgeving): Promise<number> {
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY } = env;
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    console.log('oud papier: geheimen ontbreken, niets aangemaakt');
+    return 0;
+  }
+  const antwoord = await supabase({ SUPABASE_URL, SUPABASE_SECRET_KEY }, 'rpc/oud_papier_aanmaken', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  if (!antwoord.ok) throw new Error(`oud papier aanmaken mislukt: ${antwoord.status}`);
+  const aantal = Number(await antwoord.json());
+  console.log(`oud papier: ${aantal} concepten aangemaakt`);
+  return aantal;
 }
 
 export async function verstuurBerichten(env: Omgeving, nu: Date = new Date()): Promise<Uitkomst> {
@@ -240,15 +261,168 @@ async function stuur(
   }
 }
 
-const takenWorker = {
-  async scheduled(_gebeurtenis: unknown, env: Omgeving): Promise<void> {
+interface Uitnodiging {
+  id: number;
+  lid_id: string;
+  soort: 'uitnodiging' | 'herinnering';
+  voornaam: string;
+  email: string;
+  account_id: string | null;
+  account_email: string | null;
+}
+
+export interface UitnodigingUitkomst {
+  verstuurd: number;
+  mislukt: number;
+}
+
+async function auth(db: Db, pad: string, init: RequestInit): Promise<Response> {
+  return fetch(`${db.SUPABASE_URL.replace(/\/+$/, '')}/auth/v1/${pad}`, {
+    ...init,
+    headers: {
+      'content-type': 'application/json',
+      apikey: db.SUPABASE_SECRET_KEY,
+      authorization: `Bearer ${db.SUPABASE_SECRET_KEY}`,
+    },
+  });
+}
+
+/**
+ * Leden die in de app zijn toegevoegd (of een nieuw adres kregen) krijgen hier hun inlogaccount en de uitnodiging (BA-11). De app
+ * kan geen account maken (de geheime sleutel hoort alleen hier). Per opdracht: het account aanmaken, of het nieuwe adres zetten als
+ * dat niet meer klopt; dan de mail; dan het resultaat vastleggen. Een fout laat de opdracht staan voor een volgende run (tot vijf
+ * pogingen); één mislukte opdracht stopt de rest niet.
+ */
+export async function stuurUitnodigingen(env: Omgeving): Promise<UitnodigingUitkomst> {
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY, POSTMARK_TOKEN, BERICHT_AFZENDER } = env;
+  const uitkomst: UitnodigingUitkomst = { verstuurd: 0, mislukt: 0 };
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !POSTMARK_TOKEN || !BERICHT_AFZENDER) {
+    console.log('uitnodigingen: geheimen of afzender ontbreken, niets verstuurd');
+    return uitkomst;
+  }
+  const db: Db = { SUPABASE_URL, SUPABASE_SECRET_KEY };
+  const claim = await supabase(db, 'rpc/claim_uitnodigingen', {
+    method: 'POST',
+    body: JSON.stringify({ p_max: 20 }),
+  });
+  if (!claim.ok) throw new Error(`uitnodigingen oppakken mislukt: ${claim.status}`);
+  const opdrachten = (await claim.json()) as Uitnodiging[];
+
+  for (const opdracht of opdrachten) {
+    let accountId = opdracht.account_id;
+    let fout: string | null = null;
     try {
-      await verstuurBerichten(env);
-    } catch (fout) {
-      // Alleen de soort fout, geen inhoud. Cloudflare toont de run dan als mislukt.
-      console.error(`berichten: run mislukt: ${fout instanceof Error ? fout.message : 'onbekend'}`);
-      throw fout;
+      if (!accountId) {
+        const gemaakt = await auth(db, 'admin/users', {
+          method: 'POST',
+          body: JSON.stringify({ email: opdracht.email, email_confirm: true }),
+        });
+        if (gemaakt.ok) accountId = ((await gemaakt.json()) as { id: string }).id;
+        else fout = `account_${gemaakt.status}`;
+      } else if (opdracht.account_email?.toLowerCase() !== opdracht.email) {
+        const gewijzigd = await auth(db, `admin/users/${accountId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ email: opdracht.email, email_confirm: true }),
+        });
+        if (!gewijzigd.ok) fout = `adres_${gewijzigd.status}`;
+      }
+      if (!fout) {
+        const maak = opdracht.soort === 'herinnering' ? maakHerinnering : maakUitnodiging;
+        const mail = maak({
+          voornaam: opdracht.voornaam,
+          ondertekening: env.BERICHT_ONDERTEKENING ?? 'Het bestuur',
+          site: (env.SITE_URL ?? 'https://beringsekuus.crispy-concepts.nl').replace(/\/+$/, ''),
+          test: Boolean(env.BERICHT_TEST_ADRES),
+          ...(opdracht.soort === 'herinnering' ? {} : { metProef: false }),
+        });
+        const antwoord = await fetch('https://api.postmarkapp.com/email', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json',
+            'x-postmark-server-token': POSTMARK_TOKEN,
+          },
+          body: JSON.stringify({
+            From: BERICHT_AFZENDER,
+            To: env.BERICHT_TEST_ADRES || opdracht.email,
+            Subject: mail.onderwerp,
+            TextBody: mail.tekst,
+            HtmlBody: mail.html,
+            MessageStream: 'outbound',
+            TrackOpens: false,
+            TrackLinks: 'None',
+          }),
+        });
+        if (!antwoord.ok) fout = `postmark_${antwoord.status}`;
+      }
+    } catch {
+      fout = 'onbereikbaar';
     }
+    const afgerond = await supabase(db, 'rpc/uitnodiging_afronden', {
+      method: 'POST',
+      body: JSON.stringify({
+        p_id: opdracht.id,
+        p_status: fout ? 'wacht' : 'verstuurd',
+        p_auth_user_id: accountId,
+        p_fout: fout,
+      }),
+    });
+    if (!afgerond.ok) console.error(`uitnodigingen: vastleggen mislukt: ${afgerond.status}`);
+    if (fout) {
+      uitkomst.mislukt += 1;
+      console.error(`uitnodigingen: opdracht ${opdracht.id} mislukt: ${fout}`);
+    } else {
+      uitkomst.verstuurd += 1;
+    }
+  }
+  if (opdrachten.length > 0)
+    console.log(`uitnodigingen: ${uitkomst.verstuurd} verstuurd, ${uitkomst.mislukt} mislukt`);
+  return uitkomst;
+}
+
+/** De nachtelijke taak (taken/wrangler.jsonc, 07:00 UTC): leden die na de uitnodiging nog niet zijn ingelogd een herinnering laten sturen. */
+export const HERINNERING_CRON = '0 7 * * *';
+
+/** Zet de herinneringen klaar (de database bepaalt wie: 3 en 7 dagen na de uitnodiging, hooguit twee); de uitnodigingstaak verstuurt ze. Geeft het aantal. */
+export async function zetHerinneringenKlaar(env: Omgeving): Promise<number> {
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY } = env;
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    console.log('herinneringen: geheimen ontbreken, niets klaargezet');
+    return 0;
+  }
+  const antwoord = await supabase({ SUPABASE_URL, SUPABASE_SECRET_KEY }, 'rpc/herinneringen_klaarzetten', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+  if (!antwoord.ok) throw new Error(`herinneringen klaarzetten mislukt: ${antwoord.status}`);
+  const aantal = Number(await antwoord.json());
+  console.log(`herinneringen: ${aantal} klaargezet`);
+  return aantal;
+}
+
+const takenWorker = {
+  async scheduled(gebeurtenis: { cron?: string }, env: Omgeving): Promise<void> {
+    // Twee onafhankelijke taken in één run: een storing in de ene houdt de andere niet tegen. Alleen de soort fout in de log, geen
+    // inhoud. Faalt er één, dan toont Cloudflare de run als mislukt.
+    let mislukt: unknown = null;
+    const taken =
+      gebeurtenis.cron === HERINNERING_CRON
+        ? ([['herinneringen', () => zetHerinneringenKlaar(env)]] as const)
+        : gebeurtenis.cron === OUD_PAPIER_CRON
+          ? ([['oud papier', () => maakOudPapier(env)]] as const)
+          : ([
+              ['berichten', () => verstuurBerichten(env)],
+              ['uitnodigingen', () => stuurUitnodigingen(env)],
+            ] as const);
+    for (const [naam, taak] of taken) {
+      try {
+        await taak();
+      } catch (fout) {
+        console.error(`${naam}: run mislukt: ${fout instanceof Error ? fout.message : 'onbekend'}`);
+        mislukt = fout;
+      }
+    }
+    if (mislukt) throw mislukt;
   },
 };
 

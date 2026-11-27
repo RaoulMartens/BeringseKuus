@@ -10,6 +10,7 @@ import { Melding } from '@/components/melding/melding';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { Statuslabel } from '@/components/statuslabel/statuslabel';
 import { Tellers } from '@/components/tellers/tellers';
+import { Verdelingsraster } from '@/components/verdelingsraster/verdelingsraster';
 import { eisBeheer } from '@/lib/beheer';
 import {
   groepeerRegels,
@@ -24,12 +25,14 @@ import { aantalTeBevestigen, ingangTekst } from '@/lib/beheerders';
 import { ledenIngangTekst, maakLedenoverzicht } from '@/lib/leden';
 import { huidigeGebruiker } from '@/lib/gebruiker';
 import { dagTekst, maandKort, vandaagInNederland } from '@/lib/programma';
+import { maakVerdeling } from '@/lib/verdeling';
 import { naamUitLog } from '@/lib/verwijderen';
 import { maakSupabase } from '@/lib/supabase/server';
 
 import { leesZelfNietZichtbaar } from './activiteiten/gegevens';
 import { leesBeheerderslijst } from './beheerders/gegevens';
 import { leesLedenlijst } from './leden/gegevens';
+import { leesDiensten, leesHuidigSeizoen, leesVerdelingsleden } from './verdeling/gegevens';
 import stijl from './beheer.module.css';
 import { Beheerreeks } from './reeks';
 
@@ -169,6 +172,8 @@ export default async function Beheer({
     aangemaakt?: string | string[];
     reekswijzigd?: string | string[];
     reekspubliceerd?: string | string[];
+    /** Voor de browsertests: het beginjaar van een ander seizoen voor "Wie is aan de beurt?"; staat niet in het scherm. */
+    seizoen?: string | string[];
   }>;
 }) {
   await eisBeheer();
@@ -186,6 +191,16 @@ export default async function Beheer({
   const supabase = await maakSupabase();
   const teBevestigen = aantalTeBevestigen(await leesBeheerderslijst(supabase));
   const nogNietIngelogd = maakLedenoverzicht(await leesLedenlijst(supabase)).aandacht.length;
+
+  // "Wie is aan de beurt?" (UC-012): alle leden met hun aantal diensten dit seizoen, de minste eerst. Het systeem telt en laat zien;
+  // het bestuur beslist. `?seizoen=` is er voor een ander seizoen (de browsertests), maar staat niet in het scherm.
+  const gevraagdSeizoen = z.coerce.number().int().min(2000).max(2100).safeParse(parameters.seizoen);
+  const seizoen = gevraagdSeizoen.success ? gevraagdSeizoen.data : await leesHuidigSeizoen(supabase);
+  const [verdelingsleden, verdelingsdiensten] = await Promise.all([
+    leesVerdelingsleden(supabase),
+    leesDiensten(supabase, seizoen),
+  ]);
+  const verdeling = maakVerdeling(verdelingsleden, verdelingsdiensten);
 
   // De rijen komen uit de database (public.beheeroverzicht(), alleen voor een beheerder met een code); de tijd van de
   // activiteit komt uit activiteiten. Wat een regel wil zeggen, maakt src/lib/beheeroverzicht.ts.
@@ -270,6 +285,7 @@ export default async function Beheer({
         <>
           <Aanmaken />
           <Ledenbeheerkaart nogNietIngelogd={nogNietIngelogd} teBevestigen={teBevestigen} />
+          {verdelingsleden.length > 0 && <Verdelingsraster verdeling={verdeling} />}
         </>
       }
     >

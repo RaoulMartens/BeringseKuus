@@ -1,4 +1,4 @@
-// Het raster van "Wie is aan de beurt?" (UC-012): hetzelfde bolletje met initialen als "Wie komt er?", met het aantal diensten als klein
+// Het raster van "Wie is aan de beurt?" (UC-012), een kaart op het beheeroverzicht, zonder uitleg: hetzelfde bolletje met initialen als "Wie komt er?", met het aantal diensten als klein
 // getal erop. Gestippeld = nog geen dienst, licht = één of twee, donker = drie of meer; de trap staat naast het getal, zodat kleur niet
 // het enige signaal is. De naam met het aantal staat bij hover en focus (data-naam) en voor een schermlezer (aria-label); het bolletje is
 // focusbaar zodat het ook met het toetsenbord en door te tikken werkt.
@@ -9,22 +9,14 @@ import stijl from './verdelingsraster.module.css';
 
 interface Eigenschappen {
   verdeling: Verdeling;
-  /** "Vastelaovend 2026/2027" */
-  seizoen: string;
 }
 
 const KLASSE = { geen: stijl.geen, weinig: undefined, veel: stijl.veel } as const;
 
-export function Verdelingsraster({ verdeling, seizoen }: Eigenschappen) {
+export function Verdelingsraster({ verdeling }: Eigenschappen) {
   return (
     <section className={stijl.kaart} aria-label="Alle leden en hun diensten dit seizoen">
-      <h2 className={stijl.label}>
-        Alle leden <span aria-hidden="true">&middot;</span> {verdeling.rijen.length}
-      </h2>
-      <p className={stijl.uitleg}>
-        {seizoen}, de minste diensten eerst. Het getal op een bolletje is het aantal diensten; de naam staat
-        erbij.
-      </p>
+      <h2 className={stijl.label}>Wie is aan de beurt?</h2>
       <ul className={stijl.leden}>
         {verdeling.rijen.map((rij) => (
           <li

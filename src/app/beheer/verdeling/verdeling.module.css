@@ -1,6 +1,0 @@
-/* "Wie is aan de beurt?" (UC-012): het raster zelf staat in components/verdelingsraster. */
-.leeg {
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--neutraal-tekst-zacht);
-}

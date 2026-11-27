@@ -3,14 +3,15 @@ import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { Kaart } from '@/components/kaart/kaart';
+import { Knop } from '@/components/knop/knop';
 import { Lijst, Lijstrij } from '@/components/lijst/lijst';
 import { Schermkader } from '@/components/schermkader/schermkader';
 import { eisBeheer } from '@/lib/beheer';
-import { dienstRegel, ingelogdTekst } from '@/lib/leden';
+import { dienstRegel, ingelogdTekst, uitnodigingTekst } from '@/lib/leden';
 import { korteDatum } from '@/lib/programma';
 import { maakSupabase } from '@/lib/supabase/server';
 
-import { leesLidBeheer } from '../gegevens';
+import { leesLidBeheer, leesUitnodigingen } from '../gegevens';
 import stijl from '../leden.module.css';
 import { Lidformulier, Lidpaneel, Lidscherm } from './lidstaat';
 
@@ -30,6 +31,10 @@ export default async function LidPagina({ params }: { params: Promise<{ lidId: s
   if (!lid) notFound();
   if (!lid.actief) redirect(`/beheer/leden/${lid.lidId}/actief`);
 
+  const nogNietIngelogd = lid.laatstIngelogd === null;
+  const uitnodiging = nogNietIngelogd
+    ? uitnodigingTekst((await leesUitnodigingen(await maakSupabase())).get(lid.lidId))
+    : null;
   const kanInactief = !lid.isBeheerder && !lid.isIk;
   const reden = lid.isIk
     ? 'Jezelf zet je niet op inactief.'
@@ -83,15 +88,39 @@ export default async function LidPagina({ params }: { params: Promise<{ lidId: s
           <dl className={stijl.gegevens}>
             <div>
               <dt>E-mailadres</dt>
-              <dd>{lid.email}</dd>
+              <dd>
+                {lid.email}
+                {nogNietIngelogd && (
+                  <span className={stijl.rijactie}>
+                    <Knop href={`/beheer/leden/${lid.lidId}/adres`} soort="link">
+                      Corrigeren
+                    </Knop>
+                  </span>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Ingelogd</dt>
               <dd>{ingelogdTekst(lid.laatstIngelogd)}</dd>
             </div>
+            {nogNietIngelogd && (
+              <div>
+                <dt>Uitnodiging</dt>
+                <dd>
+                  {uitnodiging ?? 'Niet via het platform verstuurd'}
+                  <span className={stijl.rijactie}>
+                    <Knop href={`/beheer/leden/${lid.lidId}/uitnodigen`} soort="link">
+                      Opnieuw sturen
+                    </Knop>
+                  </span>
+                </dd>
+              </div>
+            )}
           </dl>
           <p className={stijl.hulp}>
-            Het e-mailadres kun je hier niet wijzigen: dat is waarmee {lid.voornaam} inlogt.
+            {nogNietIngelogd
+              ? `Zolang ${lid.voornaam} nog nooit is ingelogd kun je het e-mailadres corrigeren, bijvoorbeeld bij een typfout. Daarna niet meer: dat is waarmee ${lid.voornaam} inlogt.`
+              : `Het e-mailadres kun je hier niet wijzigen: dat is waarmee ${lid.voornaam} inlogt.`}
           </p>
         </Kaart>
         <Lidformulier

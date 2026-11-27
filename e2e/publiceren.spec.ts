@@ -91,8 +91,8 @@ test('Publiceren vraagt eerst een bevestiging; Annuleren laat het concept staan,
   await expect(page.getByText('Terugzetten naar concept kan hierna niet meer.')).toBeVisible();
   // Zonder doelgroep ziet iedereen de activiteit, de beheerder ook: dan geen waarschuwing.
   await expect(page.getByText(/Jij zit zelf niet in/)).toHaveCount(0);
-  // Er is niemand een bericht beloofd: dat gaat in deze versie nog niet uit.
-  await expect(page.getByText('Berichten naar leden gaan in deze versie nog niet uit.')).toBeVisible();
+  // Wie al een plek heeft, krijgt een mail.
+  await expect(page.getByText('Wie al een plek heeft, krijgt een mail.')).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(WCAG).analyze()).violations).toEqual([]);
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),

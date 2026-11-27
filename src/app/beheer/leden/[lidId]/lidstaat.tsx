@@ -116,7 +116,7 @@ export function Lidformulier({
         <Aankruislijst
           naam="aanmerking"
           legenda="Bijzondere rollen"
-          uitleg="Wie dit niet mag, kun je bij het indelen toch kiezen. Er staat dan “nog niet aangemerkt” bij de naam."
+          uitleg="Wie dit niet mag, kun je bij het indelen toch kiezen. Er staat dan “niet aangemerkt” bij de naam."
           opties={AANMERKINGEN.map((a) => ({ waarde: a.waarde, label: a.label }))}
           gekozen={begin.aanmerkingen}
           vast

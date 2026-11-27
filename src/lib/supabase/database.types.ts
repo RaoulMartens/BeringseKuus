@@ -491,6 +491,98 @@ export type Database = {
           },
         ];
       };
+      lid_uitnodigingen: {
+        Row: {
+          aangemaakt: string;
+          claim_tot: string | null;
+          door_lid_id: string | null;
+          fout: string | null;
+          id: number;
+          lid_id: string;
+          pogingen: number;
+          soort: string;
+          status: string;
+          vereniging_id: string;
+          verstuurd_op: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          aangemaakt?: string;
+          claim_tot?: string | null;
+          door_lid_id?: string | null;
+          fout?: string | null;
+          id?: never;
+          lid_id: string;
+          pogingen?: number;
+          soort?: string;
+          status?: string;
+          vereniging_id?: string;
+          verstuurd_op?: string | null;
+        };
+        Update: {
+          aangemaakt?: string;
+          claim_tot?: string | null;
+          door_lid_id?: string | null;
+          fout?: string | null;
+          id?: never;
+          lid_id?: string;
+          pogingen?: number;
+          soort?: string;
+          status?: string;
+          vereniging_id?: string;
+          verstuurd_op?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'lid_uitnodigingen_door_lid_id_fkey';
+            columns: ['door_lid_id'];
+            isOneToOne: false;
+            referencedRelation: 'leden';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'lid_uitnodigingen_lid_id_fkey';
+            columns: ['lid_id'];
+            isOneToOne: false;
+            referencedRelation: 'leden';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'lid_uitnodigingen_vereniging_id_fkey';
+            columns: ['vereniging_id'];
+            isOneToOne: false;
+            referencedRelation: 'verenigingen';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      oud_papier_aangemaakt: {
+        Row: {
+          aangemaakt: string;
+          datum: string;
+          vereniging_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          aangemaakt?: string;
+          datum: string;
+          vereniging_id?: string;
+        };
+        Update: {
+          aangemaakt?: string;
+          datum?: string;
+          vereniging_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'oud_papier_aangemaakt_vereniging_id_fkey';
+            columns: ['vereniging_id'];
+            isOneToOne: false;
+            referencedRelation: 'verenigingen';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       rol_slots: {
         Row: {
           activiteit_id: string;
@@ -891,6 +983,18 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      claim_uitnodigingen: {
+        Args: { p_claim_minuten?: number; p_max?: number };
+        Returns: {
+          account_email: string;
+          account_id: string;
+          email: string;
+          id: number;
+          lid_id: string;
+          soort: string;
+          voornaam: string;
+        }[];
+      };
       concept_verwijderen: { Args: { p_activiteit_id: string }; Returns: Json };
       contact_eindverantwoordelijke: {
         Args: { p_activiteit: string };
@@ -900,6 +1004,7 @@ export type Database = {
           voornaam: string;
         }[];
       };
+      herinneringen_klaarzetten: { Args: { p_na_dagen?: number }; Returns: number };
       huidig_seizoen: { Args: Record<PropertyKey, never>; Returns: number };
       leden_beheer_lijst: {
         Args: Record<PropertyKey, never>;
@@ -915,7 +1020,19 @@ export type Database = {
           voornaam: string;
         }[];
       };
+      leden_importeren: { Args: { p_proef?: boolean; p_regels: Json }; Returns: Json };
+      leden_uitnodigingen: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          aangemaakt: string;
+          lid_id: string;
+          soort: string;
+          status: string;
+          verstuurd_op: string;
+        }[];
+      };
       lid_actief_zetten: { Args: { p_lid_id: string }; Returns: Json };
+      lid_adres_corrigeren: { Args: { p_email: string; p_lid_id: string }; Returns: Json };
       lid_beheer_lezen: { Args: { p_lid_id: string }; Returns: Json };
       lid_inactief_zetten: { Args: { p_lid_id: string }; Returns: Json };
       lid_opslaan: {
@@ -928,9 +1045,27 @@ export type Database = {
         };
         Returns: Json;
       };
+      lid_toevoegen: {
+        Args: {
+          p_achternaam: string;
+          p_email: string;
+          p_groepen: string[];
+          p_mag_bob?: boolean;
+          p_mag_eindverantw?: boolean;
+          p_telefoon: string;
+          p_voornaam: string;
+        };
+        Returns: Json;
+      };
+      lid_uitnodiging_opnieuw: { Args: { p_lid_id: string }; Returns: Json };
       meld_af: { Args: { p_activiteit_id: string; p_toelichting?: string }; Returns: Json };
+      oud_papier_aanmaken: { Args: { p_maanden?: number; p_vandaag?: string }; Returns: number };
       ruil_dienst: { Args: { p_rol_slot_id: string; p_vervanger_id: string }; Returns: Json };
       trek_afmelding_in: { Args: { p_activiteit_id: string }; Returns: Json };
+      uitnodiging_afronden: {
+        Args: { p_auth_user_id?: string; p_fout?: string; p_id: number; p_status: string };
+        Returns: undefined;
+      };
       wie_komt_er: {
         Args: { p_activiteit_id: string };
         Returns: {
